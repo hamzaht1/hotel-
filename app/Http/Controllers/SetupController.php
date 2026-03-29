@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Mail\SetupOtpMail;
+use App\Models\Plan;
+use App\Models\Template;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -22,19 +24,22 @@ class SetupController extends Controller
         syncLangFiles('messages');
         return Inertia::render('public/setup/Plan', [
             'setup' => session('setup', []),
+            'plans' => Plan::where('is_active', true)->orderBy('sort_order')->get(),
         ]);
     }
 
     public function storePlan(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'plan_key' => 'required|string|in:starter,premium,growth',
-            'plan_name' => 'required|string|max:100',
+            'plan_id' => 'required|exists:plans,id',
         ]);
 
+        $plan = Plan::findOrFail($data['plan_id']);
+
         $setup = session('setup', []);
-        $setup['plan_key'] = $data['plan_key'];
-        $setup['plan_name'] = $data['plan_name'];
+        $setup['plan_id'] = $plan->id;
+        $setup['plan_key'] = $plan->slug;
+        $setup['plan_name'] = $plan->name_ar;
         session(['setup' => $setup]);
 
         return redirect()->route('setup.template');
@@ -47,6 +52,7 @@ class SetupController extends Controller
         syncLangFiles('messages');
         return Inertia::render('public/setup/Template', [
             'setup' => session('setup', []),
+            'dbTemplates' => Template::where('is_active', true)->orderBy('sort_order')->get(['id', 'key', 'name_ar', 'name_en', 'description_ar', 'description_en', 'preview_image']),
         ]);
     }
 
@@ -276,6 +282,7 @@ class SetupController extends Controller
             'subdomain' => $setup['slug'],
             'template' => $this->resolveTemplateSlug($setup['template_id'] ?? 'madina'),
             'email' => $setup['email'],
+            'plan_id' => $setup['plan_id'] ?? null,
             'plan' => $setup['plan_key'] ?? 'basic',
             'is_active' => false, // Inactive until admin approves
             'payment_status' => 'pending',

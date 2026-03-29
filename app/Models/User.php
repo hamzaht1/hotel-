@@ -17,6 +17,7 @@ class User extends Authenticatable
         'password',
         'tenant_id',
         'role',
+        'role_id',
         'otp_code',
         'otp_expires_at',
         'otp_verified',
@@ -40,6 +41,11 @@ class User extends Authenticatable
         return $this->belongsTo(Tenant::class);
     }
 
+    public function roleModel(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';
@@ -48,5 +54,39 @@ class User extends Authenticatable
     public function isClientAdmin(): bool
     {
         return $this->role === 'client_admin';
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['super_admin', 'client_admin']);
+    }
+
+    public function hasPermission(string $key): bool
+    {
+        // Admins have all permissions (backward compat)
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $role = $this->roleModel;
+        if (!$role) {
+            return false;
+        }
+
+        return $role->hasPermission($key);
+    }
+
+    public function getPermissions(): array
+    {
+        if ($this->isAdmin()) {
+            return Permission::pluck('key')->toArray();
+        }
+
+        $role = $this->roleModel;
+        if (!$role) {
+            return [];
+        }
+
+        return $role->permissions()->pluck('key')->toArray();
     }
 }

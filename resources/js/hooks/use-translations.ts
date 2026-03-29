@@ -201,6 +201,37 @@ const translations: Record<string, Record<string, string>> = {
     'confirm_password': { ar: 'تأكيد كلمة المرور', en: 'Confirm password' },
     'save_password': { ar: 'حفظ كلمة المرور', en: 'Save password' },
     'appearance_desc': { ar: 'تحديث إعدادات مظهر حسابك', en: "Update your account's appearance settings" },
+
+    // === STAFF ===
+    'staff': { ar: 'الموظفون', en: 'Staff' },
+    'manage_staff': { ar: 'إدارة الموظفين', en: 'Manage Staff' },
+    'add_staff': { ar: 'إضافة موظف', en: 'Add Staff' },
+    'create_staff': { ar: 'إنشاء موظف جديد', en: 'Create Staff' },
+    'edit_staff': { ar: 'تعديل الموظف', en: 'Edit Staff' },
+    'staff_info': { ar: 'معلومات الموظف', en: 'Staff Information' },
+    'search_staff': { ar: 'البحث في الموظفين...', en: 'Search staff...' },
+    'no_staff_found': { ar: 'لم يتم العثور على موظفين', en: 'No staff found' },
+    'confirm_delete_staff': { ar: 'هل أنت متأكد من حذف هذا الموظف؟', en: 'Are you sure you want to delete this staff member?' },
+    'all_roles': { ar: 'جميع الأدوار', en: 'All Roles' },
+
+    // === ROLES & PERMISSIONS ===
+    'roles': { ar: 'الأدوار', en: 'Roles' },
+    'roles_permissions': { ar: 'الأدوار والصلاحيات', en: 'Roles & Permissions' },
+    'add_role': { ar: 'إضافة دور', en: 'Add Role' },
+    'create_role': { ar: 'إنشاء دور جديد', en: 'Create Role' },
+    'edit_role': { ar: 'تعديل الدور', en: 'Edit Role' },
+    'role_name_ar': { ar: 'اسم الدور (عربي)', en: 'Role Name (Arabic)' },
+    'role_name_en': { ar: 'اسم الدور (إنجليزي)', en: 'Role Name (English)' },
+    'role_key': { ar: 'مفتاح الدور', en: 'Role Key' },
+    'permissions': { ar: 'الصلاحيات', en: 'Permissions' },
+    'system_role': { ar: 'دور أساسي', en: 'System Role' },
+    'custom_role': { ar: 'دور مخصص', en: 'Custom Role' },
+    'users_count': { ar: 'عدد المستخدمين', en: 'Users Count' },
+    'cannot_edit_system_role': { ar: 'لا يمكن تعديل الأدوار الأساسية', en: 'Cannot edit system roles' },
+    'cannot_delete_role_with_users': { ar: 'لا يمكن حذف دور مرتبط بموظفين', en: 'Cannot delete role with assigned users' },
+    'select_role': { ar: 'اختر الدور', en: 'Select Role' },
+    'role': { ar: 'الدور', en: 'Role' },
+    'password': { ar: 'كلمة المرور', en: 'Password' },
 };
 
 export function useT() {

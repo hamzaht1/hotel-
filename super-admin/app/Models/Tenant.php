@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
@@ -22,6 +23,7 @@ class Tenant extends Model
         'subscription_starts_at',
         'subscription_ends_at',
         'plan',
+        'plan_id',
         'is_active',
         'settings',
         'payment_status',
@@ -42,6 +44,11 @@ class Tenant extends Model
         ];
     }
 
+    public function planModel(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class, 'plan_id');
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
@@ -50,6 +57,11 @@ class Tenant extends Model
     public function siteSections(): HasMany
     {
         return $this->hasMany(SiteSection::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     public function isSubscriptionActive(): bool

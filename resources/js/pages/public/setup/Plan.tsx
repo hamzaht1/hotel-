@@ -3,24 +3,63 @@ import { router, Head } from '@inertiajs/react'
 import PublicLayout from '@/layouts/public-layout'
 import SetupBanner from '@/components/public/setup/SetupBanner'
 import PlanCard from '@/components/public/Pricing/PlanCard'
-import { plans } from '@/components/public/Pricing/plans'
+import type { Plan as PlanType } from '@/components/public/Pricing/types'
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import AnimatedParagraph from '@/components/motion/AnimatedParagraph'
 import { useLang } from '@/hooks/useLang'
+import starterIcon from '@/assets/images/icons/starter-package.svg'
+import developmentIcon from '@/assets/images/icons/development-package.svg'
+import premiumIcon from '@/assets/images/icons/premium-package.svg'
+
+interface DbPlan {
+  id: number
+  slug: string
+  name_ar: string
+  name_en: string
+  price: string
+  billing_cycle: string
+  features_ar: string[] | null
+  features_en: string[] | null
+  variant: string | null
+  icon: string | null
+}
 
 interface Props {
   setup: Record<string, string>
+  plans: DbPlan[]
 }
 
-export default function Plan({ setup }: Props) {
+const iconMap: Record<string, string> = {
+  starter: starterIcon,
+  growth: developmentIcon,
+  premium: premiumIcon,
+}
+
+export default function Plan({ setup, plans }: Props) {
   const { __ } = useLang()
 
   const handleSubscribe = (plan: { key: string; name: string }) => {
+    // Find the DB plan by slug to get its ID
+    const dbPlan = plans.find((p) => p.slug === plan.key)
+    if (!dbPlan) return
+
     router.post('/setup/plan', {
-      plan_key: plan.key,
-      plan_name: plan.name,
+      plan_id: dbPlan.id,
     })
   }
+
+  // Transform DB plans into PlanCard-compatible format
+  const planCards: PlanType[] = plans.map((p) => ({
+    key: p.slug,
+    name: p.name_ar,
+    iconSrc: iconMap[p.icon || p.slug] || starterIcon,
+    iconAlt: p.name_en,
+    price: Number(p.price).toLocaleString(),
+    period: p.billing_cycle === 'yearly' ? 'سنوياً' : 'شهرياً',
+    vatNote: 'شامل ضريبة القيمة المضافة',
+    features: p.features_ar || [],
+    variant: (p.variant as PlanType['variant']) || 'light',
+  }))
 
   return (
     <PublicLayout>
@@ -53,7 +92,7 @@ export default function Plan({ setup }: Props) {
 
           <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-10">
             <div className="mx-auto grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {plans.map((p) => (
+              {planCards.map((p) => (
                 <PlanCard key={p.key} plan={p} onSubscribe={handleSubscribe} />
               ))}
             </div>

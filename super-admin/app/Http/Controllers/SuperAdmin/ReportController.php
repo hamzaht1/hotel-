@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -54,10 +55,10 @@ class ReportController extends Controller
 
     public function subscriptions(Request $request)
     {
-        $query = Tenant::query();
+        $query = Tenant::query()->with('planModel:id,name_ar,name_en,slug');
 
-        if ($request->plan) {
-            $query->where('plan', $request->plan);
+        if ($request->plan_id) {
+            $query->where('plan_id', $request->plan_id);
         }
         if ($request->status) {
             $query->where('is_active', $request->status === 'active');
@@ -86,17 +87,14 @@ class ReportController extends Controller
             'total_expired' => Tenant::where('subscription_ends_at', '<', now())->count(),
             'expiring_soon' => Tenant::where('subscription_ends_at', '>', now())
                 ->where('subscription_ends_at', '<', now()->addMonth())->count(),
-            'by_plan' => [
-                'starter' => Tenant::where('plan', 'starter')->count(),
-                'premium' => Tenant::where('plan', 'premium')->count(),
-                'growth' => Tenant::where('plan', 'growth')->count(),
-            ],
+            'by_plan' => Plan::withCount('tenants')->orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'slug', 'tenants_count']),
         ];
 
         return Inertia::render('super-admin/reports/Subscriptions', [
             'tenants' => $tenants,
             'stats' => $stats,
-            'filters' => $request->only(['plan', 'status', 'search', 'sort', 'direction']),
+            'plans' => Plan::orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'slug']),
+            'filters' => $request->only(['plan_id', 'status', 'search', 'sort', 'direction']),
         ]);
     }
 

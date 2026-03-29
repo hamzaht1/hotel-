@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Models\Room;
+use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\GalleryImage;
 use App\Models\SiteText;
 use App\Models\SiteSection;
@@ -24,6 +26,8 @@ class TenantSiteController extends Controller
         $contactSettings = $tenant->contactSettings;
 
         $rooms = Room::where('is_active', true)->orderBy('sort_order')->get();
+        $services = Service::where('is_active', true)->with('category:id,name_ar,name_en', 'images')->orderBy('sort_order')->get();
+        $serviceCategories = ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'type', 'icon']);
         $gallery = GalleryImage::where('is_active', true)->orderBy('sort_order')->get();
         $siteTexts = SiteText::all()->groupBy('section')->map(fn ($items) => $items->keyBy('key'));
         $sections = SiteSection::where('is_active', true)->orderBy('sort_order')->pluck('section_name');
@@ -44,6 +48,8 @@ class TenantSiteController extends Controller
                 'description' => $room->description,
                 'images' => $room->images,
             ]),
+            'services' => $services,
+            'serviceCategories' => $serviceCategories,
             'gallery' => $gallery,
             'siteTexts' => $siteTexts,
             'activeSections' => $sections,

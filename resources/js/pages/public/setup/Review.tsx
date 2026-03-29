@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { router } from "@inertiajs/react";
 import PublicLayout from "@/layouts/public-layout";
 import SetupBanner from "@/components/public/setup/SetupBanner";
-import { plans } from "@/components/public/Pricing/plans";
+import { plans as fallbackPlans } from "@/components/public/Pricing/plans";
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import { useLang } from '@/hooks/useLang'
 
@@ -24,7 +24,7 @@ export default function Review({ setup }: Props) {
   const { __ } = useLang()
 
   const plan = useMemo(() => {
-    return plans.find((p) => p.key === setup.plan_key) ?? {
+    return fallbackPlans.find((p) => p.key === setup.plan_key) ?? {
       key: "", name: setup.plan_name || "—", price: "0", period: "",
     };
   }, [setup]);

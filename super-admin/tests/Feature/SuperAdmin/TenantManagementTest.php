@@ -64,12 +64,17 @@ test('super admin can view create tenant form', function () {
 test('super admin can create a tenant with admin user', function () {
     $user = User::factory()->superAdmin()->create();
 
+    // Create a plan for the tenant
+    \App\Models\Plan::unguard();
+    $plan = \App\Models\Plan::create(['slug' => 'pro', 'name_ar' => 'احترافية', 'name_en' => 'Professional', 'price' => 1950, 'billing_cycle' => 'yearly', 'is_active' => true]);
+    \App\Models\Plan::reguard();
+
     $this->actingAs($user)
         ->post('/super-admin/tenants', [
             'name' => 'New Hotel',
             'slug' => 'new-hotel',
             'template' => 'madina',
-            'plan' => 'professional',
+            'plan_id' => $plan->id,
             'is_active' => true,
             'admin_name' => 'Hotel Admin',
             'admin_email' => 'admin@newhotel.com',
@@ -82,7 +87,7 @@ test('super admin can create a tenant with admin user', function () {
         'name' => 'New Hotel',
         'slug' => 'new-hotel',
         'template' => 'madina',
-        'plan' => 'professional',
+        'plan_id' => $plan->id,
     ]);
 
     // Admin user was created
@@ -101,7 +106,7 @@ test('create tenant validates required fields', function () {
 
     $this->actingAs($user)
         ->post('/super-admin/tenants', [])
-        ->assertSessionHasErrors(['name', 'slug', 'template', 'plan', 'admin_name', 'admin_email', 'admin_password']);
+        ->assertSessionHasErrors(['name', 'slug', 'template', 'plan_id', 'admin_name', 'admin_email', 'admin_password']);
 });
 
 test('create tenant validates unique slug', function () {
@@ -113,7 +118,7 @@ test('create tenant validates unique slug', function () {
             'name' => 'Test',
             'slug' => 'taken-slug',
             'template' => 'madina',
-            'plan' => 'basic',
+            'plan_id' => 999,
             'admin_name' => 'Admin',
             'admin_email' => 'admin@test.com',
             'admin_password' => 'password123',
@@ -146,7 +151,7 @@ test('create tenant validates template must be riyadh or madina', function () {
             'name' => 'Test',
             'slug' => 'test',
             'template' => 'invalid-template',
-            'plan' => 'basic',
+            'plan_id' => 999,
             'admin_name' => 'Admin',
             'admin_email' => 'admin@test.com',
             'admin_password' => 'password123',
@@ -174,19 +179,23 @@ test('super admin can update a tenant', function () {
     $user = User::factory()->superAdmin()->create();
     $tenant = Tenant::factory()->create(['name' => 'Old Name', 'template' => 'riyadh']);
 
+    \App\Models\Plan::unguard();
+    $plan = \App\Models\Plan::create(['slug' => 'ent', 'name_ar' => 'مؤسسية', 'name_en' => 'Enterprise', 'price' => 3150, 'billing_cycle' => 'yearly', 'is_active' => true]);
+    \App\Models\Plan::reguard();
+
     $this->actingAs($user)
         ->put("/super-admin/tenants/{$tenant->id}", [
             'name' => 'Updated Name',
             'slug' => $tenant->slug,
             'template' => 'madina',
-            'plan' => 'enterprise',
+            'plan_id' => $plan->id,
         ])
         ->assertRedirect(route('super-admin.tenants.index'));
 
     $tenant->refresh();
     expect($tenant->name)->toBe('Updated Name')
         ->and($tenant->template)->toBe('madina')
-        ->and($tenant->plan)->toBe('enterprise');
+        ->and($tenant->plan_id)->toBe($plan->id);
 });
 
 // ─── Toggle Status ─────────────────────────────────────────

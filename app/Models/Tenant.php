@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -23,6 +24,7 @@ class Tenant extends Model
         'subscription_starts_at',
         'subscription_ends_at',
         'plan',
+        'plan_id',
         'is_active',
         'settings',
         'payment_status',
@@ -41,6 +43,11 @@ class Tenant extends Model
             'subscription_starts_at' => 'date',
             'subscription_ends_at' => 'date',
         ];
+    }
+
+    public function planModel(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class, 'plan_id');
     }
 
     public function users(): HasMany

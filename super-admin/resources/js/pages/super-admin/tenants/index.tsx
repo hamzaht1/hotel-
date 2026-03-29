@@ -17,7 +17,9 @@ interface Tenant {
     domain: string | null;
     subdomain: string | null;
     template: string;
-    plan: string;
+    plan: string | null;
+    plan_id: number | null;
+    plan_model: { id: number; name_ar: string; name_en: string; slug: string } | null;
     is_active: boolean;
     payment_status: string;
     payment_method: string;
@@ -173,7 +175,9 @@ export default function TenantsIndex({ tenants, filters }: Props) {
                                             {tenant.subdomain ? `${tenant.subdomain}.*` : tenant.domain || '—'}
                                         </td>
                                         <td className="px-4 py-3 capitalize">{tenant.template}</td>
-                                        <td className="px-4 py-3 capitalize">{tenant.plan}</td>
+                                        <td className="px-4 py-3 capitalize">
+                                            {tenant.plan_model?.name_ar || tenant.plan || '—'}
+                                        </td>
                                         <td className="px-4 py-3">{tenant.users_count}</td>
                                         <td className="px-4 py-3 text-xs">
                                             {tenant.subscription_ends_at ? (

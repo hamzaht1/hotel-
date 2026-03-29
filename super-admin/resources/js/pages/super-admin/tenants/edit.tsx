@@ -19,16 +19,26 @@ interface Tenant {
     email: string | null;
     phone: string | null;
     plan: string;
+    plan_id: number | null;
     subscription_starts_at: string | null;
     subscription_ends_at: string | null;
     is_active: boolean;
 }
 
-interface Props {
-    tenant: Tenant;
+interface PlanOption {
+    id: number;
+    name_ar: string;
+    name_en: string;
+    slug: string;
+    price: string;
 }
 
-export default function EditTenant({ tenant }: Props) {
+interface Props {
+    tenant: Tenant;
+    plans: PlanOption[];
+}
+
+export default function EditTenant({ tenant, plans }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
 
@@ -46,7 +56,7 @@ export default function EditTenant({ tenant }: Props) {
         template: tenant.template,
         email: tenant.email || '',
         phone: tenant.phone || '',
-        plan: tenant.plan,
+        plan_id: tenant.plan_id || ('' as string | number),
         subscription_starts_at: tenant.subscription_starts_at || '',
         subscription_ends_at: tenant.subscription_ends_at || '',
         is_active: tenant.is_active,
@@ -115,15 +125,17 @@ export default function EditTenant({ tenant }: Props) {
                                         </SelectContent>
                                     </Select>
                                 </Field>
-                                <Field label={t('plan')} error={errors.plan}>
-                                    <Select value={data.plan} onValueChange={(value) => setData('plan', value)}>
+                                <Field label={t('plan')} error={(errors as Record<string, string>).plan_id}>
+                                    <Select value={String(data.plan_id)} onValueChange={(value) => setData('plan_id', Number(value))}>
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder={t('select_plan')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="basic">{t('basic')}</SelectItem>
-                                            <SelectItem value="professional">{t('professional')}</SelectItem>
-                                            <SelectItem value="enterprise">{t('enterprise')}</SelectItem>
+                                            {plans.map((plan) => (
+                                                <SelectItem key={plan.id} value={String(plan.id)}>
+                                                    {plan.name_ar} ({plan.price} SAR)
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </Field>

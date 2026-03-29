@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\TenantSiteController;
 use App\Http\Controllers\ClientAdmin\DashboardController as ClientAdminDashboard;
@@ -13,6 +14,13 @@ use App\Http\Controllers\ClientAdmin\SiteSectionController;
 use App\Http\Controllers\ClientAdmin\ContactSettingController;
 use App\Http\Controllers\ClientAdmin\HotelSettingController;
 use App\Http\Controllers\ClientAdmin\ReportController;
+use App\Http\Controllers\ClientAdmin\InvoiceController;
+use App\Http\Controllers\ClientAdmin\ServiceCategoryController;
+use App\Http\Controllers\ClientAdmin\ServiceController;
+use App\Http\Controllers\ClientAdmin\StaffController;
+use App\Http\Controllers\ClientAdmin\RoleController;
+use App\Http\Controllers\ClientAdmin\IntegrationController;
+use App\Http\Controllers\ClientAdmin\RenewalController;
 
 // ─── Public Routes ──────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -103,8 +111,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 });
 
+// ─── CMS Pages ─────────────────────────────────────────────
+Route::get('/page/{slug}', [PageController::class, 'show'])->name('page.show');
+
 // ─── Client Admin Routes ────────────────────────────────────
-Route::middleware(['auth', 'verified', 'role:client_admin', 'tenant'])
+Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
     ->prefix('client-admin')
     ->name('client-admin.')
     ->group(function () {
@@ -146,6 +157,50 @@ Route::middleware(['auth', 'verified', 'role:client_admin', 'tenant'])
         Route::get('reports/subscriptions', [ReportController::class, 'subscriptions'])->name('reports.subscriptions');
         Route::get('reports/messages', [ReportController::class, 'messages'])->name('reports.messages');
         Route::post('reports/messages', [ReportController::class, 'sendMessage'])->name('reports.messages.send');
+
+        // Service Categories
+        Route::get('service-categories', [ServiceCategoryController::class, 'index'])->name('service-categories.index');
+        Route::post('service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
+        Route::put('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'update'])->name('service-categories.update');
+        Route::delete('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
+
+        // Services
+        Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+        Route::get('services/create', [ServiceController::class, 'create'])->name('services.create');
+        Route::post('services', [ServiceController::class, 'store'])->name('services.store');
+        Route::get('services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+        Route::put('services/{service}', [ServiceController::class, 'update'])->name('services.update');
+        Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+        // Renewal
+        Route::get('renewal', [RenewalController::class, 'index'])->name('renewal.index');
+        Route::post('renewal', [RenewalController::class, 'store'])->name('renewal.store');
+
+        // Invoices (read-only for client)
+        Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
+
+        // Integrations
+        Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
+        Route::post('integrations/{provider}/toggle', [IntegrationController::class, 'toggle'])->name('integrations.toggle');
+
+        // Staff Management
+        Route::middleware('can:staff.view')->group(function () {
+            Route::get('staff', [StaffController::class, 'index'])->name('staff.index');
+            Route::get('staff/create', [StaffController::class, 'create'])->middleware('can:staff.create')->name('staff.create');
+            Route::post('staff', [StaffController::class, 'store'])->middleware('can:staff.create')->name('staff.store');
+            Route::get('staff/{user}/edit', [StaffController::class, 'edit'])->middleware('can:staff.edit')->name('staff.edit');
+            Route::put('staff/{user}', [StaffController::class, 'update'])->middleware('can:staff.edit')->name('staff.update');
+            Route::delete('staff/{user}', [StaffController::class, 'destroy'])->middleware('can:staff.delete')->name('staff.destroy');
+        });
+
+        // Role Management
+        Route::middleware('can:staff.view')->group(function () {
+            Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::post('roles', [RoleController::class, 'store'])->middleware('can:staff.create')->name('roles.store');
+            Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('can:staff.edit')->name('roles.update');
+            Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('can:staff.delete')->name('roles.destroy');
+        });
     });
 
 // ─── 404 Fallback ───────────────────────────────────────────

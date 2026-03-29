@@ -1,5 +1,5 @@
 // resources/js/components/public/Navbar.tsx
-import { Link, router } from '@inertiajs/react'
+import { Link, router, usePage } from '@inertiajs/react'
 import { Menu, X, LogIn } from 'lucide-react'
 import { useState } from 'react'
 import LanguageSwitcher from './navbar/LanguageSwitcher'
@@ -37,6 +37,9 @@ export default function Navbar() {
   const items = useNavItems()
   // Language translation function
   const { __ } = useLang()
+  // Site settings from Inertia shared props
+  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
+  const siteLogo = siteSettings?.identity?.site_logo ? `/storage/${siteSettings.identity.site_logo}` : '/logo.png'
 
   // Toggle mobile menu
   const toggle = () => setOpen((v) => !v)
@@ -46,7 +49,7 @@ export default function Navbar() {
       <div className="container mx-auto flex items-center justify-between px-8 xl:px-18 py-2">
         {/* Company logo */}
         <Link href="/" aria-label={__('messages.home')} className="flex items-center">
-          <img src="/logo.png" alt="Logo" className="h-16  w-auto" />
+          <img src={siteLogo} alt="Logo" className="h-16 w-auto" />
         </Link>
 
         {/* Desktop navigation menu */}

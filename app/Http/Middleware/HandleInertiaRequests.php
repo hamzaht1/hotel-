@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SiteSetting;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -50,6 +51,7 @@ class HandleInertiaRequests extends Middleware
                     ...$user->toArray(),
                     'role' => $user->role ?? null,
                     'tenant_id' => $user->tenant_id ?? null,
+                    'permissions' => $user->getPermissions(),
                 ] : null,
             ],
             'ziggy' => fn (): array => [
@@ -62,6 +64,7 @@ class HandleInertiaRequests extends Middleware
             'dir'    => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
 
             'tenant' => app()->bound('current_tenant') ? app('current_tenant') : null,
+            'siteSettings' => fn () => SiteSetting::getAllGrouped(),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

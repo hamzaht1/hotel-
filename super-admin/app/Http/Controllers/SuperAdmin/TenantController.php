@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class TenantController extends Controller
     public function index(Request $request)
     {
         $tenants = Tenant::query()
+            ->with('planModel:id,name_ar,name_en,slug')
             ->when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
             ->when($request->status !== null, function ($q) use ($request) {
                 $q->where('is_active', $request->status === 'active');
@@ -32,7 +34,9 @@ class TenantController extends Controller
 
     public function create()
     {
-        return Inertia::render('super-admin/tenants/create');
+        return Inertia::render('super-admin/tenants/create', [
+            'plans' => Plan::where('is_active', true)->orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'slug', 'price']),
+        ]);
     }
 
     public function store(Request $request)
@@ -45,7 +49,7 @@ class TenantController extends Controller
             'template' => 'required|in:riyadh,madina',
             'email' => 'nullable|email',
             'phone' => 'nullable|string|max:20',
-            'plan' => 'required|in:basic,professional,enterprise',
+            'plan_id' => 'required|exists:plans,id',
             'subscription_starts_at' => 'nullable|date',
             'subscription_ends_at' => 'nullable|date|after:subscription_starts_at',
             'is_active' => 'boolean',
@@ -62,7 +66,7 @@ class TenantController extends Controller
             'template' => $validated['template'],
             'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'] ?? null,
-            'plan' => $validated['plan'],
+            'plan_id' => $validated['plan_id'],
             'subscription_starts_at' => $validated['subscription_starts_at'] ?? null,
             'subscription_ends_at' => $validated['subscription_ends_at'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
@@ -92,7 +96,8 @@ class TenantController extends Controller
     public function edit(Tenant $tenant)
     {
         return Inertia::render('super-admin/tenants/edit', [
-            'tenant' => $tenant->load('users'),
+            'tenant' => $tenant->load('users', 'planModel'),
+            'plans' => Plan::where('is_active', true)->orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'slug', 'price']),
         ]);
     }
 
@@ -106,7 +111,7 @@ class TenantController extends Controller
             'template' => 'required|in:riyadh,madina',
             'email' => 'nullable|email',
             'phone' => 'nullable|string|max:20',
-            'plan' => 'required|in:basic,professional,enterprise',
+            'plan_id' => 'required|exists:plans,id',
             'subscription_starts_at' => 'nullable|date',
             'subscription_ends_at' => 'nullable|date|after:subscription_starts_at',
             'is_active' => 'boolean',

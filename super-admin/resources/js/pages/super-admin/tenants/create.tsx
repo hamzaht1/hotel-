@@ -9,7 +9,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useT } from '@/hooks/use-translations';
 
-export default function CreateTenant() {
+interface PlanOption {
+    id: number;
+    name_ar: string;
+    name_en: string;
+    slug: string;
+    price: string;
+}
+
+interface Props {
+    plans: PlanOption[];
+}
+
+export default function CreateTenant({ plans }: Props) {
     const { t } = useT();
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -26,7 +38,7 @@ export default function CreateTenant() {
         template: 'madina',
         email: '',
         phone: '',
-        plan: 'basic',
+        plan_id: '' as string | number,
         subscription_starts_at: '',
         subscription_ends_at: '',
         is_active: true,
@@ -125,15 +137,17 @@ export default function CreateTenant() {
                                         </SelectContent>
                                     </Select>
                                 </Field>
-                                <Field label={t('plan')} error={errors.plan}>
-                                    <Select value={data.plan} onValueChange={(value) => setData('plan', value)}>
+                                <Field label={t('plan')} error={(errors as Record<string, string>).plan_id}>
+                                    <Select value={String(data.plan_id)} onValueChange={(value) => setData('plan_id', Number(value))}>
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder={t('select_plan')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="basic">{t('basic')}</SelectItem>
-                                            <SelectItem value="professional">{t('professional')}</SelectItem>
-                                            <SelectItem value="enterprise">{t('enterprise')}</SelectItem>
+                                            {plans.map((plan) => (
+                                                <SelectItem key={plan.id} value={String(plan.id)}>
+                                                    {plan.name_ar} ({plan.price} SAR)
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </Field>

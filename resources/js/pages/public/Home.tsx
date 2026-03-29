@@ -12,8 +12,19 @@ import { motion } from 'motion/react';
 import SchemaScript from '@/components/seo/SchemaScript';
 import SEOFAQs from '@/components/seo/SEOFAQs';
 
+interface DbPlan {
+  id: number; slug: string; name_ar: string; name_en: string;
+  price: string; billing_cycle: string; features_ar: string[] | null;
+  features_en: string[] | null; variant: string | null; icon: string | null;
+}
+
+interface Props {
+  plans?: DbPlan[];
+  siteSettings?: Record<string, Record<string, string | null>>;
+}
+
 // Public page: Home landing page — renders hero, why-us, pricing and other public sections.
-export default function Home() {
+export default function Home({ plans, siteSettings }: Props) {
   return (
     <PublicLayout>
         <Head title="ضيافة - الصفحة الرئيسية | نظام إدارة الفنادق المتكامل">
@@ -63,7 +74,7 @@ export default function Home() {
         <HowWeWork />
         <Hotels />
         <Testimonlis/>
-        <Pricing /> 
+        <Pricing dbPlans={plans} />
         <Contact />    
         <SEOFAQs /> 
       </div>

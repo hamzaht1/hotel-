@@ -1,5 +1,6 @@
 // src/components/public/Footer.tsx
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import { Instagram, Youtube, Facebook, Twitter } from "lucide-react";
 import { SOCIAL_LINKS, PAYMENT_METHODS } from "@/data/public-data";
 import { useLang } from '@/hooks/useLang'
@@ -26,6 +27,16 @@ export default function Footer() {
   // Get current year for copyright
   const year = new Date().getFullYear();
   const { __ } = useLang()
+  const { siteSettings, locale } = usePage<{ siteSettings?: { social?: Record<string, string>; footer?: Record<string, string>; identity?: { site_logo?: string | null } }; locale?: string }>().props
+
+  // Override social links with DB settings if available
+  const socialOverrides: Record<string, string> = {
+    instagram: siteSettings?.social?.social_instagram || '',
+    facebook: siteSettings?.social?.social_facebook || '',
+    x: siteSettings?.social?.social_twitter || '',
+  };
+  const footerText = locale === 'ar' ? siteSettings?.footer?.footer_text_ar : siteSettings?.footer?.footer_text_en;
+  const footerLogo = siteSettings?.identity?.site_logo ? `/storage/${siteSettings.identity.site_logo}` : null;
 
   // Social media icons mapping
   const socialIcons = {
@@ -56,7 +67,7 @@ export default function Footer() {
           {/* Company information section */}
           <div className="flex flex-col items-center md:items-start gap-3 text-black/70 md:col-span-2">
             {/* Company logo */}
-            <img src={brandMark} alt="ضيافة" className="h-32 sm:h-24" />
+            <img src={footerLogo || brandMark} alt="ضيافة" className="h-32 sm:h-24" />
 
             {/* Login and privacy policy links */}
             <div className="flex items-center gap-2 text-md">
@@ -96,10 +107,13 @@ export default function Footer() {
               {SOCIAL_LINKS.map((social) => {
                 const Icon = socialIcons[social.key as keyof typeof socialIcons];
                 if (!Icon) return null;
+                const href = socialOverrides[social.key] || social.href;
                 return (
                   <a
                     key={social.key}
-                    href={social.href}
+                    href={href}
+                    target={href.startsWith('http') ? '_blank' : undefined}
+                    rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     aria-label={__(social.ariaLabelKey)}
                     className="hover:text-slate-900 focus:outline-none focus:ring"
                   >
@@ -129,7 +143,9 @@ export default function Footer() {
         </div>
       </div>
       <div>
-          <p className="flex justify-center items-center text-black/70 p-4 text-sm md:text-md">{__("messages.footer.copyright", { year })}</p>
+          <p className="flex justify-center items-center text-black/70 p-4 text-sm md:text-md">
+            {footerText || __("messages.footer.copyright", { year })}
+          </p>
       </div>
     </footer>
   );
