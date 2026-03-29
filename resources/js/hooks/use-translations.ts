@@ -231,7 +231,6 @@ const translations: Record<string, Record<string, string>> = {
     'cannot_delete_role_with_users': { ar: 'لا يمكن حذف دور مرتبط بموظفين', en: 'Cannot delete role with assigned users' },
     'select_role': { ar: 'اختر الدور', en: 'Select Role' },
     'role': { ar: 'الدور', en: 'Role' },
-    'password': { ar: 'كلمة المرور', en: 'Password' },
 };
 
 export function useT() {
