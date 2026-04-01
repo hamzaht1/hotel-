@@ -15,7 +15,8 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run:*)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run:*)",
       "Bash(gh auth:*)",
-      "Bash(where gh:*)"
+      "Bash(where gh:*)",
+      "Bash(railway --version)"
     ]
   }
 }
