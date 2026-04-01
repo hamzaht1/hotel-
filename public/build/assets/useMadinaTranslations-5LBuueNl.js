@@ -1,1 +1,0 @@
-import{u as i}from"./app-C-C57U2Q.js";function e(){const{props:t}=i();return t.madinaTranslations||{}}function l(){const t=e();return(s,a)=>{const o=s.split(".");let n=t;for(const r of o)if(typeof n=="object"&&n!==null)n=n[r];else return a||s;return(typeof n=="string"?n:a)||s}}export{l as u};

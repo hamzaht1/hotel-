@@ -1,0 +1,1 @@
+import{j as e}from"./app-B0YbHfXV.js";import"./app-BmkmKGA8.js";function t(){return e.jsx("div",{className:"hero-slide w-full h-screen bg-gradient-to-br from-green-900 via-green-800 to-amber-900",children:e.jsx("div",{className:"absolute inset-0 bg-black/40"})})}export{t as default};

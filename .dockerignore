@@ -17,3 +17,4 @@ eslint.config.js
 docker-compose*.yml
 composer.phar
 project-status-report.*
+public/hot

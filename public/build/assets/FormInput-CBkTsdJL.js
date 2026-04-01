@@ -1,4 +1,0 @@
-import{j as t}from"./app-C-C57U2Q.js";function p({id:e,label:a,placeholder:s,value:n,onChange:r,onBlur:o,required:i,error:l,inputMode:x,type:c="text"}){return t.jsxs("div",{className:"flex flex-col",children:[t.jsx("label",{htmlFor:e,className:"mb-2 text-start text-sm font-semibold text-gray-900",children:a}),t.jsx("input",{id:e,type:c,inputMode:x,required:i,value:n,onChange:m=>r(m.target.value),onBlur:o,placeholder:s,className:`h-12 w-full rounded-xl bg-gray-100 px-4 text-start text-gray-900 
-                   placeholder:text-gray-500 outline-none ring-0 
-                   focus:bg-white focus:ring-2 focus:ring-public-primary/30
-                   placeholder:transition-opacity focus:placeholder:opacity-0`}),l?t.jsx("div",{className:"mt-1 text-[12px] font-semibold text-red-600",children:l}):null]})}export{p as F};

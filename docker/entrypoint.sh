@@ -7,6 +7,9 @@ export PORT="${PORT:-8080}"
 # Update Nginx to listen on the correct port
 sed -i "s/listen 8080/listen $PORT/" /etc/nginx/http.d/default.conf
 
+# Ensure hot file doesn't exist in production
+rm -f /var/www/html/public/hot
+
 # Run Laravel optimizations
 php artisan config:cache
 php artisan route:cache
