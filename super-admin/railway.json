@@ -1,10 +1,10 @@
 {
     "$schema": "https://railway.app/railway.schema.json",
     "build": {
-        "builder": "NIXPACKS"
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile"
     },
     "deploy": {
-        "startCommand": "php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan migrate --force && php artisan db:seed --class=PlanSeeder --force && php artisan db:seed --class=TemplateSeeder --force && php artisan db:seed --class=PermissionSeeder --force && php artisan serve --host=0.0.0.0 --port=$PORT",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 10
     }
