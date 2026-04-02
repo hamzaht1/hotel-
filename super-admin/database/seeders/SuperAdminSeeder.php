@@ -13,7 +13,7 @@ class SuperAdminSeeder extends Seeder
             ['email' => 'admin@diyafah.com'],
             [
                 'name' => 'Super Admin',
-                'password' => bcrypt('password'),
+                'password' => bcrypt(env('ADMIN_PASSWORD', 'Diyafah@2026!')),
                 'role' => 'super_admin',
                 'tenant_id' => null,
                 'email_verified_at' => now(),
