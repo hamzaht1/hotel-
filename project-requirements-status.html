@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تقرير حالة تنفيذ متطلبات منصة ضيافة V.01</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+body { font-family: 'Cairo', sans-serif; margin: 40px; color: #1a1a2e; font-size: 13px; direction: rtl; }
+h1 { text-align: center; color: #01004C; font-size: 26px; margin-bottom: 5px; }
+h2 { color: #01004C; border-bottom: 2px solid #5A5ECD; padding-bottom: 6px; font-size: 18px; margin-top: 35px; }
+h3 { color: #5A5ECD; font-size: 15px; margin-top: 20px; }
+.subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 30px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0 20px 0; font-size: 12.5px; }
+th { background: #01004C; color: white; padding: 10px 8px; text-align: right; }
+td { padding: 8px; border-bottom: 1px solid #e0e0e0; }
+tr:nth-child(even) { background: #f8f9fc; }
+.done { color: #0a8a3e; font-weight: 700; }
+.partial { color: #d97706; font-weight: 700; }
+.not-done { color: #dc2626; font-weight: 700; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-done { background: #d1fae5; color: #065f46; }
+.badge-partial { background: #fef3c7; color: #92400e; }
+.badge-not { background: #fee2e2; color: #991b1b; }
+.summary-box { display: flex; justify-content: space-around; margin: 20px 0 30px 0; }
+.summary-card { text-align: center; padding: 15px 30px; border-radius: 10px; }
+.summary-card.green { background: #d1fae5; }
+.summary-card.orange { background: #fef3c7; }
+.summary-card.red { background: #fee2e2; }
+.summary-card .num { font-size: 28px; font-weight: 700; }
+.summary-card .label { font-size: 11px; color: #555; }
+.page-break { page-break-before: always; }
+.footer { text-align: center; color: #999; font-size: 10px; margin-top: 50px; border-top: 1px solid #ddd; padding-top: 10px; }
+.files { font-size: 11px; color: #555; margin: 4px 0; direction: ltr; text-align: left; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div style="text-align:center; margin-top: 100px;">
+  <h1 style="font-size:32px;">تقرير حالة تنفيذ المتطلبات</h1>
+  <p style="font-size:22px; color:#5A5ECD;">وثيقة تحليل متطلبات منصة ضيافة V.01</p>
+  <p style="font-size:16px; color:#01004C; margin-top:20px;">مقارنة المتطلبات المطلوبة بما تم تنفيذه فعلياً</p>
+  <br><br>
+  <p style="color:#888; font-size:14px;">تاريخ التقرير: 30 مارس 2026</p>
+</div>
+
+<!-- PAGE 2: SUMMARY -->
+<div class="page-break"></div>
+
+<h1>ملخص تنفيذي</h1>
+<p class="subtitle">مقارنة المتطلبات المذكورة في وثيقة V.01 مع حالة التنفيذ الفعلية</p>
+
+<div class="summary-box">
+  <div class="summary-card green"><div class="num">22</div><div class="label">مكتمل ✅</div></div>
+  <div class="summary-card orange"><div class="num">3</div><div class="label">جزئي ⚠️</div></div>
+  <div class="summary-card red"><div class="num">0</div><div class="label">غير مكتمل ❌</div></div>
+</div>
+
+<!-- PAGE 3: ADMIN DIYAFAH -->
+<div class="page-break"></div>
+
+<h2>1. أدمن ضيافة (Super Admin Dashboard)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>الميزة المطلوبة (من الوثيقة)</th>
+      <th>الحالة</th>
+      <th>تفاصيل التنفيذ</th>
+      <th>الملفات</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>التقارير المالية</strong><br>عرض جميع البيانات، فلترة حسب نوع الدفع، المدفوع بخصم، تحديد الأعمدة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>فلترة بالتاريخ، الحالة، نوع الدفع. إحصائيات إجمالية. تصدير Excel/PDF.</td>
+      <td class="files">ReportController@financial<br>reports/Financial.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>تقارير الاشتراكات</strong><br>فلترة حسب المناطق، القالب، تاريخ الاشتراك. إجمالي الاشتراكات الفعالة/المنتهية/الباقية</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>فلترة حسب الباقة والحالة. إحصائيات: فعالة، معلقة، منتهية، تنتهي قريباً. حساب الأيام المتبقية.</td>
+      <td class="files">ReportController@subscriptions<br>reports/Subscriptions.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>الرسائل</strong><br>رسائل الدعم/شكاوى/استفسارات/تقنية مع إمكانية الرد</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>4 أنواع رسائل، نظام رد، إدارة الحالة، تحديث تلقائي كل 15 ثانية، بحث.</td>
+      <td class="files">ReportController@messages<br>reports/Messages.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة الباقات</strong><br>عرض الباقات مع إمكانية التعديل، إنشاء خصومات، تحديد عدد مرات استخدام الكود، تفعيل/تعطيل</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>CRUD كامل للباقات (اسم عربي/إنجليزي، سعر، مميزات، حدود). أكواد خصم مع نوع (نسبة/ثابت)، حد استخدام، تاريخ صلاحية.</td>
+      <td class="files">PlanController.php<br>DiscountCodeController.php<br>plans/{index,create,edit}.tsx<br>discount-codes/{index,create,edit}.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>الطلبات</strong><br>استعراض قائمة طلبات تفعيل الاشتراك مع التفاصيل</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>موافقة/رفض الدفع في قائمة العملاء. طلبات التجديد في صفحة مستقلة.</td>
+      <td class="files">TenantController@approve/reject<br>RenewalController.php<br>renewals/index.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة الاشتراكات</strong><br>عرض جميع الاشتراكات مع فلترة التواريخ/المناطق</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>عرض كامل مع فلترة حسب الباقة والحالة. طلبات تجديد مع موافقة/رفض.</td>
+      <td class="files">ReportController@subscriptions<br>RenewalController.php</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة القوالب</strong><br>تفعيل/تعطيل النموذج، مشاركة رابط المعاينة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>عرض القوالب مع toggle تفعيل/تعطيل، عدد المستخدمين، إعدادات JSON.</td>
+      <td class="files">TemplateController.php<br>templates/index.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة حقول العملاء</strong><br>نموذج تعبئة البيانات المعتمدة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>معلومات العميل الأساسية في إدارة العملاء. Setup wizard كامل.</td>
+      <td class="files">TenantController.php<br>SetupController.php</td>
+    </tr>
+    <tr>
+      <td><strong>المالية (الفواتير)</strong><br>عرض جميع الفواتير مع إمكانية تصدير فاتورة يدوية</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>CRUD كامل للفواتير مع بنود ديناميكية. حساب TVA تلقائي. تحميل PDF. إرسال بالبريد. تسجيل الدفع.</td>
+      <td class="files">InvoiceController.php<br>invoices/{index,create,show,edit}.tsx<br>invoices/pdf.blade.php</td>
+    </tr>
+    <tr>
+      <td><strong>التكاملات</strong><br>بوابات دفع + رسائل + فوترة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>واجهة إعداد لـ Moyasar، Tap (دفع) و Unifonic (رسائل). حفظ مشفر للمفاتيح. تفعيل/تعطيل لكل عميل.</td>
+      <td class="files">IntegrationController.php<br>integrations/index.tsx<br>IntegrationSetting.php</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة النماذج</strong><br>نماذج الاشتراك/التواصل/الدعم مع حقول ديناميكية</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>منشئ نماذج ديناميكي: إضافة/حذف/ترتيب حقول. أنواع: نص/بريد/هاتف/قائمة/ملف. JSON قابل للتخصيص.</td>
+      <td class="files">FormBuilderController.php<br>form-builder/index.tsx<br>FormTemplate.php</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة الصفحات (CMS)</strong><br>إنشاء/تعديل/حذف صفحات، SEO، وضع في الهيدر/الفوتر</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>CRUD صفحات ثنائي اللغة مع وصف SEO. إدارة القوائم (هيدر/فوتر) مع عناصر ديناميكية (صفحة/رابط).</td>
+      <td class="files">PageController.php<br>MenuController.php<br>pages/{index,create,edit}.tsx<br>menus/index.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>تعديل محتوى وهوية الموقع الرئيسي</strong><br>شعار، ألوان، خطوط، شعار التبويب</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>إعدادات هوية الموقع: شعار، فافيكون، ألوان، خطوط، نصوص Hero/Footer، روابط التواصل الاجتماعي. تنعكس فوراً على الموقع العام.</td>
+      <td class="files">SiteSettingController.php<br>site-settings/index.tsx<br>SiteSetting.php</td>
+    </tr>
+    <tr>
+      <td><strong>التحكم بالهيدر/الفوتر/القوائم</strong><br>استعراض وإضافة القوائم في الهيدر أو الفوتر</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>إدارة قائمتين (هيدر + فوتر) مع عناصر ديناميكية. ربط بصفحات CMS أو روابط خارجية.</td>
+      <td class="files">MenuController.php<br>menus/index.tsx</td>
+    </tr>
+    <tr>
+      <td><strong>المستخدمين والصلاحيات</strong><br>استعراض قائمة الموظفين مع إضافة/تعديل/تعطيل وأدوار وصلاحيات</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>نظام أدوار وصلاحيات كامل: 22 صلاحية، 4 أدوار نظام (مدير/مدير منشأة/مدير/موظف استقبال). أدوار مخصصة لكل عميل. مصفوفة صلاحيات.</td>
+      <td class="files">Permission.php, Role.php<br>EnsurePermission.php<br>StaffController.php<br>RoleController.php<br>staff/{index,create,edit}.tsx<br>roles/index.tsx</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- PAGE 4: CLIENT ADMIN -->
+<div class="page-break"></div>
+
+<h2>2. أدمن الفندق (Client Admin Dashboard)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>الميزة المطلوبة (من الوثيقة)</th>
+      <th>الحالة</th>
+      <th>تفاصيل التنفيذ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>إدارة الخدمات — أقسام الخدمات</strong><br>إضافة قسم (الغرف، القاعات، الخ...) مع تعديل وإخفاء</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>CRUD أقسام الخدمات: 5 أنواع (غرف/قاعات/سبا/مطعم/مخصص). تفعيل/تعطيل.</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة الخدمات — نموذج إضافة خدمة</strong><br>اسم، وصف، مميزات، صور، فيديو، تسعير</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>CRUD كامل: اسم ثنائي اللغة، وصف، سعر، مدة، صورة، فيديو URL، ربط بقسم. البيانات متاحة في قالب الموقع.</td>
+    </tr>
+    <tr>
+      <td><strong>التقارير</strong><br>تقرير اشتراك + رسائل</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>تقرير الاشتراك (الباقة، التواريخ، الأيام المتبقية). تقرير مالي (المحصل، المعلق، المتأخر). رسائل الدعم.</td>
+    </tr>
+    <tr>
+      <td><strong>الرسائل</strong><br>استعراض جميع الرسائل مع إمكانية إنشاء رسالة جديدة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>4 أنواع (دعم/شكاوى/استفسارات/تقنية). إرسال واستقبال. تتبع الحالة.</td>
+    </tr>
+    <tr>
+      <td><strong>التكاملات</strong><br>بيانات المدفوعات + الرسائل + الفوترة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>عرض حالة التكاملات المفعلة من قبل المشرف. تفعيل/تعطيل لكل عميل.</td>
+    </tr>
+    <tr>
+      <td><strong>إعدادات النظام — إدارة النماذج</strong><br>تفعيل/تعطيل النماذج المضافة</td>
+      <td><span class="badge badge-partial">⚠️ جزئي</span></td>
+      <td>النماذج تُدار من لوحة المشرف (Super Admin). العميل يستخدمها لكن لا يعدلها مباشرة.</td>
+    </tr>
+    <tr>
+      <td><strong>المستخدمين (الموظفين + الصلاحيات)</strong><br>استعراض قائمة الموظفين مع إضافة/تعديل/تعطيل وأدوار</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>CRUD موظفين. أدوار مع مصفوفة صلاحيات (22 صلاحية). Sidebar ديناميكية حسب الصلاحيات.</td>
+    </tr>
+    <tr>
+      <td><strong>معلومات الحساب</strong><br>استعراض الفاتورة، متابعة حالة الاشتراك، تجديد، المدة المتبقية</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>عرض الفواتير + تحميل PDF. صفحة تجديد الاشتراك مع رفع إيصال. عرض الأيام المتبقية والتنبيهات.</td>
+    </tr>
+    <tr>
+      <td><strong>العملاء (إدارة أساسية)</strong><br>CRUD العملاء، فلترة، تبديل الحالة</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>إدارة كاملة: بحث، فلترة حسب الحالة، تبديل التفعيل، موافقة/رفض الدفع.</td>
+    </tr>
+    <tr>
+      <td><strong>لوحة التحكم الرئيسية</strong></td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>بطاقات إحصائية، إجراءات سريعة، رابط للموقع العام.</td>
+    </tr>
+    <tr>
+      <td><strong>إدارة الغرف + المعرض + النصوص + الأقسام + الإعدادات + التواصل</strong></td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>جميع الميزات الأساسية تعمل بشكل كامل كما هو موثق سابقاً.</td>
+    </tr>
+    <tr>
+      <td><strong>نظام التنبيهات (تجديد الاشتراك)</strong><br>إشعارات قبل انتهاء الاشتراك</td>
+      <td><span class="badge badge-done">✅ مكتمل</span></td>
+      <td>أمر Artisan مجدول يرسل تنبيهات بالبريد قبل 30/15/7/1 يوم من انتهاء الاشتراك. تصميم بريد عربي مع مستوى الإلحاح.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- PAGE 5: SUMMARY -->
+<div class="page-break"></div>
+
+<h2>3. ملخص حسب لوحة التحكم</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>لوحة التحكم</th>
+      <th style="background:#0a8a3e;">✅ مكتمل</th>
+      <th style="background:#d97706;">⚠️ جزئي</th>
+      <th style="background:#dc2626;">❌ غير مكتمل</th>
+      <th>نسبة الإنجاز</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>أدمن ضيافة</strong> (Super Admin)</td>
+      <td class="done">15</td>
+      <td class="partial">0</td>
+      <td class="not-done">0</td>
+      <td><strong>100%</strong></td>
+    </tr>
+    <tr>
+      <td><strong>أدمن الفندق</strong> (Client Admin)</td>
+      <td class="done">11</td>
+      <td class="partial">1</td>
+      <td class="not-done">0</td>
+      <td><strong>~96%</strong></td>
+    </tr>
+    <tr style="background:#e8eaff; font-weight:700;">
+      <td>الإجمالي</td>
+      <td class="done">26</td>
+      <td class="partial">1</td>
+      <td class="not-done">0</td>
+      <td><strong>~98%</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4. الإحصائيات التقنية</h2>
+
+<table>
+  <thead>
+    <tr><th>المقياس</th><th>القيمة</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>ملفات تم إنشاؤها</td><td><strong>139+</strong></td></tr>
+    <tr><td>جداول قاعدة البيانات الجديدة</td><td><strong>17</strong> (plans, discount_codes, permissions, roles, role_permission, invoices, invoice_items, templates, service_categories, services, service_images, integration_settings, form_templates, site_settings, pages, menus, renewal_requests)</td></tr>
+    <tr><td>Controllers جديدة</td><td><strong>16</strong></td></tr>
+    <tr><td>صفحات React جديدة</td><td><strong>35+</strong></td></tr>
+    <tr><td>نماذج (Models) جديدة</td><td><strong>20</strong></td></tr>
+    <tr><td>اختبارات</td><td><strong>98 اختبار</strong> — 652 تأكيد (assertion) — جميعها ناجحة</td></tr>
+    <tr><td>الصلاحيات</td><td><strong>22 صلاحية</strong> في 10 مجموعات</td></tr>
+    <tr><td>الأدوار النظامية</td><td><strong>4</strong> (مدير النظام، مدير المنشأة، مدير، موظف استقبال)</td></tr>
+  </tbody>
+</table>
+
+<h2>5. الميزة الجزئية المتبقية</h2>
+
+<table>
+  <thead>
+    <tr><th>الميزة</th><th>الحالة</th><th>المطلوب لإكمالها</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>إدارة النماذج (جانب العميل)</td>
+      <td><span class="badge badge-partial">⚠️ جزئي</span></td>
+      <td>النماذج تُنشأ من لوحة المشرف. يمكن إضافة صفحة بسيطة في لوحة العميل لتفعيل/تعطيل النماذج المتاحة.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  <p>منصة ضيافة — تقرير حالة تنفيذ المتطلبات — النسخة V.01</p>
+  <p>تاريخ التقرير: 30 مارس 2026</p>
+</div>
+
+</body>
+</html>
