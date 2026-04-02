@@ -35,8 +35,10 @@ EXPOSE ${PORT:-8080}
 CMD php artisan config:clear; \
     php artisan route:clear; \
     php artisan view:clear; \
+    php artisan storage:link || true; \
     php artisan migrate --force; \
     php artisan db:seed --class=PlanSeeder --force || true; \
     php artisan db:seed --class=TemplateSeeder --force || true; \
     php artisan db:seed --class=PermissionSeeder --force || true; \
+    php artisan db:seed --class=SuperAdminSeeder --force || true; \
     php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
