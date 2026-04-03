@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 # Use Railway's PORT or default to 8080
 export PORT="${PORT:-8080}"
@@ -10,13 +9,13 @@ sed -i "s/listen 8080/listen $PORT/" /etc/nginx/http.d/default.conf
 # Ensure hot file doesn't exist in production
 rm -f /var/www/html/public/hot
 
-# Run Laravel optimizations
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# Run Laravel optimizations (non-fatal)
+php artisan config:cache || echo "config:cache failed, continuing..."
+php artisan route:cache || echo "route:cache failed, continuing..."
+php artisan view:cache || echo "view:cache failed, continuing..."
 
-# Run migrations
-php artisan migrate --force
+# Run migrations (non-fatal)
+php artisan migrate --force || echo "migrate failed, continuing..."
 
 # Create storage link
 php artisan storage:link || true
