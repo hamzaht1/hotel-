@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,5 +24,16 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        // Route all `can:*` ability checks through our permission system.
+        // Super admins and client admins are granted all abilities; staff
+        // users fall back to the Role/Permission pivot.
+        Gate::before(function (User $user, string $ability) {
+            if ($user->isAdmin()) {
+                return true;
+            }
+
+            return $user->hasPermission($ability) ? true : null;
+        });
     }
 }

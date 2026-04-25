@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useT } from '@/hooks/use-translations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { FormEventHandler, useMemo } from 'react';
+import { Upload, Clock, CheckCircle, XCircle, AlertTriangle, CreditCard, Landmark, Building2, Copy, CheckCircle2 } from 'lucide-react';
+import { FormEventHandler, useMemo, useState } from 'react';
 
 interface Plan {
     name_ar: string;
     name_en: string;
     price: string;
+}
+
+interface BankDetails {
+    bank_name_ar: string;
+    bank_name_en: string;
+    account_name: string;
+    iban: string;
+    account_number: string;
+    swift: string;
 }
 
 interface TenantInfo {
@@ -28,6 +37,7 @@ interface TenantInfo {
 interface RenewalRequest {
     id: number;
     status: string;
+    payment_method: string;
     receipt_path: string | null;
     notes: string | null;
     requested_at: string;
@@ -39,12 +49,20 @@ interface Props {
     tenant: TenantInfo;
     renewals: RenewalRequest[];
     canRenew: boolean;
+    tapPublicKey: string;
+    bankDetails: BankDetails;
 }
 
-export default function RenewalIndex({ tenant, renewals, canRenew }: Props) {
+type PaymentMode = 'tap' | 'bank_transfer';
+
+export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey, bankDetails }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const isArabic = document.documentElement.dir === 'rtl';
+
+    const [paymentMode, setPaymentMode] = useState<PaymentMode>('tap');
+    const [tapProcessing, setTapProcessing] = useState(false);
+    const [copied, setCopied] = useState<string | null>(null);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('dashboard', 'Dashboard'), href: '/client-admin' },
@@ -73,12 +91,25 @@ export default function RenewalIndex({ tenant, renewals, canRenew }: Props) {
         return 'active';
     }, [tenant.is_active, daysRemaining]);
 
-    const handleSubmit: FormEventHandler = (e) => {
+    const handleBankTransferSubmit: FormEventHandler = (e) => {
         e.preventDefault();
         post('/client-admin/renewal', {
             forceFormData: true,
             onSuccess: () => reset(),
         });
+    };
+
+    const handleTapPayment = () => {
+        setTapProcessing(true);
+        router.post('/client-admin/renewal/tap-payment', {}, {
+            onFinish: () => setTapProcessing(false),
+        });
+    };
+
+    const copyToClipboard = (text: string, field: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(field);
+        setTimeout(() => setCopied(null), 2000);
     };
 
     const statusBadge = (status: string) => {
@@ -106,6 +137,40 @@ export default function RenewalIndex({ tenant, renewals, canRenew }: Props) {
                 );
         }
     };
+
+    const paymentMethodBadge = (method: string) => {
+        if (method === 'tap') {
+            return (
+                <Badge className="rounded-full bg-blue-100 text-blue-700 hover:bg-blue-100">
+                    <CreditCard className="h-3 w-3 me-1" />
+                    {isArabic ? 'دفع إلكتروني' : 'Online'}
+                </Badge>
+            );
+        }
+        return (
+            <Badge className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100">
+                <Landmark className="h-3 w-3 me-1" />
+                {isArabic ? 'تحويل بنكي' : 'Bank Transfer'}
+            </Badge>
+        );
+    };
+
+    const BankRow = ({ label, value, field }: { label: string; value: string; field: string }) => (
+        <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+            <div>
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <p className="font-semibold text-sm" dir="ltr">{value}</p>
+            </div>
+            <button
+                type="button"
+                onClick={() => copyToClipboard(value, field)}
+                className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-muted transition-colors"
+            >
+                {copied === field ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied === field ? (isArabic ? 'تم' : 'Copied') : (isArabic ? 'نسخ' : 'Copy')}
+            </button>
+        </div>
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -200,48 +265,145 @@ export default function RenewalIndex({ tenant, renewals, canRenew }: Props) {
                             <CardTitle>{isArabic ? 'طلب تجديد' : 'Submit Renewal Request'}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="receipt">
-                                        {isArabic ? 'إيصال التحويل البنكي' : 'Bank Transfer Receipt'}
-                                        <span className="text-red-500"> *</span>
-                                    </Label>
-                                    <Input
-                                        id="receipt"
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,.pdf"
-                                        onChange={(e) => setData('receipt', e.target.files?.[0] || null)}
-                                        className="cursor-pointer"
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        {isArabic ? 'الصيغ المقبولة: JPG, PNG, PDF — الحد الأقصى: 5 ميجابايت' : 'Accepted formats: JPG, PNG, PDF — Max: 5MB'}
+                            {/* Payment mode toggle */}
+                            <div className="mb-6 flex overflow-hidden rounded-xl border bg-muted/30">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMode('tap')}
+                                    className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all ${
+                                        paymentMode === 'tap'
+                                            ? 'bg-primary text-primary-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:bg-muted'
+                                    }`}
+                                >
+                                    <CreditCard className="h-4 w-4" />
+                                    {isArabic ? 'دفع إلكتروني' : 'Online Payment'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMode('bank_transfer')}
+                                    className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all ${
+                                        paymentMode === 'bank_transfer'
+                                            ? 'bg-primary text-primary-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:bg-muted'
+                                    }`}
+                                >
+                                    <Landmark className="h-4 w-4" />
+                                    {isArabic ? 'تحويل بنكي' : 'Bank Transfer'}
+                                </button>
+                            </div>
+
+                            {/* ─── TAP PAYMENT ─── */}
+                            {paymentMode === 'tap' && (
+                                <div className="space-y-4 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        {isArabic
+                                            ? 'ادفع بأمان عبر مدى أو فيزا أو ماستركارد أو Apple Pay. سيتم تجديد اشتراكك فوراً.'
+                                            : 'Pay securely via Mada, Visa, Mastercard or Apple Pay. Your subscription will be renewed instantly.'}
                                     </p>
-                                    {errors.receipt && (
-                                        <p className="text-sm text-red-500">{errors.receipt}</p>
-                                    )}
-                                </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="notes">{isArabic ? 'ملاحظات (اختياري)' : 'Notes (optional)'}</Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={data.notes}
-                                        onChange={(e) => setData('notes', e.target.value)}
-                                        placeholder={isArabic ? 'أي ملاحظات إضافية...' : 'Any additional notes...'}
-                                        rows={3}
-                                    />
-                                    {errors.notes && (
-                                        <p className="text-sm text-red-500">{errors.notes}</p>
+                                    {tenant.plan?.price && (
+                                        <div className="rounded-xl border-2 border-dashed p-4">
+                                            <p className="text-sm text-muted-foreground">
+                                                {isArabic ? 'المبلغ المطلوب' : 'Amount Due'}
+                                            </p>
+                                            <p className="text-2xl font-extrabold">
+                                                {Number(tenant.plan.price).toLocaleString()} SAR
+                                            </p>
+                                        </div>
                                     )}
-                                </div>
 
-                                <Button type="submit" disabled={processing || !data.receipt}>
-                                    <Upload className="h-4 w-4 me-2" />
-                                    {processing
-                                        ? (isArabic ? 'جاري الإرسال...' : 'Submitting...')
-                                        : (isArabic ? 'إرسال طلب التجديد' : 'Submit Renewal Request')}
-                                </Button>
-                            </form>
+                                    <div className="rounded-xl bg-green-50 border border-green-200 p-3 dark:bg-green-950 dark:border-green-800">
+                                        <p className="text-sm text-green-700 font-medium dark:text-green-400">
+                                            {isArabic
+                                                ? '✓ التجديد فوري بعد الدفع — لا حاجة لانتظار مراجعة'
+                                                : '✓ Instant renewal after payment — no review needed'}
+                                        </p>
+                                    </div>
+
+                                    <Button
+                                        onClick={handleTapPayment}
+                                        disabled={tapProcessing}
+                                        className="w-full"
+                                        size="lg"
+                                    >
+                                        <CreditCard className="h-4 w-4 me-2" />
+                                        {tapProcessing
+                                            ? (isArabic ? 'جاري التوجيه للدفع...' : 'Redirecting...')
+                                            : (isArabic ? 'ادفع الآن' : 'Pay Now')}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* ─── BANK TRANSFER ─── */}
+                            {paymentMode === 'bank_transfer' && (
+                                <div className="space-y-4">
+                                    {/* Bank details */}
+                                    <div className="rounded-xl border p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                                            <span className="font-semibold text-sm">
+                                                {isArabic ? 'بيانات الحساب البنكي' : 'Bank Account Details'}
+                                            </span>
+                                        </div>
+                                        <BankRow label={isArabic ? 'اسم البنك' : 'Bank'} value={bankDetails.bank_name_ar} field="rbank" />
+                                        <BankRow label={isArabic ? 'اسم الحساب' : 'Account Name'} value={bankDetails.account_name} field="rname" />
+                                        <BankRow label="IBAN" value={bankDetails.iban} field="riban" />
+                                        <BankRow label={isArabic ? 'رقم الحساب' : 'Account #'} value={bankDetails.account_number} field="raccount" />
+                                    </div>
+
+                                    <form onSubmit={handleBankTransferSubmit} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="receipt">
+                                                {isArabic ? 'إيصال التحويل البنكي' : 'Bank Transfer Receipt'}
+                                                <span className="text-red-500"> *</span>
+                                            </Label>
+                                            <Input
+                                                id="receipt"
+                                                type="file"
+                                                accept=".jpg,.jpeg,.png,.pdf"
+                                                onChange={(e) => setData('receipt', e.target.files?.[0] || null)}
+                                                className="cursor-pointer"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                {isArabic ? 'الصيغ المقبولة: JPG, PNG, PDF — الحد الأقصى: 5 ميجابايت' : 'Accepted formats: JPG, PNG, PDF — Max: 5MB'}
+                                            </p>
+                                            {errors.receipt && (
+                                                <p className="text-sm text-red-500">{errors.receipt}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="notes">{isArabic ? 'ملاحظات (اختياري)' : 'Notes (optional)'}</Label>
+                                            <Textarea
+                                                id="notes"
+                                                value={data.notes}
+                                                onChange={(e) => setData('notes', e.target.value)}
+                                                placeholder={isArabic ? 'أي ملاحظات إضافية...' : 'Any additional notes...'}
+                                                rows={3}
+                                            />
+                                            {errors.notes && (
+                                                <p className="text-sm text-red-500">{errors.notes}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 dark:bg-amber-950 dark:border-amber-800">
+                                            <p className="text-sm text-amber-700 font-medium dark:text-amber-400">
+                                                {isArabic
+                                                    ? '⏱ سيتم مراجعة الإيصال وتجديد اشتراكك خلال 24 ساعة عمل'
+                                                    : '⏱ Your receipt will be reviewed and subscription renewed within 24 business hours'}
+                                            </p>
+                                        </div>
+
+                                        <Button type="submit" disabled={processing || !data.receipt}>
+                                            <Upload className="h-4 w-4 me-2" />
+                                            {processing
+                                                ? (isArabic ? 'جاري الإرسال...' : 'Submitting...')
+                                                : (isArabic ? 'إرسال طلب التجديد' : 'Submit Renewal Request')}
+                                        </Button>
+                                    </form>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -265,6 +427,7 @@ export default function RenewalIndex({ tenant, renewals, canRenew }: Props) {
                                 <thead>
                                     <tr className="border-b bg-muted/50 text-muted-foreground">
                                         <th className="px-4 py-3 text-start font-medium">{isArabic ? 'التاريخ' : 'Date'}</th>
+                                        <th className="px-4 py-3 text-start font-medium">{isArabic ? 'طريقة الدفع' : 'Payment Method'}</th>
                                         <th className="px-4 py-3 text-start font-medium">{isArabic ? 'الحالة' : 'Status'}</th>
                                         <th className="px-4 py-3 text-start font-medium">{isArabic ? 'ملاحظات' : 'Notes'}</th>
                                     </tr>
@@ -274,6 +437,9 @@ export default function RenewalIndex({ tenant, renewals, canRenew }: Props) {
                                         <tr key={renewal.id} className="border-b last:border-0 hover:bg-muted/30">
                                             <td className="px-4 py-3 text-muted-foreground">
                                                 {new Date(renewal.requested_at).toLocaleDateString(isArabic ? 'ar-SA' : 'en-US')}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {paymentMethodBadge(renewal.payment_method || 'bank_transfer')}
                                             </td>
                                             <td className="px-4 py-3">{statusBadge(renewal.status)}</td>
                                             <td className="px-4 py-3 text-muted-foreground">{renewal.notes || '—'}</td>

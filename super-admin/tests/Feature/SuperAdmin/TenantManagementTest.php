@@ -36,11 +36,17 @@ test('tenants can be searched by name', function () {
 
 test('tenants can be filtered by status', function () {
     $user = User::factory()->superAdmin()->create();
-    Tenant::factory()->count(2)->create(['is_active' => true]);
+    // The unified TenantController uses derived status keys: completed,
+    // pending, expired, rejected, inactive.
+    Tenant::factory()->count(2)->create([
+        'is_active' => true,
+        'payment_status' => 'approved',
+        'subscription_ends_at' => now()->addYear(),
+    ]);
     Tenant::factory()->count(1)->inactive()->create();
 
     $this->actingAs($user)
-        ->get('/super-admin/tenants?status=active')
+        ->get('/super-admin/tenants?status=completed')
         ->assertOk()
         ->assertInertia(fn ($page) => $page->has('tenants.data', 2));
 
@@ -104,9 +110,12 @@ test('super admin can create a tenant with admin user', function () {
 test('create tenant validates required fields', function () {
     $user = User::factory()->superAdmin()->create();
 
+    // After the unified controller refactor, only name, slug, and template are
+    // strictly required. plan_id and admin_* are optional (admin form fills
+    // them client-side) so we no longer assert on them.
     $this->actingAs($user)
         ->post('/super-admin/tenants', [])
-        ->assertSessionHasErrors(['name', 'slug', 'template', 'plan_id', 'admin_name', 'admin_email', 'admin_password']);
+        ->assertSessionHasErrors(['name', 'slug', 'template']);
 });
 
 test('create tenant validates unique slug', function () {
@@ -190,7 +199,8 @@ test('super admin can update a tenant', function () {
             'template' => 'madina',
             'plan_id' => $plan->id,
         ])
-        ->assertRedirect(route('super-admin.tenants.index'));
+        // The unified controller returns back() so the user can keep editing.
+        ->assertRedirect();
 
     $tenant->refresh();
     expect($tenant->name)->toBe('Updated Name')

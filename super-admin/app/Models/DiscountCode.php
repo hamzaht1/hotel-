@@ -27,9 +27,19 @@ class DiscountCode extends Model
         return [
             'value' => 'decimal:2',
             'is_active' => 'boolean',
-            'valid_from' => 'date',
-            'valid_until' => 'date',
+            'valid_from' => 'datetime',
+            'valid_until' => 'datetime',
         ];
+    }
+
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->valid_until && $this->valid_until->isPast();
+    }
+
+    public function getIsPendingAttribute(): bool
+    {
+        return $this->valid_from && $this->valid_from->isFuture();
     }
 
     public function plan(): BelongsTo

@@ -4,10 +4,13 @@ namespace App\Models;
 
 use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class HotelSetting extends Model
 {
     use BelongsToTenant;
+
+    protected $appends = ['logo_url', 'favicon_url'];
 
     protected $fillable = [
         'tenant_id',
@@ -39,5 +42,15 @@ class HotelSetting extends Model
     public function getHotelNameAttribute(): string
     {
         return app()->getLocale() === 'ar' ? $this->hotel_name_ar : $this->hotel_name_en;
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo ? Storage::disk('public')->url($this->logo) : null;
+    }
+
+    public function getFaviconUrlAttribute(): ?string
+    {
+        return $this->favicon ? Storage::disk('public')->url($this->favicon) : null;
     }
 }

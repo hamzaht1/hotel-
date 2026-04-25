@@ -21,6 +21,9 @@ use App\Http\Controllers\ClientAdmin\StaffController;
 use App\Http\Controllers\ClientAdmin\RoleController;
 use App\Http\Controllers\ClientAdmin\IntegrationController;
 use App\Http\Controllers\ClientAdmin\RenewalController;
+use App\Http\Controllers\ClientAdmin\ReviewController as ClientReviewController;
+use App\Http\Controllers\ClientAdmin\DomainController;
+use App\Http\Controllers\ReviewSubmissionController;
 
 // ─── Public Routes ──────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -98,9 +101,16 @@ Route::prefix('setup')->name('setup.')->group(function () {
 
     Route::get('payment-method', [SetupController::class, 'paymentMethod'])->name('paymentMethod');
     Route::post('payment-method', [SetupController::class, 'storePayment'])->name('payment.store');
+    Route::post('tap-payment', [SetupController::class, 'initiateTapPayment'])->name('tap.initiate');
+    Route::get('tap-callback', [SetupController::class, 'tapCallback'])->name('tap.callback');
 
     Route::get('pending', [SetupController::class, 'pending'])->name('pending');
+    Route::get('complete', [SetupController::class, 'complete'])->name('complete');
 });
+
+// ─── Tap Webhooks (no auth, CSRF excluded in bootstrap/app.php) ──
+Route::post('/webhooks/tap/setup', [SetupController::class, 'tapWebhook'])->name('setup.tap.webhook');
+Route::post('/webhooks/tap/renewal', [RenewalController::class, 'tapWebhook'])->name('renewal.tap.webhook');
 
 // ─── Tenant Public Site (by slug) ───────────────────────────
 Route::get('/hotel/{slug}', [TenantSiteController::class, 'show'])->name('tenant.site');
@@ -118,6 +128,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // ─── CMS Pages ─────────────────────────────────────────────
 Route::get('/page/{slug}', [PageController::class, 'show'])->name('page.show');
+
+// ─── Contact Form (public) ─────────────────────────────────
+Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
+Route::post('/hotel/{tenantSlug}/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('tenant.contact.store');
+
+// ─── Public Review Submission ───────────────────────────────
+Route::get('/hotel/{tenantSlug}/review', [ReviewSubmissionController::class, 'show'])->name('review.show');
+Route::post('/hotel/{tenantSlug}/review', [ReviewSubmissionController::class, 'store'])->name('review.store');
+Route::get('/review/{token}', [ReviewSubmissionController::class, 'showByToken'])->name('review.thanks');
+
+// ─── Public Service Booking ─────────────────────────────────
+Route::get('/hotel/{tenantSlug}/services/{service}/book', [\App\Http\Controllers\ServiceBookingController::class, 'show'])->name('service.booking.show');
+Route::post('/hotel/{tenantSlug}/services/{service}/book', [\App\Http\Controllers\ServiceBookingController::class, 'store'])->name('service.booking.store');
 
 // ─── Client Admin Routes ────────────────────────────────────
 Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
@@ -147,8 +170,10 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
 
         // Site Sections
         Route::get('site-sections', [SiteSectionController::class, 'index'])->name('site-sections.index');
-        Route::post('site-sections/{siteSection}/toggle', [SiteSectionController::class, 'toggle'])->name('site-sections.toggle');
+        Route::post('site-sections', [SiteSectionController::class, 'store'])->name('site-sections.store');
         Route::post('site-sections/reorder', [SiteSectionController::class, 'reorder'])->name('site-sections.reorder');
+        Route::post('site-sections/{siteSection}/toggle', [SiteSectionController::class, 'toggle'])->name('site-sections.toggle');
+        Route::delete('site-sections/{siteSection}', [SiteSectionController::class, 'destroy'])->name('site-sections.destroy');
 
         // Contact Settings
         Route::get('contact-settings', [ContactSettingController::class, 'edit'])->name('contact-settings.edit');
@@ -159,9 +184,18 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::put('hotel-settings', [HotelSettingController::class, 'update'])->name('hotel-settings.update');
 
         // Reports
+        Route::get('reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
         Route::get('reports/subscriptions', [ReportController::class, 'subscriptions'])->name('reports.subscriptions');
         Route::get('reports/messages', [ReportController::class, 'messages'])->name('reports.messages');
         Route::post('reports/messages', [ReportController::class, 'sendMessage'])->name('reports.messages.send');
+
+        // Service Bookings (inbox)
+        Route::get('service-bookings', [\App\Http\Controllers\ClientAdmin\ServiceBookingController::class, 'index'])->name('service-bookings.index');
+        Route::post('service-bookings/{booking}/status', [\App\Http\Controllers\ClientAdmin\ServiceBookingController::class, 'updateStatus'])->name('service-bookings.status');
+
+        // Contact Messages inbox
+        Route::get('contact-messages', [\App\Http\Controllers\ClientAdmin\ContactMessageController::class, 'index'])->name('contact-messages.index');
+        Route::post('contact-messages/{message}/read', [\App\Http\Controllers\ClientAdmin\ContactMessageController::class, 'markRead'])->name('contact-messages.read');
 
         // Service Categories
         Route::get('service-categories', [ServiceCategoryController::class, 'index'])->name('service-categories.index');
@@ -176,14 +210,37 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::get('services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
         Route::put('services/{service}', [ServiceController::class, 'update'])->name('services.update');
         Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+        Route::get('services/{service}/required-fields', [ServiceController::class, 'requiredFields'])->name('services.required-fields');
+        Route::post('services/{service}/required-fields', [ServiceController::class, 'saveRequiredFields'])->name('services.required-fields.save');
 
         // Renewal
         Route::get('renewal', [RenewalController::class, 'index'])->name('renewal.index');
         Route::post('renewal', [RenewalController::class, 'store'])->name('renewal.store');
+        Route::post('renewal/tap-payment', [RenewalController::class, 'initiateTapPayment'])->name('renewal.tap.initiate');
+        Route::get('renewal/tap-callback', [RenewalController::class, 'tapCallback'])->name('renewal.tap.callback');
 
-        // Invoices (read-only for client)
+        // Reviews
+        Route::get('reviews', [ClientReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews/form', [ClientReviewController::class, 'form'])->name('reviews.form');
+        Route::post('reviews/form', [ClientReviewController::class, 'saveForm'])->name('reviews.form.save');
+        Route::get('reviews/{review}', [ClientReviewController::class, 'show'])->name('reviews.show');
+        Route::post('reviews/{review}/publish', [ClientReviewController::class, 'togglePublished'])->name('reviews.publish');
+        Route::post('reviews/{review}/reply', [ClientReviewController::class, 'reply'])->name('reviews.reply');
+
+        // Review popup (7-day satisfaction check)
+        Route::post('review-popup', [\App\Http\Controllers\ClientAdmin\ReviewPopupController::class, 'submit'])->name('review-popup.submit');
+        Route::post('review-popup/dismiss', [\App\Http\Controllers\ClientAdmin\ReviewPopupController::class, 'dismiss'])->name('review-popup.dismiss');
+
+        // Domain management
+        Route::get('domain', [DomainController::class, 'show'])->name('domain.show');
+        Route::post('domain', [DomainController::class, 'save'])->name('domain.save');
+        Route::post('domain/verify', [DomainController::class, 'verify'])->name('domain.verify');
+
+        // Invoices (read-only for client, + receipt upload + template picker)
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
+        Route::post('invoices/{invoice}/receipt', [InvoiceController::class, 'uploadReceipt'])->name('invoices.receipt');
+        Route::post('invoices/{invoice}/template', [InvoiceController::class, 'updateTemplate'])->name('invoices.template');
 
         // Integrations
         Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
@@ -197,6 +254,7 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
             Route::get('staff/{user}/edit', [StaffController::class, 'edit'])->middleware('can:staff.edit')->name('staff.edit');
             Route::put('staff/{user}', [StaffController::class, 'update'])->middleware('can:staff.edit')->name('staff.update');
             Route::delete('staff/{user}', [StaffController::class, 'destroy'])->middleware('can:staff.delete')->name('staff.destroy');
+            Route::post('staff/{user}/reset-password', [StaffController::class, 'resetPassword'])->middleware('can:staff.edit')->name('staff.reset-password');
         });
 
         // Role Management

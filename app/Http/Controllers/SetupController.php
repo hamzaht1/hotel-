@@ -7,10 +7,12 @@ use App\Models\Plan;
 use App\Models\Template;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\TapPaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -36,6 +38,10 @@ class SetupController extends Controller
 
         $plan = Plan::findOrFail($data['plan_id']);
 
+        if ($plan->is_coming_soon) {
+            return back()->withErrors(['plan_id' => 'هذه الباقة غير متوفرة بعد، اختر باقة أخرى.']);
+        }
+
         $setup = session('setup', []);
         $setup['plan_id'] = $plan->id;
         $setup['plan_key'] = $plan->slug;
@@ -52,7 +58,13 @@ class SetupController extends Controller
         syncLangFiles('messages');
         return Inertia::render('public/setup/Template', [
             'setup' => session('setup', []),
-            'dbTemplates' => Template::where('is_active', true)->orderBy('sort_order')->get(['id', 'key', 'name_ar', 'name_en', 'description_ar', 'description_en', 'preview_image']),
+            'dbTemplates' => Template::where('is_active', true)
+                ->orderBy('sort_order')
+                ->get([
+                    'id', 'key', 'name_ar', 'name_en', 'city_ar', 'city_en',
+                    'description_ar', 'description_en', 'preview_image',
+                    'demo_url', 'is_coming_soon',
+                ]),
         ]);
     }
 
@@ -62,6 +74,14 @@ class SetupController extends Controller
             'template_id' => 'required|string|max:50',
             'template_title' => 'required|string|max:100',
         ]);
+
+        $template = Template::where('key', $data['template_id'])
+            ->when(ctype_digit((string) $data['template_id']), fn ($q) => $q->orWhere('id', (int) $data['template_id']))
+            ->first();
+
+        if ($template && $template->is_coming_soon) {
+            return back()->withErrors(['template_id' => 'هذا القالب غير متوفر بعد، اختر قالبًا آخر.']);
+        }
 
         $setup = session('setup', []);
         $setup['template_id'] = $data['template_id'];
@@ -235,7 +255,7 @@ class SetupController extends Controller
         ]);
     }
 
-    // ─── Step 7: Payment Method (Bank Transfer) ────────────────
+    // ─── Step 7: Payment Method ──────────────────────────────────
 
     public function paymentMethod()
     {
@@ -246,8 +266,12 @@ class SetupController extends Controller
             return redirect()->route('setup.verifyOtp');
         }
 
+        $plan = Plan::find($setup['plan_id'] ?? null);
+
         return Inertia::render('public/setup/PaymentMethod', [
             'setup' => $setup,
+            'planPrice' => $plan ? (float) $plan->price : 0,
+            'tapPublicKey' => config('tap.public_key'),
             'bankDetails' => [
                 'bank_name_ar' => 'البنك الأهلي السعودي',
                 'bank_name_en' => 'Saudi National Bank (SNB)',
@@ -259,6 +283,9 @@ class SetupController extends Controller
         ]);
     }
 
+    /**
+     * Store payment via bank transfer (manual).
+     */
     public function storePayment(Request $request): RedirectResponse
     {
         $request->validate([
@@ -272,11 +299,168 @@ class SetupController extends Controller
             return redirect()->route('setup.account');
         }
 
-        // Store receipt file
         $receiptPath = $request->file('receipt')->store('bank-receipts', 'public');
 
-        // Create tenant
-        $tenant = Tenant::create([
+        $tenant = $this->createTenantFromSetup($setup, [
+            'payment_status' => 'pending',
+            'payment_method' => 'bank_transfer',
+            'bank_transfer_receipt' => $receiptPath,
+            'payment_notes' => $request->payment_notes,
+        ]);
+
+        $this->createTenantDefaults($tenant, $setup);
+
+        session()->forget('setup');
+
+        return redirect()->route('setup.pending');
+    }
+
+    /**
+     * Initiate a Tap payment charge.
+     */
+    public function initiateTapPayment(Request $request)
+    {
+        $setup = session('setup', []);
+
+        if (empty($setup['otp_verified']) || empty($setup['email'])) {
+            return redirect()->route('setup.account');
+        }
+
+        $plan = Plan::find($setup['plan_id'] ?? null);
+        if (!$plan) {
+            return back()->withErrors(['payment' => 'الباقة غير موجودة']);
+        }
+
+        $tap = new TapPaymentService();
+
+        $result = $tap->createCharge([
+            'amount' => (float) $plan->price,
+            'description' => "Diyafah - {$plan->name_en} Plan Subscription",
+            'customer_name' => $setup['username'] ?? '',
+            'customer_email' => $setup['email'],
+            'reference' => 'setup_' . Str::random(10),
+            'order_id' => 'setup_ord_' . Str::random(10),
+            'metadata' => [
+                'type' => 'setup',
+                'plan_id' => $plan->id,
+                'email' => $setup['email'],
+            ],
+            'redirect_url' => route('setup.tap.callback'),
+            'webhook_url' => route('setup.tap.webhook'),
+        ]);
+
+        if (!$result['success']) {
+            return back()->withErrors(['payment' => 'فشل في بدء عملية الدفع. حاول مرة أخرى.']);
+        }
+
+        // Store charge ID in session for verification
+        $setup['tap_charge_id'] = $result['charge_id'];
+        session(['setup' => $setup]);
+
+        return Inertia::location($result['redirect_url']);
+    }
+
+    /**
+     * Handle Tap redirect callback after payment.
+     */
+    public function tapCallback(Request $request)
+    {
+        $tapId = $request->query('tap_id');
+        $setup = session('setup', []);
+
+        if (!$tapId || empty($setup['otp_verified'])) {
+            return redirect()->route('setup.paymentMethod')
+                ->withErrors(['payment' => 'عملية الدفع غير صالحة']);
+        }
+
+        $tap = new TapPaymentService();
+        $charge = $tap->retrieveCharge($tapId);
+
+        if (!$charge['success'] || $charge['status'] !== 'CAPTURED') {
+            return redirect()->route('setup.paymentMethod')
+                ->withErrors(['payment' => 'لم يتم إكمال الدفع. حاول مرة أخرى.']);
+        }
+
+        // Payment successful — create tenant as auto-approved
+        $tenant = $this->createTenantFromSetup($setup, [
+            'payment_status' => 'approved',
+            'payment_method' => 'tap',
+            'tap_charge_id' => $charge['charge_id'],
+            'tap_transaction_id' => $charge['transaction_id'],
+            'is_active' => true,
+            'subscription_starts_at' => now(),
+            'subscription_ends_at' => now()->addYear(),
+        ]);
+
+        $this->createTenantDefaults($tenant, $setup);
+
+        // Send approval email
+        $admin = User::where('tenant_id', $tenant->id)->where('role', 'client_admin')->first();
+        if ($admin) {
+            try {
+                Mail::to($admin->email)->send(
+                    new \App\Mail\PaymentApprovedMail($tenant, $admin)
+                );
+            } catch (\Exception $e) {
+                Log::warning('Tap approval email failed: ' . $e->getMessage());
+            }
+        }
+
+        session()->forget('setup');
+
+        return redirect()->route('setup.complete');
+    }
+
+    /**
+     * Handle Tap webhook (server-to-server confirmation).
+     */
+    public function tapWebhook(Request $request)
+    {
+        $chargeId = $request->input('id');
+        $status = $request->input('status');
+
+        Log::info('Tap webhook received', ['charge_id' => $chargeId, 'status' => $status]);
+
+        if ($status === 'CAPTURED' && $chargeId) {
+            // Find tenant by tap_charge_id and activate if still pending
+            $tenant = Tenant::where('tap_charge_id', $chargeId)
+                ->where('payment_status', 'pending')
+                ->first();
+
+            if ($tenant) {
+                $tenant->update([
+                    'payment_status' => 'approved',
+                    'is_active' => true,
+                    'subscription_starts_at' => now(),
+                    'subscription_ends_at' => now()->addYear(),
+                ]);
+            }
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    // ─── Setup Complete (after Tap payment) ────────────────────
+
+    public function complete()
+    {
+        syncLangFiles('messages');
+        return Inertia::render('public/setup/Complete');
+    }
+
+    // ─── Pending Approval Page (bank transfer) ─────────────────
+
+    public function pending()
+    {
+        syncLangFiles('messages');
+        return Inertia::render('public/setup/Pending');
+    }
+
+    // ─── Helper: Create Tenant ─────────────────────────────────
+
+    private function createTenantFromSetup(array $setup, array $paymentFields): Tenant
+    {
+        $tenant = Tenant::create(array_merge([
             'name' => $setup['org_name_en'] ?? $setup['org_name_ar'],
             'slug' => $setup['slug'],
             'subdomain' => $setup['slug'],
@@ -284,17 +468,18 @@ class SetupController extends Controller
             'email' => $setup['email'],
             'plan_id' => $setup['plan_id'] ?? null,
             'plan' => $setup['plan_key'] ?? 'basic',
-            'is_active' => false, // Inactive until admin approves
-            'payment_status' => 'pending',
-            'payment_method' => 'bank_transfer',
-            'bank_transfer_receipt' => $receiptPath,
-            'payment_notes' => $request->payment_notes,
+            'is_active' => false,
             'org_name_ar' => $setup['org_name_ar'] ?? null,
             'org_name_en' => $setup['org_name_en'] ?? null,
             'subscription_starts_at' => null,
             'subscription_ends_at' => null,
-        ]);
+        ], $paymentFields));
 
+        return $tenant;
+    }
+
+    private function createTenantDefaults(Tenant $tenant, array $setup): void
+    {
         // Create default site sections
         $sections = ['hero', 'rooms', 'services', 'gallery', 'testimonials', 'partners', 'contact'];
         foreach ($sections as $i => $section) {
@@ -332,19 +517,6 @@ class SetupController extends Controller
         ]);
 
         $user->markEmailAsVerified();
-
-        // Clear setup session
-        session()->forget('setup');
-
-        return redirect()->route('setup.pending');
-    }
-
-    // ─── Pending Approval Page ─────────────────────────────────
-
-    public function pending()
-    {
-        syncLangFiles('messages');
-        return Inertia::render('public/setup/Pending');
     }
 
     private function resolveTemplateSlug(string $value): string

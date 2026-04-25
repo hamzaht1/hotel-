@@ -20,11 +20,13 @@ class Plan extends Model
         'billing_cycle',
         'features_ar',
         'features_en',
+        'feature_styles',
         'limits',
         'icon',
         'variant',
         'sort_order',
         'is_active',
+        'is_coming_soon',
     ];
 
     protected function casts(): array
@@ -33,8 +35,10 @@ class Plan extends Model
             'price' => 'decimal:2',
             'features_ar' => 'array',
             'features_en' => 'array',
+            'feature_styles' => 'array',
             'limits' => 'array',
             'is_active' => 'boolean',
+            'is_coming_soon' => 'boolean',
         ];
     }
 

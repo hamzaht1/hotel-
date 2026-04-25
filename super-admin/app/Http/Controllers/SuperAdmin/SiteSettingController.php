@@ -23,14 +23,21 @@ class SiteSettingController extends Controller
             'site_name_ar' => 'nullable|string|max:255',
             'site_name_en' => 'nullable|string|max:255',
             'site_logo' => 'nullable|file|max:2048',
+            'site_logo_dark' => 'nullable|file|max:2048',
             'site_favicon' => 'nullable|file|max:1024',
             'primary_color' => 'nullable|string|max:20',
             'secondary_color' => 'nullable|string|max:20',
+            'accent_color' => 'nullable|string|max:20',
+            'dark_primary_color' => 'nullable|string|max:20',
+            'dark_secondary_color' => 'nullable|string|max:20',
+            'dark_accent_color' => 'nullable|string|max:20',
             'font_family' => 'nullable|string|max:100',
             'hero_title_ar' => 'nullable|string|max:500',
             'hero_title_en' => 'nullable|string|max:500',
             'hero_subtitle_ar' => 'nullable|string|max:500',
             'hero_subtitle_en' => 'nullable|string|max:500',
+            'site_text_ar' => 'nullable|string|max:2000',
+            'site_text_en' => 'nullable|string|max:2000',
             'footer_text_ar' => 'nullable|string|max:500',
             'footer_text_en' => 'nullable|string|max:500',
             'social_twitter' => 'nullable|string|max:255',
@@ -40,7 +47,7 @@ class SiteSettingController extends Controller
         ]);
 
         // Handle file uploads
-        foreach (['site_logo', 'site_favicon'] as $fileField) {
+        foreach (['site_logo', 'site_logo_dark', 'site_favicon'] as $fileField) {
             if ($request->hasFile($fileField)) {
                 $old = SiteSetting::get($fileField);
                 if ($old) {

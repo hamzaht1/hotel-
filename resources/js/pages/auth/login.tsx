@@ -116,7 +116,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             {canResetPassword && (
                                                 <Link
                                                     href={route('password.request')}
-                                                    className="text-xs font-medium transition-colors hover:underline"
+                                                    className="text-xs font-semibold underline underline-offset-2 transition-colors hover:opacity-80"
                                                     style={{ color: 'var(--public-active, #5A5ECD)' }}
                                                     tabIndex={5}
                                                 >

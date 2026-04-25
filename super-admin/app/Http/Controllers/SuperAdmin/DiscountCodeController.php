@@ -47,8 +47,10 @@ class DiscountCodeController extends Controller
             'value' => 'required|numeric|min:0',
             'plan_id' => 'nullable|exists:plans,id',
             'max_uses' => 'nullable|integer|min:1',
+            // valid_from can be in the past — lets admins record historical codes.
             'valid_from' => 'nullable|date',
-            'valid_until' => 'nullable|date|after_or_equal:valid_from',
+            'valid_until' => 'nullable|date|after:valid_from',
+            // Note: no "after_or_equal:today" rule so past dates are accepted.
             'is_active' => 'boolean',
         ]);
 
@@ -76,8 +78,10 @@ class DiscountCodeController extends Controller
             'value' => 'required|numeric|min:0',
             'plan_id' => 'nullable|exists:plans,id',
             'max_uses' => 'nullable|integer|min:1',
+            // valid_from can be in the past — lets admins record historical codes.
             'valid_from' => 'nullable|date',
-            'valid_until' => 'nullable|date|after_or_equal:valid_from',
+            'valid_until' => 'nullable|date|after:valid_from',
+            // Note: no "after_or_equal:today" rule so past dates are accepted.
             'is_active' => 'boolean',
         ]);
 

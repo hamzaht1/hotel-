@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -129,7 +129,20 @@ export default function PagesIndex({ pages, filters }: Props) {
                                     <tr key={page.id} className="border-b last:border-0 hover:bg-muted/30">
                                         <td className="px-4 py-3 font-medium">{page.title_ar}</td>
                                         <td className="px-4 py-3">{page.title_en}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{page.slug}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            <div className="flex items-center gap-1">
+                                                <code className="text-xs">/page/{page.slug}</code>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6"
+                                                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/page/${page.slug}`)}
+                                                    title="Copy URL"
+                                                >
+                                                    <Copy className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">
                                             <Badge variant={page.is_published ? 'default' : 'secondary'} className="rounded-full">
                                                 {page.is_published ? 'منشور / Published' : 'مسودة / Draft'}
@@ -138,6 +151,13 @@ export default function PagesIndex({ pages, filters }: Props) {
                                         <td className="px-4 py-3">{page.sort_order}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-1">
+                                                {page.is_published && (
+                                                    <Button variant="ghost" size="icon" asChild title="View">
+                                                        <a href={`/page/${page.slug}`} target="_blank" rel="noopener noreferrer">
+                                                            <ExternalLink className="h-4 w-4" />
+                                                        </a>
+                                                    </Button>
+                                                )}
                                                 <Button variant="ghost" size="icon" asChild>
                                                     <Link href={`/super-admin/pages/${page.id}/edit`}>
                                                         <Pencil className="h-4 w-4" />

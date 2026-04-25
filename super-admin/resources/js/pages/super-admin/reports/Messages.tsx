@@ -77,10 +77,16 @@ export default function Messages({ messages, stats, filters }: Props) {
 
     const sendReply = () => {
         if (!selectedMsg || !replyText.trim()) return;
+        const currentId = selectedMsg.id;
+        const sentReply = replyText;
         setSending(true);
-        router.post(`/super-admin/reports/messages/${selectedMsg.id}/reply`, { reply: replyText }, {
+        router.post(`/super-admin/reports/messages/${currentId}/reply`, { reply: replyText }, {
             preserveScroll: true,
-            onSuccess: () => { setReplyText(''); setSelectedMsg(null); },
+            preserveState: true,
+            onSuccess: () => {
+                setReplyText('');
+                setSelectedMsg((prev) => prev && prev.id === currentId ? { ...prev, reply: sentReply, status: 'in_progress' } : prev);
+            },
             onFinish: () => setSending(false),
         });
     };

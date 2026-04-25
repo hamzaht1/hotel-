@@ -30,7 +30,27 @@ export default function CreateTenant({ plans }: Props) {
         { title: t('create_tenant'), href: '/super-admin/tenants/create' },
     ];
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm<{
+        name: string;
+        slug: string;
+        domain: string;
+        subdomain: string;
+        template: string;
+        email: string;
+        phone: string;
+        plan_id: string | number;
+        subscription_starts_at: string;
+        subscription_ends_at: string;
+        is_active: boolean;
+        logo: File | null;
+        admin_name: string;
+        admin_email: string;
+        admin_password: string;
+        payment_method: string;
+        payment_status: string;
+        bank_transfer_receipt: File | null;
+        payment_notes: string;
+    }>({
         name: '',
         slug: '',
         domain: '',
@@ -42,14 +62,19 @@ export default function CreateTenant({ plans }: Props) {
         subscription_starts_at: '',
         subscription_ends_at: '',
         is_active: true,
+        logo: null,
         admin_name: '',
         admin_email: '',
         admin_password: '',
+        payment_method: 'manual',
+        payment_status: 'approved',
+        bank_transfer_receipt: null,
+        payment_notes: '',
     });
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        post('/super-admin/tenants');
+        post('/super-admin/tenants', { forceFormData: true });
     }
 
     function autoSlug(name: string) {
@@ -113,6 +138,14 @@ export default function CreateTenant({ plans }: Props) {
                                     <Input
                                         value={data.phone}
                                         onChange={(e) => setData('phone', e.target.value)}
+                                        className="vuexy-input"
+                                    />
+                                </Field>
+                                <Field label={t('logo')} error={(errors as Record<string, string>).logo}>
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => setData('logo', e.target.files?.[0] ?? null)}
                                         className="vuexy-input"
                                     />
                                 </Field>
@@ -189,7 +222,6 @@ export default function CreateTenant({ plans }: Props) {
                                     <Input
                                         value={data.admin_name}
                                         onChange={(e) => setData('admin_name', e.target.value)}
-                                        required
                                         className="vuexy-input"
                                     />
                                 </Field>
@@ -198,7 +230,6 @@ export default function CreateTenant({ plans }: Props) {
                                         type="email"
                                         value={data.admin_email}
                                         onChange={(e) => setData('admin_email', e.target.value)}
-                                        required
                                         className="vuexy-input"
                                     />
                                 </Field>
@@ -207,8 +238,56 @@ export default function CreateTenant({ plans }: Props) {
                                         type="password"
                                         value={data.admin_password}
                                         onChange={(e) => setData('admin_password', e.target.value)}
-                                        required
                                         minLength={8}
+                                        className="vuexy-input"
+                                    />
+                                </Field>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('payment')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Field label={t('payment_method')} error={(errors as Record<string, string>).payment_method}>
+                                    <Select value={data.payment_method} onValueChange={(value) => setData('payment_method', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="manual">{t('manual')}</SelectItem>
+                                            <SelectItem value="bank_transfer">{t('bank_transfer')}</SelectItem>
+                                            <SelectItem value="tap">Tap</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                                <Field label={t('payment_status')} error={(errors as Record<string, string>).payment_status}>
+                                    <Select value={data.payment_status} onValueChange={(value) => setData('payment_status', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pending">{t('pending')}</SelectItem>
+                                            <SelectItem value="approved">{t('approved')}</SelectItem>
+                                            <SelectItem value="rejected">{t('rejected')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                                <Field label={t('bank_transfer_receipt')} error={(errors as Record<string, string>).bank_transfer_receipt}>
+                                    <Input
+                                        type="file"
+                                        accept="image/*,application/pdf"
+                                        onChange={(e) => setData('bank_transfer_receipt', e.target.files?.[0] ?? null)}
+                                        className="vuexy-input"
+                                    />
+                                </Field>
+                                <Field label={t('payment_notes')} error={(errors as Record<string, string>).payment_notes}>
+                                    <Input
+                                        value={data.payment_notes}
+                                        onChange={(e) => setData('payment_notes', e.target.value)}
                                         className="vuexy-input"
                                     />
                                 </Field>

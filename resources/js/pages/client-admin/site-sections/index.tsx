@@ -2,8 +2,8 @@ import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
-import { GripVertical, ArrowUp, ArrowDown, Eye, EyeOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { GripVertical, ArrowUp, ArrowDown, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 
 interface SiteSection {
     id: number;
@@ -14,9 +14,10 @@ interface SiteSection {
 
 interface Props {
     sections: SiteSection[];
+    availableToAdd: string[];
 }
 
-export default function SiteSectionsIndex({ sections }: Props) {
+export default function SiteSectionsIndex({ sections, availableToAdd }: Props) {
     const { t } = useT();
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -35,9 +36,19 @@ export default function SiteSectionsIndex({ sections }: Props) {
     };
 
     const [items, setItems] = useState<SiteSection[]>(sections);
+    useEffect(() => { setItems(sections); }, [sections]);
 
     function handleToggle(id: number) {
         router.post(`/client-admin/site-sections/${id}/toggle`);
+    }
+
+    function handleAdd(sectionName: string) {
+        router.post('/client-admin/site-sections', { section_name: sectionName });
+    }
+
+    function handleDelete(id: number) {
+        if (!confirm(t('confirm_delete'))) return;
+        router.delete(`/client-admin/site-sections/${id}`);
     }
 
     function moveUp(index: number) {
@@ -110,6 +121,13 @@ export default function SiteSectionsIndex({ sections }: Props) {
                                     {section.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                     {section.is_active ? t('visible') : t('hidden')}
                                 </button>
+                                <button
+                                    onClick={() => handleDelete(section.id)}
+                                    className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+                                    title={t('delete')}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
                             </div>
                         );
                     })}
@@ -118,6 +136,27 @@ export default function SiteSectionsIndex({ sections }: Props) {
                 {sections.length === 0 && (
                     <div className="vuexy-card p-12 text-center text-muted-foreground">
                         {t('no_sections')}
+                    </div>
+                )}
+
+                {availableToAdd && availableToAdd.length > 0 && (
+                    <div className="vuexy-card p-6">
+                        <h2 className="mb-4 text-lg font-semibold">{t('add_section')}</h2>
+                        <div className="flex flex-wrap gap-2">
+                            {availableToAdd.map((name) => {
+                                const label = sectionLabels[name]?.name || name;
+                                return (
+                                    <button
+                                        key={name}
+                                        onClick={() => handleAdd(name)}
+                                        className="inline-flex items-center gap-2 rounded-full border border-dashed border-primary/40 px-4 py-2 text-sm text-primary hover:bg-primary/5"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </div>

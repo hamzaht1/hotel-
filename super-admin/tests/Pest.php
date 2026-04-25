@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Foundation\Vite;
+use Tests\TestCase;
 
 uses(TestCase::class)->in('Feature');
 

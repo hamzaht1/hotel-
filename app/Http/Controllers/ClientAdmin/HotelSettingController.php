@@ -29,33 +29,39 @@ class HotelSettingController extends Controller
             'star_rating' => 'required|integer|min:1|max:5',
             'currency' => 'required|string|max:10',
             'timezone' => 'required|string|max:50',
-            'check_in_time' => 'required|string|max:10',
-            'check_out_time' => 'required|string|max:10',
+            'check_in_time' => 'nullable|string|max:10',
+            'check_out_time' => 'nullable|string|max:10',
             'primary_color' => 'nullable|array',
             'secondary_color' => 'nullable|array',
             'meta_tags' => 'nullable|array',
-            'logo' => 'nullable|file|max:2048',
-            'favicon' => 'nullable|file|max:1024',
+            'logo' => 'nullable|file|image|mimes:jpg,jpeg,png,svg,webp|max:2048',
+            'favicon' => 'nullable|file|image|mimes:jpg,jpeg,png,ico,svg|max:1024',
         ]);
 
-        $settings = HotelSetting::firstOrNew(['tenant_id' => app('current_tenant_id')]);
+        $settings = HotelSetting::firstOrNew([]);
 
         if ($request->hasFile('logo')) {
-            if ($settings->logo) Storage::disk('public')->delete($settings->logo);
+            if ($settings->logo) {
+                Storage::disk('public')->delete($settings->logo);
+            }
             $validated['logo'] = $request->file('logo')->store('hotel', 'public');
         } else {
             unset($validated['logo']);
         }
 
         if ($request->hasFile('favicon')) {
-            if ($settings->favicon) Storage::disk('public')->delete($settings->favicon);
+            if ($settings->favicon) {
+                Storage::disk('public')->delete($settings->favicon);
+            }
             $validated['favicon'] = $request->file('favicon')->store('hotel', 'public');
         } else {
             unset($validated['favicon']);
         }
 
         $settings->fill($validated);
-        $settings->tenant_id = app('current_tenant_id');
+        if (!$settings->tenant_id) {
+            $settings->tenant_id = app('current_tenant_id');
+        }
         $settings->save();
 
         return back()->with('success', 'Hotel settings updated');

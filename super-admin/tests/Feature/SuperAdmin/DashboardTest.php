@@ -14,11 +14,17 @@ test('super admin can access super admin dashboard', function () {
         ->assertInertia(fn ($page) => $page
             ->component('super-admin/dashboard')
             ->has('stats')
-            ->has('stats.total_tenants')
-            ->has('stats.active_tenants')
-            ->has('stats.inactive_tenants')
-            ->has('stats.total_users')
-            ->has('recent_tenants')
+            ->has('stats.total_clients')
+            ->has('stats.total_sites')
+            ->has('stats.total_revenue')
+            ->has('stats.satisfaction')
+            ->has('stats.total_templates')
+            ->has('recentRequests')
+            ->has('recentPayments')
+            ->has('newClients')
+            ->has('revenueSeries')
+            ->has('topTemplates')
+            ->has('byRegion')
         );
 });
 
@@ -36,7 +42,7 @@ test('guest cannot access super admin dashboard', function () {
         ->assertRedirect('/login');
 });
 
-test('dashboard stats are correct', function () {
+test('dashboard stats reflect tenant counts', function () {
     $user = User::factory()->superAdmin()->create();
 
     Tenant::factory()->count(3)->create(['is_active' => true]);
@@ -46,8 +52,16 @@ test('dashboard stats are correct', function () {
         ->get('/super-admin')
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('stats.total_tenants', 5)
-            ->where('stats.active_tenants', 3)
-            ->where('stats.inactive_tenants', 2)
+            ->where('stats.total_clients', 5)
+            ->where('stats.total_sites', 3)
         );
+});
+
+test('dashboard accepts range filter', function () {
+    $user = User::factory()->superAdmin()->create();
+
+    $this->actingAs($user)
+        ->get('/super-admin?range=this_week')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('range.key', 'this_week'));
 });

@@ -1,302 +1,399 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Save, Eye, Send, UserPlus, Building2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useT } from '@/hooks/use-translations';
+import { useState, useMemo } from 'react';
 
-interface TenantOption {
-    id: number;
-    name: string;
-    email: string;
-}
+interface TenantOption { id: number; name: string; email: string | null; phone: string | null; org_name_ar: string | null; plan_id: number | null }
+interface Plan { id: number; slug: string; name_ar: string; name_en: string }
+interface SalesRep { id: number; name: string }
 
-interface InvoiceItem {
+interface Item {
     description_ar: string;
     description_en: string;
     quantity: number;
     unit_price: number;
-    total: number;
 }
 
 interface Props {
     tenants: TenantOption[];
+    plans: Plan[];
+    salesReps: SalesRep[];
     nextNumber: string;
 }
 
-export default function CreateInvoice({ tenants, nextNumber }: Props) {
-    const { t } = useT();
+export default function CreateInvoice({ tenants, plans, salesReps, nextNumber }: Props) {
+    const { t, isArabic } = useT();
+    const [clientMode, setClientMode] = useState<'existing' | 'external'>('existing');
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
-        { title: t('invoices', 'Invoices'), href: '/super-admin/invoices' },
-        { title: t('create', 'Create'), href: '/super-admin/invoices/create' },
+        { title: isArabic ? 'الفواتير' : 'Invoices', href: '/super-admin/invoices' },
+        { title: isArabic ? 'إضافة فاتورة' : 'Add invoice', href: '/super-admin/invoices/create' },
     ];
 
     const { data, setData, post, processing, errors } = useForm<{
-        tenant_id: string | number;
+        tenant_id: string;
+        external_client_name: string;
+        external_client_email: string;
+        external_client_phone: string;
+        external_client_address: string;
+        bank_name: string;
+        bank_country: string;
+        bank_iban: string;
         type: string;
         issue_date: string;
         due_date: string;
         tax_rate: number;
+        tax_rate_2: number;
         discount: number;
+        discount_percent: number;
         notes_ar: string;
-        notes_en: string;
-        items: InvoiceItem[];
+        client_notes: string;
+        payment_terms: string;
+        payment_method: string;
+        sales_rep_id: string;
+        commission_rate: number;
+        requires_receipt: boolean;
+        has_receipt_toggle: boolean;
+        pdf_template: string;
+        items: Item[];
     }>({
         tenant_id: '',
+        external_client_name: '',
+        external_client_email: '',
+        external_client_phone: '',
+        external_client_address: '',
+        bank_name: '',
+        bank_country: '',
+        bank_iban: '',
         type: 'subscription',
-        issue_date: '',
-        due_date: '',
+        issue_date: new Date().toISOString().slice(0, 10),
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         tax_rate: 15,
+        tax_rate_2: 0,
         discount: 0,
+        discount_percent: 0,
         notes_ar: '',
-        notes_en: '',
-        items: [{ description_ar: '', description_en: '', quantity: 1, unit_price: 0, total: 0 }],
+        client_notes: '',
+        payment_terms: '',
+        payment_method: 'bank_transfer',
+        sales_rep_id: '',
+        commission_rate: 0,
+        requires_receipt: false,
+        has_receipt_toggle: false,
+        pdf_template: 'default',
+        items: [{ description_ar: '', description_en: '', quantity: 1, unit_price: 0 }],
     });
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        post('/super-admin/invoices');
+    // Sync: if an existing tenant is picked, clear external client fields (and vice versa).
+    function selectTenant(id: string) {
+        setData('tenant_id', id);
+        if (id) {
+            setData('external_client_name', '');
+            setData('external_client_email', '');
+            setData('external_client_phone', '');
+            setData('external_client_address', '');
+        }
     }
 
     function addItem() {
-        setData('items', [...data.items, { description_ar: '', description_en: '', quantity: 1, unit_price: 0, total: 0 }]);
+        setData('items', [...data.items, { description_ar: '', description_en: '', quantity: 1, unit_price: 0 }]);
+    }
+    function removeItem(i: number) {
+        setData('items', data.items.filter((_, idx) => idx !== i));
+    }
+    function updateItem(i: number, patch: Partial<Item>) {
+        const next = [...data.items];
+        next[i] = { ...next[i], ...patch };
+        setData('items', next);
     }
 
-    function removeItem(index: number) {
-        if (data.items.length <= 1) return;
-        setData('items', data.items.filter((_, i) => i !== index));
-    }
+    const totals = useMemo(() => {
+        const subtotal = data.items.reduce((sum, it) => sum + (it.quantity || 0) * (it.unit_price || 0), 0);
+        const discount = (data.discount || 0) + (subtotal * (data.discount_percent || 0)) / 100;
+        const afterDiscount = Math.max(0, subtotal - discount);
+        const tax1 = (afterDiscount * (data.tax_rate || 0)) / 100;
+        const tax2 = (afterDiscount * (data.tax_rate_2 || 0)) / 100;
+        const total = afterDiscount + tax1 + tax2;
+        const commission = (total * (data.commission_rate || 0)) / 100;
+        return { subtotal, discount, tax1, tax2, total, commission };
+    }, [data.items, data.discount, data.discount_percent, data.tax_rate, data.tax_rate_2, data.commission_rate]);
 
-    function updateItem(index: number, field: keyof InvoiceItem, value: string | number) {
-        const updated = [...data.items];
-        (updated[index] as Record<string, string | number>)[field] = value;
-        updated[index].total = updated[index].quantity * updated[index].unit_price;
-        setData('items', updated);
+    function submit(e: React.FormEvent) {
+        e.preventDefault();
+        const payload = { ...data };
+        if (clientMode === 'external') payload.tenant_id = '';
+        post('/super-admin/invoices');
     }
-
-    const subtotal = data.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    const discountAmount = Number(data.discount) || 0;
-    const taxableAmount = subtotal - discountAmount;
-    const taxAmount = taxableAmount * ((Number(data.tax_rate) || 0) / 100);
-    const grandTotal = taxableAmount + taxAmount;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={t('create_invoice', 'Create Invoice')} />
-            <div className="mx-auto max-w-4xl p-6">
-                <h1 className="mb-6 text-2xl font-bold">{t('create_invoice', 'Create Invoice')}</h1>
+            <Head title={isArabic ? 'إضافة فاتورة' : 'Add invoice'} />
+            <div className="mx-auto max-w-6xl p-6">
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <div>
+                        <h1 className="text-2xl font-bold">{isArabic ? 'إضافة فاتورة' : 'Add invoice'}</h1>
+                        <p className="text-xs text-muted-foreground">{isArabic ? 'رقم الفاتورة' : 'Invoice #'} {nextNumber}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm"><Save className="h-4 w-4" /> {isArabic ? 'حفظ' : 'Save'}</Button>
+                        <Button type="button" variant="outline" size="sm"><Eye className="h-4 w-4" /> {isArabic ? 'معاينة' : 'Preview'}</Button>
+                        <Button type="submit" form="invoice-form" size="sm" disabled={processing}>
+                            <Send className="h-4 w-4" /> {isArabic ? 'إرسال الفاتورة' : 'Send invoice'}
+                        </Button>
+                    </div>
+                </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                    {/* Invoice Details */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('invoice_details', 'Invoice Details')}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Field label={t('invoice_number', 'Invoice Number')}>
-                                    <Input value={nextNumber} readOnly disabled className="vuexy-input bg-muted" />
+                <form id="invoice-form" onSubmit={submit} className="grid gap-4 lg:grid-cols-3">
+                    <div className="lg:col-span-2 space-y-4">
+                        {/* Dates */}
+                        <Card>
+                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'معلومات الفاتورة' : 'Invoice info'}</CardTitle></CardHeader>
+                            <CardContent className="grid gap-3 sm:grid-cols-2">
+                                <Field label={isArabic ? 'تاريخ الإصدار' : 'Issue date'} error={errors.issue_date}>
+                                    <Input type="date" value={data.issue_date} onChange={(e) => setData('issue_date', e.target.value)} />
                                 </Field>
-                                <Field label={t('tenant', 'Tenant')} error={(errors as Record<string, string>).tenant_id}>
-                                    <Select value={String(data.tenant_id)} onValueChange={(value) => setData('tenant_id', Number(value))}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('select_tenant', 'Select tenant...')} />
-                                        </SelectTrigger>
+                                <Field label={isArabic ? 'تاريخ الاستحقاق' : 'Due date'} error={errors.due_date}>
+                                    <Input type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                                </Field>
+                                <Field label={isArabic ? 'النوع' : 'Type'} error={errors.type}>
+                                    <Select value={data.type} onValueChange={(v) => setData('type', v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            {tenants.map((tenant) => (
-                                                <SelectItem key={tenant.id} value={String(tenant.id)}>
-                                                    {tenant.name} ({tenant.email})
-                                                </SelectItem>
-                                            ))}
+                                            <SelectItem value="subscription">{isArabic ? 'اشتراك' : 'Subscription'}</SelectItem>
+                                            <SelectItem value="setup">{isArabic ? 'إعداد' : 'Setup'}</SelectItem>
+                                            <SelectItem value="addon">{isArabic ? 'إضافي' : 'Add-on'}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </Field>
-                                <Field label={t('type', 'Type')} error={errors.type}>
-                                    <Select value={data.type} onValueChange={(value) => setData('type', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
+                                <Field label={isArabic ? 'قالب PDF' : 'PDF template'} error={(errors as Record<string, string>).pdf_template}>
+                                    <Select value={data.pdf_template} onValueChange={(v) => setData('pdf_template', v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="subscription">{t('subscription', 'Subscription')}</SelectItem>
-                                            <SelectItem value="setup">{t('setup', 'Setup')}</SelectItem>
-                                            <SelectItem value="addon">{t('addon', 'Add-on')}</SelectItem>
+                                            <SelectItem value="default">Default</SelectItem>
+                                            <SelectItem value="modern">Modern</SelectItem>
+                                            <SelectItem value="classic">Classic</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </Field>
-                                <Field label={t('issue_date', 'Issue Date')} error={errors.issue_date}>
-                                    <Input
-                                        type="date"
-                                        value={data.issue_date}
-                                        onChange={(e) => setData('issue_date', e.target.value)}
-                                        required
-                                        className="vuexy-input"
-                                    />
-                                </Field>
-                                <Field label={t('due_date', 'Due Date')} error={errors.due_date}>
-                                    <Input
-                                        type="date"
-                                        value={data.due_date}
-                                        onChange={(e) => setData('due_date', e.target.value)}
-                                        required
-                                        className="vuexy-input"
-                                    />
-                                </Field>
-                                <Field label={t('tax_rate', 'Tax Rate %')} error={(errors as Record<string, string>).tax_rate}>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={data.tax_rate}
-                                        onChange={(e) => setData('tax_rate', Number(e.target.value))}
-                                        className="vuexy-input"
-                                    />
-                                </Field>
-                                <Field label={t('discount', 'Discount (SAR)')} error={errors.discount}>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={data.discount}
-                                        onChange={(e) => setData('discount', Number(e.target.value))}
-                                        className="vuexy-input"
-                                    />
-                                </Field>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
 
-                    {/* Items */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle>{t('invoice_items', 'Invoice Items')}</CardTitle>
-                                <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                                    <Plus className="h-4 w-4" />
-                                    {t('add_item', 'Add Item')}
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {data.items.map((item, index) => (
-                                    <div key={index} className="rounded-lg border p-4">
-                                        <div className="mb-3 flex items-center justify-between">
-                                            <span className="text-sm font-medium">{t('item', 'Item')} #{index + 1}</span>
-                                            {data.items.length > 1 && (
-                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => removeItem(index)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
+                        {/* Client */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">{isArabic ? 'الفاتورة إلى' : 'Bill to'}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        variant={clientMode === 'existing' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setClientMode('existing')}
+                                    >
+                                        <Building2 className="h-4 w-4" /> {isArabic ? 'عميل مسجّل' : 'Existing tenant'}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={clientMode === 'external' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => { setClientMode('external'); selectTenant(''); }}
+                                    >
+                                        <UserPlus className="h-4 w-4" /> {isArabic ? 'عميل خارجي' : 'External client'}
+                                    </Button>
+                                </div>
+
+                                {clientMode === 'existing' ? (
+                                    <Field label={isArabic ? 'اختر العميل' : 'Select tenant'} error={(errors as Record<string, string>).tenant_id}>
+                                        <Select value={data.tenant_id} onValueChange={selectTenant}>
+                                            <SelectTrigger><SelectValue placeholder={isArabic ? 'اختر' : 'Select'} /></SelectTrigger>
+                                            <SelectContent>
+                                                {tenants.map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name} {t.email && `· ${t.email}`}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                ) : (
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <Field label={isArabic ? 'اسم العميل' : 'Client name'} error={errors.external_client_name}>
+                                            <Input value={data.external_client_name} onChange={(e) => setData('external_client_name', e.target.value)} />
+                                        </Field>
+                                        <Field label={isArabic ? 'البريد' : 'Email'} error={errors.external_client_email}>
+                                            <Input type="email" value={data.external_client_email} onChange={(e) => setData('external_client_email', e.target.value)} />
+                                        </Field>
+                                        <Field label={isArabic ? 'الهاتف' : 'Phone'} error={errors.external_client_phone}>
+                                            <Input value={data.external_client_phone} onChange={(e) => setData('external_client_phone', e.target.value)} />
+                                        </Field>
+                                        <Field label={isArabic ? 'العنوان' : 'Address'} error={errors.external_client_address}>
+                                            <Input value={data.external_client_address} onChange={(e) => setData('external_client_address', e.target.value)} />
+                                        </Field>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Bank */}
+                        <Card>
+                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'المعلومات البنكية' : 'Bank information'}</CardTitle></CardHeader>
+                            <CardContent className="grid gap-3 sm:grid-cols-3">
+                                <Field label={isArabic ? 'اسم البنك' : 'Bank name'} error={errors.bank_name}>
+                                    <Input value={data.bank_name} onChange={(e) => setData('bank_name', e.target.value)} />
+                                </Field>
+                                <Field label={isArabic ? 'الدولة' : 'Country'} error={errors.bank_country}>
+                                    <Input value={data.bank_country} onChange={(e) => setData('bank_country', e.target.value)} />
+                                </Field>
+                                <Field label="IBAN" error={errors.bank_iban}>
+                                    <Input value={data.bank_iban} onChange={(e) => setData('bank_iban', e.target.value)} />
+                                </Field>
+                            </CardContent>
+                        </Card>
+
+                        {/* Items */}
+                        <Card>
+                            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                                <CardTitle className="text-base">{isArabic ? 'عناصر الفاتورة' : 'Line items'}</CardTitle>
+                                <Button type="button" variant="outline" size="sm" onClick={addItem}><Plus className="h-4 w-4" /> {isArabic ? 'إضافة عنصر' : 'Add item'}</Button>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {data.items.map((item, i) => (
+                                    <div key={i} className="grid gap-2 sm:grid-cols-[1fr_120px_120px_120px_40px] items-end border-b pb-3">
+                                        <div>
+                                            <Label className="text-xs">{isArabic ? 'الوصف (عربي)' : 'Description (AR)'}</Label>
+                                            <Input value={item.description_ar} onChange={(e) => updateItem(i, { description_ar: e.target.value })} required />
+                                            <Input className="mt-1" placeholder={isArabic ? 'وصف (EN)' : 'Description (EN)'} value={item.description_en} onChange={(e) => updateItem(i, { description_en: e.target.value })} required />
                                         </div>
-                                        <div className="grid gap-3 sm:grid-cols-2">
-                                            <Field label={t('description_ar', 'Description (AR)')} error={(errors as Record<string, string>)[`items.${index}.description_ar`]}>
-                                                <Input
-                                                    value={item.description_ar}
-                                                    onChange={(e) => updateItem(index, 'description_ar', e.target.value)}
-                                                    required
-                                                    className="vuexy-input"
-                                                    dir="rtl"
-                                                />
-                                            </Field>
-                                            <Field label={t('description_en', 'Description (EN)')} error={(errors as Record<string, string>)[`items.${index}.description_en`]}>
-                                                <Input
-                                                    value={item.description_en}
-                                                    onChange={(e) => updateItem(index, 'description_en', e.target.value)}
-                                                    required
-                                                    className="vuexy-input"
-                                                />
-                                            </Field>
-                                            <Field label={t('quantity', 'Quantity')} error={(errors as Record<string, string>)[`items.${index}.quantity`]}>
-                                                <Input
-                                                    type="number"
-                                                    min="1"
-                                                    value={item.quantity}
-                                                    onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                                                    required
-                                                    className="vuexy-input"
-                                                />
-                                            </Field>
-                                            <Field label={t('unit_price', 'Unit Price (SAR)')} error={(errors as Record<string, string>)[`items.${index}.unit_price`]}>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={item.unit_price}
-                                                    onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                                                    required
-                                                    className="vuexy-input"
-                                                />
-                                            </Field>
+                                        <div>
+                                            <Label className="text-xs">{isArabic ? 'الكمية' : 'Qty'}</Label>
+                                            <Input type="number" min={1} value={item.quantity} onChange={(e) => updateItem(i, { quantity: parseInt(e.target.value) || 1 })} />
                                         </div>
-                                        <div className="mt-2 text-end text-sm font-medium text-muted-foreground">
-                                            {t('item_total', 'Total')}: {(item.quantity * item.unit_price).toLocaleString()} SAR
+                                        <div>
+                                            <Label className="text-xs">{isArabic ? 'السعر' : 'Price'}</Label>
+                                            <Input type="number" step="0.01" min={0} value={item.unit_price} onChange={(e) => updateItem(i, { unit_price: parseFloat(e.target.value) || 0 })} />
                                         </div>
+                                        <div>
+                                            <Label className="text-xs">{isArabic ? 'الإجمالي' : 'Total'}</Label>
+                                            <Input value={(item.quantity * item.unit_price).toFixed(2)} readOnly className="bg-muted" />
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => removeItem(i)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 ))}
-                            </div>
+                            </CardContent>
+                        </Card>
 
-                            {/* Totals */}
-                            <div className="mt-6 space-y-2 border-t pt-4 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('subtotal', 'Subtotal')}</span>
-                                    <span className="font-medium">{subtotal.toLocaleString()} SAR</span>
+                        {/* Sales rep + commission */}
+                        <Card>
+                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'مندوب المبيعات' : 'Sales rep'}</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                                <p className="text-xs text-muted-foreground">
+                                    {isArabic
+                                        ? 'لا تظهر هذه البيانات للعميل — فقط في الفاتورة الداخلية وفي تقارير الربح والعمولة.'
+                                        : 'These fields are NOT visible to the client — shown only on the internal invoice and in profit/commission reports.'}
+                                </p>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <Field label={isArabic ? 'المندوب' : 'Representative'}>
+                                        <Select value={data.sales_rep_id} onValueChange={(v) => setData('sales_rep_id', v === 'none' ? '' : v)}>
+                                            <SelectTrigger><SelectValue placeholder={isArabic ? 'لا يوجد' : 'None'} /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">{isArabic ? 'لا يوجد' : 'None'}</SelectItem>
+                                                {salesReps.map((r) => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field label={isArabic ? 'نسبة العمولة (%)' : 'Commission rate (%)'}>
+                                        <Input type="number" min={0} max={100} step="0.1" value={data.commission_rate} onChange={(e) => setData('commission_rate', parseFloat(e.target.value) || 0)} />
+                                    </Field>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('discount', 'Discount')}</span>
-                                    <span className="font-medium text-red-600">-{discountAmount.toLocaleString()} SAR</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('tax', 'Tax')} ({data.tax_rate}%)</span>
-                                    <span className="font-medium">{taxAmount.toLocaleString()} SAR</span>
-                                </div>
-                                <div className="flex justify-between border-t pt-2 text-base font-bold">
-                                    <span>{t('grand_total', 'Grand Total')}</span>
-                                    <span>{grandTotal.toLocaleString()} SAR</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                {data.commission_rate > 0 && (
+                                    <p className="text-xs text-emerald-600">
+                                        {isArabic ? 'عمولة محسوبة: ' : 'Computed commission: '}
+                                        <strong>{totals.commission.toFixed(2)} {isArabic ? 'ر.س' : 'SAR'}</strong>
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                    {/* Notes */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('notes', 'Notes')}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Field label={t('notes_ar', 'Notes (AR)')} error={(errors as Record<string, string>).notes_ar}>
-                                    <textarea
-                                        value={data.notes_ar}
-                                        onChange={(e) => setData('notes_ar', e.target.value)}
-                                        rows={3}
-                                        className="vuexy-input w-full rounded-md border px-3 py-2 text-sm"
-                                        dir="rtl"
-                                    />
+                        {/* Toggles */}
+                        <Card>
+                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'إعدادات إضافية' : 'Additional options'}</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                                <ToggleRow
+                                    label={isArabic ? 'طلب إيصال من العميل' : 'Request receipt from client'}
+                                    checked={data.requires_receipt}
+                                    onChange={(v) => setData('requires_receipt', v)}
+                                />
+                                <ToggleRow
+                                    label={isArabic ? 'إيصال الدفع' : 'Payment receipt'}
+                                    checked={data.has_receipt_toggle}
+                                    onChange={(v) => setData('has_receipt_toggle', v)}
+                                />
+                                <div>
+                                    <Label className="text-xs">{isArabic ? 'ملاحظات العميل' : 'Client notes'}</Label>
+                                    <Textarea value={data.client_notes} onChange={(e) => setData('client_notes', e.target.value)} rows={2} />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">{isArabic ? 'شروط الدفع' : 'Payment terms'}</Label>
+                                    <Textarea value={data.payment_terms} onChange={(e) => setData('payment_terms', e.target.value)} rows={2} />
+                                </div>
+                                <Field label={isArabic ? 'قبول المدفوعات عبر' : 'Accept payments via'}>
+                                    <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="bank_transfer">{isArabic ? 'الحساب المصرفي' : 'Bank account'}</SelectItem>
+                                            <SelectItem value="tap">Tap</SelectItem>
+                                            <SelectItem value="credit_card">{isArabic ? 'بطاقة ائتمان' : 'Credit card'}</SelectItem>
+                                            <SelectItem value="mada">مدى</SelectItem>
+                                            <SelectItem value="apple_pay">Apple Pay</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </Field>
-                                <Field label={t('notes_en', 'Notes (EN)')} error={(errors as Record<string, string>).notes_en}>
-                                    <textarea
-                                        value={data.notes_en}
-                                        onChange={(e) => setData('notes_en', e.target.value)}
-                                        rows={3}
-                                        className="vuexy-input w-full rounded-md border px-3 py-2 text-sm"
-                                    />
-                                </Field>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                    <div className="flex justify-end gap-3">
-                        <Button variant="outline" asChild>
-                            <Link href="/super-admin/invoices">{t('cancel', 'Cancel')}</Link>
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? t('creating', 'Creating...') : t('create_invoice', 'Create Invoice')}
+                    {/* Totals sidebar */}
+                    <div className="space-y-4">
+                        <Card>
+                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'الحسابات' : 'Totals'}</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                                <Row label={isArabic ? 'المجموع الفرعي' : 'Subtotal'} value={`${totals.subtotal.toFixed(2)}`} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">{isArabic ? 'الضريبة 1 (%)' : 'Tax 1 (%)'}</Label>
+                                    <Input type="number" min={0} max={100} step="0.1" value={data.tax_rate} onChange={(e) => setData('tax_rate', parseFloat(e.target.value) || 0)} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">{isArabic ? 'الضريبة 2 (%)' : 'Tax 2 (%)'}</Label>
+                                    <Input type="number" min={0} max={100} step="0.1" value={data.tax_rate_2} onChange={(e) => setData('tax_rate_2', parseFloat(e.target.value) || 0)} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">{isArabic ? 'خصم ثابت' : 'Flat discount'}</Label>
+                                    <Input type="number" min={0} step="0.01" value={data.discount} onChange={(e) => setData('discount', parseFloat(e.target.value) || 0)} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">{isArabic ? 'خصم (%)' : 'Discount (%)'}</Label>
+                                    <Input type="number" min={0} max={100} step="0.1" value={data.discount_percent} onChange={(e) => setData('discount_percent', parseFloat(e.target.value) || 0)} />
+                                </div>
+                                <Row label={isArabic ? 'الضريبة 1' : 'Tax 1'} value={totals.tax1.toFixed(2)} />
+                                {data.tax_rate_2 > 0 && <Row label={isArabic ? 'الضريبة 2' : 'Tax 2'} value={totals.tax2.toFixed(2)} />}
+                                <Row label={isArabic ? 'الخصم' : 'Discount'} value={`-${totals.discount.toFixed(2)}`} />
+                                <div className="border-t pt-2">
+                                    <Row label={isArabic ? 'الإجمالي' : 'Total'} value={`${totals.total.toFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}`} bold />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Button type="button" variant="outline" asChild className="w-full">
+                            <Link href="/super-admin/invoices">{isArabic ? 'إلغاء' : 'Cancel'}</Link>
                         </Button>
                     </div>
                 </form>
@@ -308,9 +405,27 @@ export default function CreateInvoice({ tenants, nextNumber }: Props) {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
     return (
         <div className="space-y-1.5">
-            <Label>{label}</Label>
+            <Label className="text-xs">{label}</Label>
             {children}
             {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
+    );
+}
+
+function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+    return (
+        <div className={`flex items-center justify-between text-sm ${bold ? 'font-bold' : ''}`}>
+            <span className="text-muted-foreground">{label}</span>
+            <span>{value}</span>
+        </div>
+    );
+}
+
+function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={checked} onCheckedChange={(v) => onChange(v === true)} />
+            <span className="text-sm">{label}</span>
+        </label>
     );
 }

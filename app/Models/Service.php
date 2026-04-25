@@ -22,6 +22,8 @@ class Service extends Model
         'duration',
         'featured_image',
         'video_url',
+        'required_fields',
+        'accepts_bookings',
         'is_active',
         'sort_order',
     ];
@@ -31,6 +33,8 @@ class Service extends Model
         return [
             'price' => 'decimal:2',
             'is_active' => 'boolean',
+            'accepts_bookings' => 'boolean',
+            'required_fields' => 'array',
         ];
     }
 

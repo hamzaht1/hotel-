@@ -10,18 +10,22 @@ import TestimonialCard from './TestimonialCard'
 import testimonialLogo from '@/assets/images/testimonlis/logo-1.svg'
 
 /**
- * TestimonialSlider component - Swiper-based testimonial carousel
- * Displays customer testimonials with coverflow effect and autoplay
+ * TestimonialSlider component - Swiper-based testimonial carousel.
+ * Prefers server-provided dbTestimonials (published reviews) and falls
+ * back to the bundled TESTIMONIALS_DATA for offline previews.
  */
-const TestimonialSlider = () => {
-  // Reference to swiper instance
+const TestimonialSlider = ({ dbTestimonials } = {}) => {
   const swiperRef = useRef(null)
 
-  // Transform testimonials data to use actual imported image
-  const transformedTestimonials = TESTIMONIALS_DATA.map(testimonial => ({
-    ...testimonial,
-    image: testimonialLogo
-  }))
+  const transformedTestimonials = (dbTestimonials && dbTestimonials.length > 0)
+    ? dbTestimonials.map((r) => ({
+        id: r.id,
+        name: r.guest_name,
+        position: '★'.repeat(Math.max(1, Math.min(5, r.rating))),
+        text: r.comment ?? '',
+        image: testimonialLogo,
+      }))
+    : TESTIMONIALS_DATA.map(t => ({ ...t, image: testimonialLogo }))
 
   return (
     <Swiper

@@ -3,15 +3,24 @@ import TestimonialSlider from './TestimonialSlider'
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import { useLang } from '@/hooks/useLang'
 
+interface DbTestimonial {
+  id: number; guest_name: string; rating: number;
+  comment: string | null; created_at: string;
+}
+
+interface Props {
+  dbTestimonials?: DbTestimonial[]
+}
+
 /**
  * Testimonials component - Customer testimonials section
- * Displays hotel owner testimonials in a slider format
+ * Shows hotel-owner/guest testimonials. Prefers DB-sourced published reviews
+ * and falls back to the static TESTIMONIALS_DATA inside TestimonialSlider.
  */
-const Testimonials = () => {
+const Testimonials = ({ dbTestimonials }: Props) => {
   const { __ } = useLang()
   return (
     <section className="text-center pb-16">
-        {/* Section title */}
       <AnimatedHeading dir="up" delay={0.30}>
         <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight pb-16">
           <span className="text-public-primary">{__("messages.section_titles.testimonials.title")}</span>
@@ -19,10 +28,8 @@ const Testimonials = () => {
         </h2>
       </AnimatedHeading>
       <div className="mx-auto px-4 sm:px-18">
-
-        {/* Testimonial slider container */}
         <div className="relative max-w-7xl mx-auto px-4 overflow-hidden">
-          <TestimonialSlider />
+          <TestimonialSlider dbTestimonials={dbTestimonials} />
         </div>
       </div>
     </section>

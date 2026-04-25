@@ -65,11 +65,34 @@ class HandleInertiaRequests extends Middleware
 
             'tenant' => app()->bound('current_tenant') ? app('current_tenant') : null,
             'siteSettings' => fn () => SiteSetting::getAllGrouped(),
+            'showReviewPopup' => fn () => $this->shouldShowReviewPopup($user),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
         ];
+    }
+
+    private function shouldShowReviewPopup($user): bool
+    {
+        if (!$user || $user->role !== 'client_admin') {
+            return false;
+        }
+
+        $tenant = $user->tenant;
+        if (!$tenant) {
+            return false;
+        }
+
+        if ($tenant->review_popup_shown_at) {
+            return false;
+        }
+
+        if (!$tenant->subscription_starts_at) {
+            return false;
+        }
+
+        return $tenant->subscription_starts_at->addDays(7)->isPast();
     }
     
 }

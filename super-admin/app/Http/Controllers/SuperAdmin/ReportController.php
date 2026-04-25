@@ -114,6 +114,12 @@ class ReportController extends Controller
         if ($request->status) {
             $query->where('support_messages.status', $request->status);
         }
+        if ($request->source) {
+            $query->where('support_messages.source', $request->source);
+        }
+        if ($request->urgent === '1' || $request->urgent === 'true') {
+            $query->where('support_messages.is_urgent', true);
+        }
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('support_messages.client_name', 'like', "%{$request->search}%")
@@ -122,9 +128,10 @@ class ReportController extends Controller
             });
         }
 
-        $sortField = $request->sort ?? 'support_messages.created_at';
+        // Urgent messages always surface first, then requested sort.
+        $sortField = $request->sort ?? 'support_messages.updated_at';
         $sortDir = $request->direction ?? 'desc';
-        $query->orderBy($sortField, $sortDir);
+        $query->orderByDesc('support_messages.is_urgent')->orderBy($sortField, $sortDir);
 
         $messages = $query->paginate(20)->withQueryString();
 
@@ -133,6 +140,9 @@ class ReportController extends Controller
             'open' => DB::table('support_messages')->where('status', 'open')->count(),
             'in_progress' => DB::table('support_messages')->where('status', 'in_progress')->count(),
             'closed' => DB::table('support_messages')->where('status', 'closed')->count(),
+            'urgent' => DB::table('support_messages')->where('is_urgent', true)->count(),
+            'unread' => DB::table('support_messages')->where('is_read', false)->count(),
+            'contact' => DB::table('support_messages')->where('source', 'contact')->count(),
             'by_type' => [
                 'support' => DB::table('support_messages')->where('type', 'support')->count(),
                 'complaint' => DB::table('support_messages')->where('type', 'complaint')->count(),
@@ -156,6 +166,8 @@ class ReportController extends Controller
             'reply' => $request->reply,
             'status' => 'in_progress',
             'assigned_to' => $request->user()->name,
+            'replied_at' => now(),
+            'is_read' => true,
             'updated_at' => now(),
         ]);
 
@@ -172,5 +184,44 @@ class ReportController extends Controller
         ]);
 
         return back()->with('success', 'تم تحديث الحالة');
+    }
+
+    public function markRead(int $id)
+    {
+        DB::table('support_messages')->where('id', $id)->update([
+            'is_read' => true,
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('success', 'تم تعليم الرسالة كمقروءة');
+    }
+
+    public function toggleUrgent(int $id)
+    {
+        $current = DB::table('support_messages')->where('id', $id)->value('is_urgent');
+        DB::table('support_messages')->where('id', $id)->update([
+            'is_urgent' => !$current,
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('success', 'تم تحديث حالة الاستعجال');
+    }
+
+    public function deleteMessage(int $id)
+    {
+        $message = DB::table('support_messages')->where('id', $id)->first();
+
+        if (!$message) {
+            return back()->with('error', 'الرسالة غير موجودة');
+        }
+
+        // Contact-form messages cannot be deleted (audit trail / legal).
+        if (($message->source ?? 'support') === 'contact') {
+            return back()->with('error', 'لا يمكن حذف رسائل نموذج الاتصال');
+        }
+
+        DB::table('support_messages')->where('id', $id)->delete();
+
+        return back()->with('success', 'تم حذف الرسالة');
     }
 }

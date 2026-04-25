@@ -1,6 +1,7 @@
   // resources/js/components/landing/Contact.tsx
   import { useState } from 'react'
-  import { MapPin, Mail, Phone } from 'lucide-react'
+  import { MapPin, Mail, Phone, CheckCircle2, AlertCircle } from 'lucide-react'
+  import { router } from '@inertiajs/react'
   import { CONTACT_FORM_FIELDS } from '@/data/public-data'
   import { useLang } from '@/hooks/useLang'
   import { Button } from '@/components/public/common'
@@ -23,17 +24,20 @@
 
     type FormData = Record<FieldName, string> & { message: string }
 
-    // Form state management (typed)
-    const [formData, setFormData] = useState<FormData>({
+    const initialData: FormData = {
       fullName: '',
       email: '',
       phone: '',
       hotelName: '',
       location: '',
       message: '',
-    })
+    }
 
-    // Handle form input changes
+    const [formData, setFormData] = useState<FormData>(initialData)
+    const [submitting, setSubmitting] = useState(false)
+    const [submitState, setSubmitState] = useState<'idle' | 'success' | 'error'>('idle')
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
     const handleChange = (
       e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
@@ -41,10 +45,58 @@
       setFormData(prev => ({ ...prev, [name]: e.target.value }))
     }
 
-    // Handle form submission
-    const handleSubmit = (e: React.FormEvent) => {
+    // Submit the contact form to the public POST /contact endpoint.
+    // The ContactController persists a ContactMessage (and mirrors into
+    // support_messages for tenant-scoped submissions). We fold hotel name +
+    // location into the `subject`/`message` fields since the backend only
+    // stores name/email/phone/subject/message.
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault()
-      console.log('Form submitted:', formData)
+      setSubmitting(true)
+      setSubmitState('idle')
+      setErrorMessage(null)
+
+      const subject = [formData.hotelName, formData.location].filter(Boolean).join(' — ')
+      const payload = {
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        subject: subject || 'Landing contact',
+        message: formData.message,
+      }
+
+      try {
+        const res = await fetch('/contact', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': decodeURIComponent(document.cookie.split('; ').find(c => c.startsWith('XSRF-TOKEN='))?.split('=')[1] ?? ''),
+          },
+          body: JSON.stringify(payload),
+          credentials: 'same-origin',
+        })
+        if (!res.ok) {
+          let msg = 'submission_failed'
+          try {
+            const body = await res.json()
+            msg = body.message || msg
+          } catch {
+            // ignore parse error
+          }
+          setErrorMessage(msg)
+          setSubmitState('error')
+        } else {
+          setSubmitState('success')
+          setFormData(initialData)
+        }
+      } catch (err) {
+        setErrorMessage('network_error')
+        setSubmitState('error')
+      } finally {
+        setSubmitting(false)
+      }
     }
 
     // Company contact information with icons
@@ -133,15 +185,31 @@
                 </div>
               </div>
 
-              {/* Submit button */}
+              {/* Submit state + button */}
+              {submitState === 'success' && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{__("messages.contact_ui.success") || 'تم إرسال رسالتك بنجاح'}</span>
+                </div>
+              )}
+              {submitState === 'error' && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{errorMessage ?? __("messages.contact_ui.error") ?? 'حدث خطأ، أعد المحاولة'}</span>
+                </div>
+              )}
+
               <div className="mt-6">
                 <Button
                   type="submit"
                   variant="primary"
                   size="lg"
                   fullWidth
+                  disabled={submitting}
                 >
-                  {__("messages.contact_ui.send_button")}
+                  {submitting
+                    ? (__("messages.contact_ui.sending") || '...')
+                    : __("messages.contact_ui.send_button")}
                 </Button>
               </div>
             </form>

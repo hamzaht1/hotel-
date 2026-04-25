@@ -30,9 +30,17 @@ class Tenant extends Model
         'payment_status',
         'payment_method',
         'bank_transfer_receipt',
+        'tap_charge_id',
+        'tap_transaction_id',
         'payment_notes',
         'org_name_ar',
         'org_name_en',
+        'review_popup_shown_at',
+        'custom_domain',
+        'dns_verification_token',
+        'dns_verified',
+        'dns_verified_at',
+        'dns_last_checked_at',
     ];
 
     protected function casts(): array
@@ -42,6 +50,10 @@ class Tenant extends Model
             'settings' => 'array',
             'subscription_starts_at' => 'date',
             'subscription_ends_at' => 'date',
+            'review_popup_shown_at' => 'datetime',
+            'dns_verified' => 'boolean',
+            'dns_verified_at' => 'datetime',
+            'dns_last_checked_at' => 'datetime',
         ];
     }
 
@@ -83,6 +95,16 @@ class Tenant extends Model
     public function hotelSettings(): HasOne
     {
         return $this->hasOne(HotelSetting::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function reviewForms(): HasMany
+    {
+        return $this->hasMany(ReviewForm::class);
     }
 
     public function isSubscriptionActive(): bool

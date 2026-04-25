@@ -45,10 +45,14 @@ function LogoCard({ src, alt, altKey }: Logo & HTMLAttributes<HTMLDivElement>) {
  * Displays a carousel of hotel logos on mobile and a grid on desktop,
  * along with a testimonial section showing trust indicators
  */
-export default function Hotels() {
-  // Document dir is available but not required here; keep code simple.
+interface DbPartner {
+  id: number; name: string;
+  org_name_ar: string | null; org_name_en: string | null;
+  logo: string | null;
+}
 
-  // Hotel logo images mapping
+export default function Hotels({ dbPartners }: { dbPartners?: DbPartner[] }) {
+  // Hotel logo images mapping — bundled fallbacks
   const hotelLogoImages = {
     '@/assets/images/hotels-icons/logo1.svg': logo1,
     '@/assets/images/hotels-icons/logo2.svg': logo2,
@@ -60,11 +64,16 @@ export default function Hotels() {
     '@/assets/images/hotels-icons/logo8.svg': logo8,
   }
 
-  // Transform HOTEL_LOGOS to use actual imported images
-  const transformedLogos = HOTEL_LOGOS.map(logo => ({
-    ...logo,
-    src: hotelLogoImages[logo.src as keyof typeof hotelLogoImages] || logo.src
-  }))
+  // Prefer DB-sourced active tenant logos, fall back to bundled placeholders.
+  const transformedLogos = (dbPartners && dbPartners.length > 0)
+    ? dbPartners.map((p) => ({
+        src: `/storage/${p.logo}`,
+        alt: p.org_name_ar ?? p.name,
+      }))
+    : HOTEL_LOGOS.map(logo => ({
+        ...logo,
+        src: hotelLogoImages[logo.src as keyof typeof hotelLogoImages] || logo.src,
+      }))
 
   const { __ } = useLang()
 

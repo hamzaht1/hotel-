@@ -53,6 +53,11 @@ class PlanController extends Controller
             'variant' => 'nullable|in:light,solid,soft',
             'sort_order' => 'integer|min:0',
             'is_active' => 'boolean',
+            'is_coming_soon' => 'boolean',
+            'feature_styles' => 'nullable|array',
+            'feature_styles.*.color' => 'nullable|string|max:20',
+            'feature_styles.*.weight' => 'nullable|in:normal,bold,light',
+            'feature_styles.*.icon' => 'nullable|string|max:100',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);
@@ -89,6 +94,11 @@ class PlanController extends Controller
             'variant' => 'nullable|in:light,solid,soft',
             'sort_order' => 'integer|min:0',
             'is_active' => 'boolean',
+            'is_coming_soon' => 'boolean',
+            'feature_styles' => 'nullable|array',
+            'feature_styles.*.color' => 'nullable|string|max:20',
+            'feature_styles.*.weight' => 'nullable|in:normal,bold,light',
+            'feature_styles.*.icon' => 'nullable|string|max:100',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);

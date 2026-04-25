@@ -45,11 +45,15 @@ class RoomController extends Controller
             'price' => 'required|numeric|min:0',
             'capacity' => 'required|integer|min:1',
             'amenities' => 'nullable|array',
-            'is_active' => 'boolean',
+            'amenities.*' => 'string',
+            'is_active' => 'nullable',
             'featured_image' => 'nullable|file|max:2048',
             'images' => 'nullable|array',
             'images.*' => 'file|max:2048',
         ]);
+
+        $validated['amenities'] = $request->input('amenities', []);
+        $validated['is_active'] = $request->boolean('is_active');
 
         if ($request->hasFile('featured_image')) {
             $validated['featured_image'] = $request->file('featured_image')->store('rooms', 'public');
@@ -90,13 +94,17 @@ class RoomController extends Controller
             'price' => 'required|numeric|min:0',
             'capacity' => 'required|integer|min:1',
             'amenities' => 'nullable|array',
-            'is_active' => 'boolean',
+            'amenities.*' => 'string',
+            'is_active' => 'nullable',
             'featured_image' => 'nullable|file|max:2048',
             'new_images' => 'nullable|array',
             'new_images.*' => 'file|max:2048',
             'delete_images' => 'nullable|array',
             'delete_images.*' => 'integer|exists:room_images,id',
         ]);
+
+        $validated['amenities'] = $request->input('amenities', []);
+        $validated['is_active'] = $request->boolean('is_active');
 
         if ($request->hasFile('featured_image')) {
             // Delete old image

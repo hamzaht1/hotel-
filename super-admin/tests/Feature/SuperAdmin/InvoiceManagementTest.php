@@ -158,7 +158,9 @@ test('super admin can mark invoice as paid', function () {
 
 // ─── Edit Restrictions ─────────────────────────────────────
 
-test('only draft invoices can be edited', function () {
+test('paid or locked invoices cannot be edited', function () {
+    // After Bug 0.6 fix: "sent" invoices ARE editable to allow corrections.
+    // Only paid (or explicitly locked) invoices are protected.
     $user = User::factory()->superAdmin()->create();
     $tenant = Tenant::factory()->create();
 
@@ -166,7 +168,7 @@ test('only draft invoices can be edited', function () {
 
     $this->actingAs($user)
         ->get("/super-admin/invoices/{$sentInvoice->id}/edit")
-        ->assertRedirect();
+        ->assertOk();
 
     $paidInvoice = createInvoice($tenant->id, ['status' => 'paid']);
 

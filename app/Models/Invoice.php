@@ -25,6 +25,20 @@ class Invoice extends Model
         'notes_ar',
         'notes_en',
         'pdf_path',
+        'company_header',
+        'tax_number',
+        'billing_address',
+        'footer_notes',
+        'requires_receipt',
+        'receipt_upload_path',
+        'locked_at',
+        'pdf_template',
+    ];
+
+    public const PDF_TEMPLATES = [
+        'default' => 'Default',
+        'modern' => 'Modern',
+        'classic' => 'Classic',
     ];
 
     protected function casts(): array
@@ -38,7 +52,14 @@ class Invoice extends Model
             'issue_date' => 'date',
             'due_date' => 'date',
             'paid_at' => 'datetime',
+            'locked_at' => 'datetime',
+            'requires_receipt' => 'boolean',
         ];
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->status === 'paid' || $this->locked_at !== null;
     }
 
     public function tenant(): BelongsTo

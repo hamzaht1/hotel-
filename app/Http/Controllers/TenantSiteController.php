@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Menu;
 use App\Models\Tenant;
 use App\Models\Room;
 use App\Models\Service;
@@ -53,6 +54,8 @@ class TenantSiteController extends Controller
             'gallery' => $gallery,
             'siteTexts' => $siteTexts,
             'activeSections' => $sections,
+            'headerMenu' => optional(Menu::where('location', 'header')->first())->items ?? [],
+            'footerMenu' => optional(Menu::where('location', 'footer')->first())->items ?? [],
             'templateTranslations' => __($tenant->template === 'madina' ? 'madina' : 'templates', [], $locale),
             'locale' => $locale,
         ]);

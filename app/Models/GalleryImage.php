@@ -3,11 +3,15 @@
 namespace App\Models;
 
 use App\Models\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class GalleryImage extends Model
 {
     use BelongsToTenant;
+
+    protected $appends = ['url'];
 
     protected $fillable = [
         'tenant_id',
@@ -29,5 +33,10 @@ class GalleryImage extends Model
     public function getTitleAttribute(): string
     {
         return app()->getLocale() === 'ar' ? ($this->title_ar ?? '') : ($this->title_en ?? '');
+    }
+
+    protected function url(): Attribute
+    {
+        return Attribute::get(fn () => $this->path ? Storage::disk('public')->url($this->path) : null);
     }
 }

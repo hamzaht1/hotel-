@@ -68,7 +68,7 @@ export default function Gallery({ gallery }: Props) {
   // Map dynamic backend data if available, otherwise use static fallback
   const dynamicGalleryItems = gallery && gallery.length > 0
     ? gallery.map(img => ({
-        image: `/storage/${img.path}`,
+        image: img.url || `/storage/${img.path}`,
         text: isArabic ? (img.title_ar || img.category) : (img.title_en || img.category),
       }))
     : null;

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\RenewalRequest;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,13 +18,16 @@ class RenewalController extends Controller
             ->when($request->status && $request->status !== 'all', function ($q) use ($request) {
                 $q->where('status', $request->status);
             })
+            ->when($request->payment_method && $request->payment_method !== 'all', function ($q) use ($request) {
+                $q->where('payment_method', $request->payment_method);
+            })
             ->latest('requested_at')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('super-admin/renewals/index', [
             'renewals' => $renewals,
-            'filters' => $request->only(['status']),
+            'filters' => $request->only(['status', 'payment_method']),
         ]);
     }
 
@@ -46,6 +51,11 @@ class RenewalController extends Controller
             'subscription_ends_at' => $baseDate->copy()->addYear(),
             'is_active' => true,
         ]);
+
+        $plan = $renewal->plan_id ? Plan::find($renewal->plan_id) : null;
+        if ($plan) {
+            app(InvoiceService::class)->createRenewalInvoice($tenant, $renewal->fresh(), $plan);
+        }
 
         return back()->with('success', 'تم قبول طلب التجديد وتمديد الاشتراك بنجاح');
     }

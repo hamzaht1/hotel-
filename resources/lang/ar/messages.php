@@ -523,4 +523,48 @@ return [
         'thank_you' => 'شكـــراً لثقتـــك بنـــا!',
         'subtitle'  => 'تتبقى خطوات بسيطة لإكمال اشتراككم.',
     ],
+
+    'reviews_module' => [
+        'title' => 'آراء العملاء',
+        'average' => 'متوسط التقييم',
+        'positive' => 'إيجابي',
+        'negative' => 'سلبي',
+        'published' => 'منشور',
+        'hidden' => 'مخفي',
+        'reply' => 'الرد',
+        'form_builder' => 'منشئ النموذج',
+        'popup_question' => 'كيف تقيّم تجربتك معنا حتى الآن؟',
+        'popup_subtitle' => 'رأيك يساعدنا على التحسين.',
+        'reason_prompt' => 'ما سبب تقييمك المنخفض؟',
+        'submit' => 'إرسال',
+        'later' => 'لاحقاً',
+    ],
+
+    'domain_module' => [
+        'title' => 'إدارة النطاق',
+        'custom_domain' => 'النطاق المخصص',
+        'dns_instructions' => 'تعليمات إعداد DNS',
+        'verified' => 'تم التحقق',
+        'not_verified' => 'لم يتم التحقق',
+        'verify_now' => 'تحقق من DNS الآن',
+        'registrars' => 'مسجلو النطاقات',
+    ],
+
+    'bookings_module' => [
+        'title' => 'حجوزات الخدمات',
+        'required_data' => 'البيانات المطلوبة',
+        'accept_bookings' => 'قبول الحجوزات من الموقع العام',
+        'status' => [
+            'new' => 'جديد',
+            'confirmed' => 'مؤكد',
+            'completed' => 'مكتمل',
+            'canceled' => 'ملغى',
+        ],
+    ],
+
+    'contact_inbox' => [
+        'title' => 'رسائل التواصل',
+        'unread' => 'غير مقروء',
+        'mark_read' => 'تعليم كمقروء',
+    ],
 ];

@@ -18,13 +18,36 @@ interface DbPlan {
   features_en: string[] | null; variant: string | null; icon: string | null;
 }
 
+interface DbTemplate {
+  id: number; key: string;
+  name_ar: string; name_en: string;
+  city_ar: string | null; city_en: string | null;
+  description_ar: string | null; description_en: string | null;
+  preview_image: string | null; demo_url: string | null;
+  is_active: boolean; is_coming_soon: boolean;
+}
+
+interface DbTestimonial {
+  id: number; guest_name: string; rating: number;
+  comment: string | null; created_at: string;
+}
+
+interface DbPartner {
+  id: number; name: string;
+  org_name_ar: string | null; org_name_en: string | null;
+  logo: string | null;
+}
+
 interface Props {
   plans?: DbPlan[];
+  templates?: DbTemplate[];
+  testimonials?: DbTestimonial[];
+  partners?: DbPartner[];
   siteSettings?: Record<string, Record<string, string | null>>;
 }
 
 // Public page: Home landing page — renders hero, why-us, pricing and other public sections.
-export default function Home({ plans, siteSettings }: Props) {
+export default function Home({ plans, templates, testimonials, partners, siteSettings }: Props) {
   return (
     <PublicLayout>
         <Head title="ضيافة - الصفحة الرئيسية | نظام إدارة الفنادق المتكامل">
@@ -69,14 +92,14 @@ export default function Home({ plans, siteSettings }: Props) {
               aria-hidden
             />
         <Hero />
-        <Templates />
+        <Templates dbTemplates={templates} />
         <WhyUs />
         <HowWeWork />
-        <Hotels />
-        <Testimonlis/>
+        <Hotels dbPartners={partners} />
+        <Testimonlis dbTestimonials={testimonials} />
         <Pricing dbPlans={plans} />
-        <Contact />    
-        <SEOFAQs /> 
+        <Contact />
+        <SEOFAQs />
       </div>
 
     </PublicLayout>

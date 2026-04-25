@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { FileDown } from 'lucide-react';
+import { FileDown, CreditCard, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +15,7 @@ interface Invoice {
     total: string;
     issue_date: string;
     due_date: string;
+    payment_method: string | null;
 }
 
 interface PaginatedData {
@@ -61,6 +62,26 @@ export default function ClientInvoicesIndex({ invoices }: Props) {
         return <Badge className={`rounded-full ${colors[type] || 'bg-gray-100 text-gray-700'} hover:bg-transparent`}>{type}</Badge>;
     };
 
+    const paymentMethodLabel = (method: string | null) => {
+        if (method === 'tap') {
+            return (
+                <span className="inline-flex items-center gap-1 text-blue-600">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Tap</span>
+                </span>
+            );
+        }
+        if (method === 'bank_transfer') {
+            return (
+                <span className="inline-flex items-center gap-1 text-slate-600">
+                    <Landmark className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">{t('bank_transfer', 'Bank Transfer')}</span>
+                </span>
+            );
+        }
+        return <span className="text-xs text-muted-foreground">—</span>;
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={t('invoices', 'Invoices')} />
@@ -85,6 +106,7 @@ export default function ClientInvoicesIndex({ invoices }: Props) {
                                     <th className="px-4 py-3 text-start font-medium">{t('status', 'Status')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('issue_date', 'Issue Date')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('due_date', 'Due Date')}</th>
+                                    <th className="px-4 py-3 text-start font-medium">{t('payment_method', 'Payment')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('pdf', 'PDF')}</th>
                                 </tr>
                             </thead>
@@ -97,6 +119,7 @@ export default function ClientInvoicesIndex({ invoices }: Props) {
                                         <td className="px-4 py-3">{statusBadge(invoice.status)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{invoice.issue_date}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{invoice.due_date}</td>
+                                        <td className="px-4 py-3">{paymentMethodLabel(invoice.payment_method)}</td>
                                         <td className="px-4 py-3">
                                             <Button variant="ghost" size="icon" asChild>
                                                 <a href={`/client-admin/invoices/${invoice.id}/pdf`} target="_blank" rel="noreferrer">
@@ -108,7 +131,7 @@ export default function ClientInvoicesIndex({ invoices }: Props) {
                                 ))}
                                 {invoices.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                                        <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                                             {t('no_invoices_found', 'No invoices found')}
                                         </td>
                                     </tr>

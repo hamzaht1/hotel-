@@ -27,7 +27,12 @@ class ServiceCategoryController extends Controller
             'name_en' => 'required|string|max:255',
             'type' => 'required|in:room,hall,spa,restaurant,custom',
             'icon' => 'nullable|string|max:100',
+            'is_active' => 'boolean',
+            'sort_order' => 'nullable|integer|min:0',
         ]);
+
+        $validated['is_active'] = $validated['is_active'] ?? true;
+        $validated['sort_order'] = $validated['sort_order'] ?? (ServiceCategory::max('sort_order') + 1);
 
         ServiceCategory::create($validated);
 
@@ -41,6 +46,8 @@ class ServiceCategoryController extends Controller
             'name_en' => 'required|string|max:255',
             'type' => 'required|in:room,hall,spa,restaurant,custom',
             'icon' => 'nullable|string|max:100',
+            'is_active' => 'boolean',
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
         $serviceCategory->update($validated);

@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CheckCircle, XCircle, Clock, FileImage } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileImage, CreditCard, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,9 @@ interface RenewalRequest {
     tenant_id: number;
     plan_id: number | null;
     status: string;
+    payment_method: string | null;
     receipt_path: string | null;
+    receipt_url: string | null;
     notes: string | null;
     requested_at: string;
     processed_at: string | null;
@@ -46,7 +48,7 @@ interface PaginatedData {
 
 interface Props {
     renewals: PaginatedData;
-    filters: { status?: string };
+    filters: { status?: string; payment_method?: string };
 }
 
 export default function RenewalsIndex({ renewals, filters }: Props) {
@@ -76,6 +78,23 @@ export default function RenewalsIndex({ renewals, filters }: Props) {
             onSuccess: () => { setRejectingId(null); setRejectReason(''); },
         });
     }
+
+    const paymentMethodBadge = (method: string | null) => {
+        if (method === 'tap') {
+            return (
+                <Badge variant="outline" className="rounded-full text-xs">
+                    <CreditCard className="h-3 w-3 me-1" />
+                    Tap
+                </Badge>
+            );
+        }
+        return (
+            <Badge variant="outline" className="rounded-full text-xs">
+                <Landmark className="h-3 w-3 me-1" />
+                {isArabic ? 'تحويل بنكي' : 'Bank'}
+            </Badge>
+        );
+    };
 
     const statusBadge = (status: string) => {
         switch (status) {
@@ -123,12 +142,12 @@ export default function RenewalsIndex({ renewals, filters }: Props) {
                     <h1 className="text-2xl font-bold">{isArabic ? 'طلبات التجديد' : 'Renewal Requests'}</h1>
                 </div>
 
-                {/* Filter */}
+                {/* Filters */}
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <Select
                         value={filters.status || 'all'}
                         onValueChange={(value) =>
-                            router.get('/super-admin/renewals', { status: value === 'all' ? undefined : value }, { preserveState: true })
+                            router.get('/super-admin/renewals', { ...filters, status: value === 'all' ? undefined : value }, { preserveState: true })
                         }
                     >
                         <SelectTrigger className="w-full sm:w-[200px]">
@@ -139,6 +158,21 @@ export default function RenewalsIndex({ renewals, filters }: Props) {
                             <SelectItem value="pending">{isArabic ? 'قيد المراجعة' : 'Pending'}</SelectItem>
                             <SelectItem value="approved">{isArabic ? 'مقبول' : 'Approved'}</SelectItem>
                             <SelectItem value="rejected">{isArabic ? 'مرفوض' : 'Rejected'}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select
+                        value={filters.payment_method || 'all'}
+                        onValueChange={(value) =>
+                            router.get('/super-admin/renewals', { ...filters, payment_method: value === 'all' ? undefined : value }, { preserveState: true })
+                        }
+                    >
+                        <SelectTrigger className="w-full sm:w-[200px]">
+                            <SelectValue placeholder={isArabic ? 'طريقة الدفع' : 'Payment method'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{isArabic ? 'كل الطرق' : 'All methods'}</SelectItem>
+                            <SelectItem value="tap">Tap</SelectItem>
+                            <SelectItem value="bank_transfer">{isArabic ? 'تحويل بنكي' : 'Bank transfer'}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -152,6 +186,7 @@ export default function RenewalsIndex({ renewals, filters }: Props) {
                                     <th className="px-4 py-3 text-start font-medium">{isArabic ? 'المنشأة' : 'Tenant'}</th>
                                     <th className="px-4 py-3 text-start font-medium">{isArabic ? 'الباقة' : 'Plan'}</th>
                                     <th className="px-4 py-3 text-start font-medium">{isArabic ? 'تاريخ الطلب' : 'Requested'}</th>
+                                    <th className="px-4 py-3 text-start font-medium">{isArabic ? 'طريقة الدفع' : 'Method'}</th>
                                     <th className="px-4 py-3 text-start font-medium">{isArabic ? 'الحالة' : 'Status'}</th>
                                     <th className="px-4 py-3 text-start font-medium">{isArabic ? 'الإيصال' : 'Receipt'}</th>
                                     <th className="px-4 py-3 text-start font-medium">{isArabic ? 'ملاحظات' : 'Notes'}</th>
@@ -172,11 +207,12 @@ export default function RenewalsIndex({ renewals, filters }: Props) {
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {new Date(renewal.requested_at).toLocaleDateString(isArabic ? 'ar-SA' : 'en-US')}
                                         </td>
+                                        <td className="px-4 py-3">{paymentMethodBadge(renewal.payment_method)}</td>
                                         <td className="px-4 py-3">{statusBadge(renewal.status)}</td>
                                         <td className="px-4 py-3">
-                                            {renewal.receipt_path ? (
+                                            {renewal.receipt_url ? (
                                                 <a
-                                                    href={`/storage/${renewal.receipt_path}`}
+                                                    href={renewal.receipt_url}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
@@ -239,7 +275,7 @@ export default function RenewalsIndex({ renewals, filters }: Props) {
                                 ))}
                                 {renewals.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                                        <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                                             {isArabic ? 'لا توجد طلبات تجديد' : 'No renewal requests found'}
                                         </td>
                                     </tr>

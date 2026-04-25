@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import { Power, Hotel, ChevronDown, ChevronUp, Palette, Type, Globe } from 'lucide-react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Power, Hotel, ChevronDown, ChevronUp, Palette, Type, Globe, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -13,18 +13,30 @@ interface Template {
     key: string;
     name_ar: string;
     name_en: string;
+    city_ar: string | null;
+    city_en: string | null;
     description_ar: string | null;
     description_en: string | null;
     preview_image: string | null;
+    demo_url: string | null;
     is_active: boolean;
+    is_coming_soon: boolean;
     settings: Record<string, any> | null;
     sort_order: number;
     tenants_count: number;
     created_at: string;
 }
 
+interface Stats {
+    total: number;
+    active: number;
+    inactive: number;
+    coming_soon: number;
+}
+
 interface Props {
     templates: Template[];
+    stats: Stats;
 }
 
 const templateColors: Record<string, string> = {
@@ -95,7 +107,7 @@ function SettingsDisplay({ settings }: { settings: Record<string, any> | null })
     );
 }
 
-export default function TemplatesIndex({ templates }: Props) {
+export default function TemplatesIndex({ templates, stats }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const [expandedSettings, setExpandedSettings] = useState<Record<number, boolean>>({});
@@ -108,6 +120,12 @@ export default function TemplatesIndex({ templates }: Props) {
     function handleToggle(templateId: number) {
         if (confirm('هل تريد تغيير حالة هذا القالب؟ / Toggle this template?')) {
             router.post(`/super-admin/templates/${templateId}/toggle`);
+        }
+    }
+
+    function handleDelete(templateId: number) {
+        if (confirm('هل تريد حذف هذا القالب؟ / Delete this template?')) {
+            router.delete(`/super-admin/templates/${templateId}`);
         }
     }
 
@@ -138,12 +156,22 @@ export default function TemplatesIndex({ templates }: Props) {
                     <div>
                         <h1 className="text-2xl font-bold">القوالب / Templates</h1>
                         <p className="text-sm text-muted-foreground mt-1">
-                            إدارة قوالب المنشآت / Manage hotel templates (seeded, not manually created)
+                            إدارة قوالب المنشآت / Manage hotel templates
                         </p>
                     </div>
-                    <Badge variant="secondary" className="rounded-full text-sm px-3 py-1 self-start">
-                        {templates.length} قالب / template{templates.length !== 1 ? 's' : ''}
-                    </Badge>
+                    <Button asChild>
+                        <Link href="/super-admin/templates/create">
+                            <Plus className="h-4 w-4" /> Add template
+                        </Link>
+                    </Button>
+                </div>
+
+                {/* Stats cards */}
+                <div className="grid gap-4 sm:grid-cols-4">
+                    <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Total</div><div className="text-2xl font-bold">{stats.total}</div></CardContent></Card>
+                    <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Active</div><div className="text-2xl font-bold text-green-600">{stats.active}</div></CardContent></Card>
+                    <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Inactive</div><div className="text-2xl font-bold text-red-600">{stats.inactive}</div></CardContent></Card>
+                    <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Coming soon</div><div className="text-2xl font-bold text-amber-600">{stats.coming_soon}</div></CardContent></Card>
                 </div>
 
                 {/* Grid of Cards */}
@@ -196,12 +224,17 @@ export default function TemplatesIndex({ templates }: Props) {
                                             <CardTitle className="text-lg">{template.name_ar}</CardTitle>
                                             <CardDescription className="mt-1">{template.name_en}</CardDescription>
                                         </div>
-                                        <Badge
-                                            variant={template.is_active ? 'default' : 'destructive'}
-                                            className="rounded-full shrink-0"
-                                        >
-                                            {template.is_active ? 'مفعل / Active' : 'معطل / Inactive'}
-                                        </Badge>
+                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                            <Badge
+                                                variant={template.is_active ? 'default' : 'destructive'}
+                                                className="rounded-full"
+                                            >
+                                                {template.is_active ? 'مفعل / Active' : 'معطل / Inactive'}
+                                            </Badge>
+                                            {template.is_coming_soon && (
+                                                <Badge variant="outline" className="rounded-full border-amber-400 text-amber-600">Coming soon</Badge>
+                                            )}
+                                        </div>
                                     </div>
                                 </CardHeader>
 
@@ -249,8 +282,8 @@ export default function TemplatesIndex({ templates }: Props) {
                                     </div>
                                 </CardContent>
 
-                                {/* Footer with Toggle */}
-                                <CardFooter className="border-t px-6 py-3 flex items-center justify-between">
+                                {/* Footer with actions */}
+                                <CardFooter className="border-t px-6 py-3 flex flex-wrap items-center justify-between gap-2">
                                     <span className="text-xs text-muted-foreground">
                                         {new Date(template.created_at).toLocaleDateString('en-US', {
                                             year: 'numeric',
@@ -258,19 +291,36 @@ export default function TemplatesIndex({ templates }: Props) {
                                             day: 'numeric',
                                         })}
                                     </span>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleToggle(template.id)}
-                                        className={
-                                            template.is_active
-                                                ? 'text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950'
-                                                : 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-950'
-                                        }
-                                    >
-                                        <Power className="h-3.5 w-3.5 me-1" />
-                                        {template.is_active ? 'تعطيل / Deactivate' : 'تفعيل / Activate'}
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" asChild title="Edit">
+                                            <Link href={`/super-admin/templates/${template.id}/edit`}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDelete(template.id)}
+                                            className="text-red-500 hover:text-red-600"
+                                            title="Delete"
+                                            disabled={template.tenants_count > 0}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleToggle(template.id)}
+                                            className={
+                                                template.is_active
+                                                    ? 'text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700'
+                                                    : 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700'
+                                            }
+                                        >
+                                            <Power className="h-3.5 w-3.5 me-1" />
+                                            {template.is_active ? 'Deactivate' : 'Activate'}
+                                        </Button>
+                                    </div>
                                 </CardFooter>
                             </Card>
                         ))}

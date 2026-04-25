@@ -29,6 +29,16 @@ class IntegrationController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $isActive = $validated['is_active'] ?? false;
+
+        // Mutual exclusion: activating a payment gateway deactivates the others.
+        if ($isActive && $validated['type'] === 'payment') {
+            IntegrationSetting::whereNull('tenant_id')
+                ->where('type', 'payment')
+                ->where('provider', '!=', $provider)
+                ->update(['is_active' => false]);
+        }
+
         IntegrationSetting::updateOrCreate(
             [
                 'tenant_id' => null,
@@ -38,7 +48,7 @@ class IntegrationController extends Controller
                 'type' => $validated['type'],
                 'credentials' => $validated['credentials'] ?? null,
                 'settings' => $validated['settings'] ?? null,
-                'is_active' => $validated['is_active'] ?? false,
+                'is_active' => $isActive,
             ]
         );
 

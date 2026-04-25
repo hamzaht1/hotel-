@@ -5,27 +5,60 @@ import BrowseMoreButton from './BrowseMoreButton'
 import BackgroundSection from './BackgroundSection'
 import FiltersBar from './FiltersBar'
 import TemplatesGrid from './TemplatesGrid'
-import { FILTERS, TEMPLATES, type Region } from './constants'
+import { FILTERS, TEMPLATES, type Region, type RegionOption, type TemplateItem } from './constants'
 import { useLang } from '@/hooks/useLang'
 
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 
+interface DbTemplate {
+  id: number; key: string;
+  name_ar: string; name_en: string;
+  city_ar: string | null; city_en: string | null;
+  description_ar: string | null; description_en: string | null;
+  preview_image: string | null; demo_url: string | null;
+  is_active: boolean; is_coming_soon: boolean;
+}
+
+interface Props {
+  dbTemplates?: DbTemplate[]
+}
+
+// Map the tenant template key/city to the region chip used by the filter bar.
+const KEY_TO_REGION: Record<string, RegionOption> = {
+  madina: 'madinah', madinah: 'madinah',
+  mecca: 'makkah', makkah: 'makkah',
+  jeddah: 'hijaz', hijaz: 'hijaz',
+  riyadh: 'central', central: 'central',
+  sulamani: 'sulamani',
+}
+
 /**
  * Templates component - Template showcase section
- * Displays hotel templates with filtering by region and browse more functionality
+ * Prefers server-provided templates; falls back to the static TEMPLATES.
  */
-export default function 
-Templates() {
+export default function Templates({ dbTemplates }: Props) {
   const { __ } = useLang()
 
+  const items: TemplateItem[] = useMemo(() => {
+    if (!dbTemplates || dbTemplates.length === 0) return TEMPLATES
+    return dbTemplates.map<TemplateItem>((t, i) => ({
+      id: t.id,
+      src: t.preview_image ? `/storage/${t.preview_image}` : TEMPLATES[i % TEMPLATES.length].src,
+      title: t.name_ar || t.name_en,
+      region: KEY_TO_REGION[t.key] ?? 'madinah',
+      templateSlug: t.is_active && !t.is_coming_soon ? t.key : undefined,
+      comingSoon: t.is_coming_soon || !t.is_active,
+    }))
+  }, [dbTemplates])
+
   // Active filter state (use localized "all")
-const [active, setActive] = useState<Region>('all')
+  const [active, setActive] = useState<Region>('all')
 
   // Filter templates based on active region (active is a key)
   const filtered = useMemo(() => {
-    if (active === 'all') return TEMPLATES
-    return TEMPLATES.filter((t) => t.region === active)
-  }, [active])
+    if (active === 'all') return items
+    return items.filter((t) => t.region === active)
+  }, [active, items])
 
   return (
     <section id="templates">

@@ -23,32 +23,34 @@ export default function CreatePlan() {
         name_ar: string;
         name_en: string;
         slug: string;
-        description_ar: string;
-        description_en: string;
         price: number;
         billing_cycle: string;
         features_ar: string[];
         features_en: string[];
-        limits: { max_rooms: number | string; max_images: number | string; max_users: number | string };
+        feature_styles: Array<{ color: string; weight: string; icon: string }>;
+        has_limits: boolean;
+        limits: { max_users: number | string; storage_gb: number | string };
         icon: string;
         variant: string;
         sort_order: number;
         is_active: boolean;
+        is_coming_soon: boolean;
     }>({
         name_ar: '',
         name_en: '',
         slug: '',
-        description_ar: '',
-        description_en: '',
         price: 0,
         billing_cycle: 'monthly',
         features_ar: [''],
         features_en: [''],
-        limits: { max_rooms: '', max_images: '', max_users: '' },
+        feature_styles: [{ color: '#000000', weight: 'normal', icon: 'check' }],
+        has_limits: false,
+        limits: { max_users: '', storage_gb: '' },
         icon: '',
         variant: 'solid',
         sort_order: 0,
         is_active: true,
+        is_coming_soon: false,
     });
 
     function handleSubmit(e: React.FormEvent) {
@@ -62,10 +64,12 @@ export default function CreatePlan() {
 
     function addFeatureAr() {
         setData('features_ar', [...data.features_ar, '']);
+        setData('feature_styles', [...data.feature_styles, { color: '#000000', weight: 'normal', icon: 'check' }]);
     }
 
     function removeFeatureAr(index: number) {
         setData('features_ar', data.features_ar.filter((_, i) => i !== index));
+        setData('feature_styles', data.feature_styles.filter((_, i) => i !== index));
     }
 
     function updateFeatureAr(index: number, value: string) {
@@ -86,6 +90,13 @@ export default function CreatePlan() {
         const updated = [...data.features_en];
         updated[index] = value;
         setData('features_en', updated);
+    }
+
+    function updateFeatureStyle(index: number, patch: Partial<{ color: string; weight: string; icon: string }>) {
+        const updated = [...data.feature_styles];
+        while (updated.length <= index) updated.push({ color: '#000000', weight: 'normal', icon: 'check' });
+        updated[index] = { ...updated[index], ...patch };
+        setData('feature_styles', updated);
     }
 
     return (
@@ -134,24 +145,6 @@ export default function CreatePlan() {
                                         className="vuexy-input"
                                     />
                                 </Field>
-                                <div className="sm:col-span-2">
-                                    <Field label="الوصف (عربي) / Description (AR)" error={errors.description_ar}>
-                                        <Input
-                                            value={data.description_ar}
-                                            onChange={(e) => setData('description_ar', e.target.value)}
-                                            className="vuexy-input"
-                                        />
-                                    </Field>
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <Field label="الوصف (إنجليزي) / Description (EN)" error={errors.description_en}>
-                                        <Input
-                                            value={data.description_en}
-                                            onChange={(e) => setData('description_en', e.target.value)}
-                                            className="vuexy-input"
-                                        />
-                                    </Field>
-                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -207,59 +200,71 @@ export default function CreatePlan() {
                                     />
                                 </Field>
                             </div>
-                            <div className="mt-4 flex items-center gap-2">
-                                <Checkbox
-                                    id="is_active"
-                                    checked={data.is_active}
-                                    onCheckedChange={(checked) => setData('is_active', checked === true)}
-                                />
-                                <Label htmlFor="is_active">{t('active')}</Label>
+                            <div className="mt-4 flex flex-wrap items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="is_active"
+                                        checked={data.is_active}
+                                        onCheckedChange={(checked) => setData('is_active', checked === true)}
+                                    />
+                                    <Label htmlFor="is_active">{t('active')}</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="is_coming_soon"
+                                        checked={data.is_coming_soon}
+                                        onCheckedChange={(checked) => setData('is_coming_soon', checked === true)}
+                                    />
+                                    <Label htmlFor="is_coming_soon">قريباً / Coming soon</Label>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Limits */}
+                    {/* Limits (toggle) */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>الحدود / Limits</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 sm:grid-cols-3">
-                                <Field label="الحد الأقصى للغرف / Max Rooms" error={(errors as Record<string, string>)['limits.max_rooms']}>
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        value={data.limits.max_rooms}
-                                        onChange={(e) => setData('limits', { ...data.limits, max_rooms: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                                        placeholder="غير محدود / Unlimited"
-                                        className="vuexy-input"
+                            <div className="flex items-center justify-between">
+                                <CardTitle>الحدود / Limits</CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="has_limits"
+                                        checked={data.has_limits}
+                                        onCheckedChange={(checked) => setData('has_limits', checked === true)}
                                     />
-                                </Field>
-                                <Field label="الحد الأقصى للصور / Max Images" error={(errors as Record<string, string>)['limits.max_images']}>
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        value={data.limits.max_images}
-                                        onChange={(e) => setData('limits', { ...data.limits, max_images: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                                        placeholder="غير محدود / Unlimited"
-                                        className="vuexy-input"
-                                    />
-                                </Field>
-                                <Field label="الحد الأقصى للمستخدمين / Max Users" error={(errors as Record<string, string>)['limits.max_users']}>
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        value={data.limits.max_users}
-                                        onChange={(e) => setData('limits', { ...data.limits, max_users: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                                        placeholder="غير محدود / Unlimited"
-                                        className="vuexy-input"
-                                    />
-                                </Field>
+                                    <Label htmlFor="has_limits">هل للباقة حدود ؟ / Has limits?</Label>
+                                </div>
                             </div>
-                        </CardContent>
+                        </CardHeader>
+                        {data.has_limits && (
+                            <CardContent>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <Field label="عدد المستخدمين / Max users">
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={data.limits.max_users}
+                                            onChange={(e) => setData('limits', { ...data.limits, max_users: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                                            placeholder="غير محدود / Unlimited"
+                                            className="vuexy-input"
+                                        />
+                                    </Field>
+                                    <Field label="مساحة التخزين (GB) / Storage (GB)">
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={data.limits.storage_gb}
+                                            onChange={(e) => setData('limits', { ...data.limits, storage_gb: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                                            placeholder="غير محدود / Unlimited"
+                                            className="vuexy-input"
+                                        />
+                                    </Field>
+                                </div>
+                            </CardContent>
+                        )}
                     </Card>
 
-                    {/* Features AR */}
+                    {/* Features AR with styling */}
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
@@ -272,25 +277,73 @@ export default function CreatePlan() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex flex-col gap-3">
-                                {data.features_ar.map((feature, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <Input
-                                            value={feature}
-                                            onChange={(e) => updateFeatureAr(index, e.target.value)}
-                                            placeholder={`الميزة ${index + 1}`}
-                                            className="vuexy-input"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeFeatureAr(index)}
-                                            className="shrink-0 text-red-500 hover:text-red-600"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
+                                {data.features_ar.map((feature, index) => {
+                                    const style = data.feature_styles[index] ?? { color: '#000000', weight: 'normal', icon: 'check' };
+                                    return (
+                                        <div key={index} className="flex flex-wrap items-end gap-2 rounded border p-3">
+                                            <div className="flex-1 min-w-[200px]">
+                                                <Label className="text-xs mb-1 block">النص / Text</Label>
+                                                <Input
+                                                    value={feature}
+                                                    onChange={(e) => updateFeatureAr(index, e.target.value)}
+                                                    placeholder={`الميزة ${index + 1}`}
+                                                    className="vuexy-input"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs mb-1 block">اللون / Color</Label>
+                                                <Input
+                                                    type="color"
+                                                    value={style.color}
+                                                    onChange={(e) => updateFeatureStyle(index, { color: e.target.value })}
+                                                    className="h-9 w-16 p-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs mb-1 block">الوزن / Weight</Label>
+                                                <Select value={style.weight} onValueChange={(v) => updateFeatureStyle(index, { weight: v })}>
+                                                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="normal">Normal</SelectItem>
+                                                        <SelectItem value="bold">Bold</SelectItem>
+                                                        <SelectItem value="light">Light</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs mb-1 block">الأيقونة / Icon</Label>
+                                                <Select value={style.icon} onValueChange={(v) => updateFeatureStyle(index, { icon: v })}>
+                                                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="check">✓ Check</SelectItem>
+                                                        <SelectItem value="star">★ Star</SelectItem>
+                                                        <SelectItem value="heart">♥ Heart</SelectItem>
+                                                        <SelectItem value="bolt">⚡ Bolt</SelectItem>
+                                                        <SelectItem value="gift">🎁 Gift</SelectItem>
+                                                        <SelectItem value="sparkles">✨ Sparkles</SelectItem>
+                                                        <SelectItem value="crown">👑 Crown</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeFeatureAr(index)}
+                                                className="shrink-0 text-red-500 hover:text-red-600"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                            {feature && (
+                                                <div className="basis-full pt-1 text-xs text-muted-foreground">
+                                                    Preview: <span style={{ color: style.color, fontWeight: style.weight }}>
+                                                        {({ check: '✓', star: '★', heart: '♥', bolt: '⚡', gift: '🎁', sparkles: '✨', crown: '👑' } as Record<string, string>)[style.icon] ?? '•'} {feature}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                                 {(errors as Record<string, string>)['features_ar'] && (
                                     <p className="text-xs text-destructive">{(errors as Record<string, string>)['features_ar']}</p>
                                 )}

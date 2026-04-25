@@ -30,12 +30,15 @@ class MenuController extends Controller
         }
 
         $validated = $request->validate([
-            'items' => 'required|array',
+            'items' => 'array',
             'items.*.label_ar' => 'required|string|max:255',
             'items.*.label_en' => 'required|string|max:255',
-            'items.*.type' => 'required|in:page,link',
+            'items.*.type' => 'required|in:page,section,external',
             'items.*.page_id' => 'nullable|integer|exists:pages,id',
+            'items.*.section_anchor' => 'nullable|string|max:100',
             'items.*.url' => 'nullable|string|max:500',
+            'items.*.is_visible' => 'boolean',
+            'items.*.parent_index' => 'nullable|integer|min:0',
         ]);
 
         Menu::updateOrCreate(

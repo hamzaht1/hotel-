@@ -35,7 +35,7 @@ export default function GallerySection({ gallery: backendGallery }: GallerySecti
   const galleryImages: BilingualGalleryImage[] = (backendGallery && backendGallery.length > 0)
     ? backendGallery.map((img, i) => ({
         id: img.id || i + 1,
-        src: img.path ? `/storage/${img.path}` : image1,
+        src: img.url || (img.path ? `/storage/${img.path}` : image1),
         categoryAr: img.category || 'عام',
         categoryEn: img.category || 'General',
         descriptionAr: img.title_ar || '',

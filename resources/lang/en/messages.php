@@ -509,4 +509,49 @@ return [
         'thank_you' => 'Thank you for trusting us!',
         'subtitle'  => 'Only a few steps remain to complete your subscription.',
     ],
+
+    // Client-admin + super-admin shared labels (Sprint 6 i18n additions)
+    'reviews_module' => [
+        'title' => 'Customer reviews',
+        'average' => 'Average rating',
+        'positive' => 'Positive',
+        'negative' => 'Negative',
+        'published' => 'Published',
+        'hidden' => 'Hidden',
+        'reply' => 'Reply',
+        'form_builder' => 'Form builder',
+        'popup_question' => 'How would you rate your experience so far?',
+        'popup_subtitle' => 'Your feedback helps us improve.',
+        'reason_prompt' => 'What went wrong?',
+        'submit' => 'Submit',
+        'later' => 'Later',
+    ],
+
+    'domain_module' => [
+        'title' => 'Domain management',
+        'custom_domain' => 'Custom domain',
+        'dns_instructions' => 'DNS setup instructions',
+        'verified' => 'Verified',
+        'not_verified' => 'Not verified',
+        'verify_now' => 'Verify DNS now',
+        'registrars' => 'Registrars',
+    ],
+
+    'bookings_module' => [
+        'title' => 'Service bookings',
+        'required_data' => 'Required data',
+        'accept_bookings' => 'Accept bookings from the public site',
+        'status' => [
+            'new' => 'New',
+            'confirmed' => 'Confirmed',
+            'completed' => 'Completed',
+            'canceled' => 'Canceled',
+        ],
+    ],
+
+    'contact_inbox' => [
+        'title' => 'Contact messages',
+        'unread' => 'Unread',
+        'mark_read' => 'Mark as read',
+    ],
 ];

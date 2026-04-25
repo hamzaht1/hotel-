@@ -12,21 +12,33 @@ class Page extends Model
 
     protected $fillable = [
         'slug',
+        'url_label_ar',
+        'url_label_en',
         'title_ar',
         'title_en',
         'content_ar',
         'content_en',
+        'meta_title_ar',
+        'meta_title_en',
         'meta_description_ar',
         'meta_description_en',
+        'meta_keywords',
+        'og_image',
+        'attachments',
         'is_published',
         'sort_order',
         'layout',
+        'show_header',
+        'show_footer',
     ];
 
     protected function casts(): array
     {
         return [
             'is_published' => 'boolean',
+            'show_header' => 'boolean',
+            'show_footer' => 'boolean',
+            'attachments' => 'array',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Menu;
 use App\Models\Page;
 use Inertia\Inertia;
 
@@ -16,8 +17,14 @@ class PageController extends Controller
                 'id', 'slug', 'title_ar', 'title_en',
                 'content_ar', 'content_en',
                 'meta_description_ar', 'meta_description_en',
-                'layout',
+                'layout', 'show_header', 'show_footer',
             ]),
+            'headerMenu' => $page->show_header
+                ? (optional(Menu::where('location', 'header')->first())->items ?? [])
+                : [],
+            'footerMenu' => $page->show_footer
+                ? (optional(Menu::where('location', 'footer')->first())->items ?? [])
+                : [],
         ]);
     }
 }
