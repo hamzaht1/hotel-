@@ -86,14 +86,14 @@ interface RegionSlice { key: string; count: number }
 interface Props {
     stats: Stats;
     range: Range;
-    recentRequests: RecentRequest[];
-    recentPayments: RecentPayment[];
-    newClients: NewClient[];
-    revenueSeries: RevenuePoint[];
-    topTemplates: TopTemplate[];
-    topPaymentMethods: PaymentMethod[];
-    byRegion: RegionSlice[];
-    quickLinks: { requests: string; invoices: string; clients: string };
+    recentRequests?: RecentRequest[];
+    recentPayments?: RecentPayment[];
+    newClients?: NewClient[];
+    revenueSeries?: RevenuePoint[];
+    topTemplates?: TopTemplate[];
+    topPaymentMethods?: PaymentMethod[];
+    byRegion?: RegionSlice[];
+    quickLinks?: { requests: string; invoices: string; clients: string };
 }
 
 const DONUT_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
@@ -112,14 +112,14 @@ function formatDate(value: string | null, locale: string): string {
 export default function SuperAdminDashboard({
     stats,
     range,
-    recentRequests,
-    recentPayments,
-    newClients,
-    revenueSeries,
-    topTemplates,
-    topPaymentMethods,
-    byRegion,
-    quickLinks,
+    recentRequests = [],
+    recentPayments = [],
+    newClients = [],
+    revenueSeries = [],
+    topTemplates = [],
+    topPaymentMethods = [],
+    byRegion = [],
+    quickLinks = { requests: '/super-admin', invoices: '/super-admin', clients: '/super-admin' },
 }: Props) {
     const { t, locale } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
@@ -130,7 +130,7 @@ export default function SuperAdminDashboard({
         { title: t('dash_title'), href: '/super-admin' },
     ];
 
-    const totalClientsForDonut = byRegion.reduce((sum, r) => sum + r.count, 0);
+    const totalClientsForDonut = (byRegion ?? []).reduce((sum, r) => sum + r.count, 0);
 
     const kpis = [
         { label: t('kpi_clients'), value: stats.total_clients.toLocaleString(numLocale), icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950' },
