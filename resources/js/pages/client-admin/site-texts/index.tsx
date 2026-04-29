@@ -106,7 +106,7 @@ export default function SiteTextsIndex({ texts, sections, currentSection }: Prop
                                 <div>
                                     <label className="mb-1 block text-xs text-muted-foreground">{t('arabic')}</label>
                                     <textarea
-                                        value={editedTexts[text.key]?.value_ar ?? text.value_ar}
+                                        value={editedTexts[text.key]?.value_ar ?? text.value_ar ?? ''}
                                         onChange={(e) => updateText(text.key, 'value_ar', e.target.value)}
                                         className="vuexy-input w-full"
                                         rows={2}
@@ -116,7 +116,7 @@ export default function SiteTextsIndex({ texts, sections, currentSection }: Prop
                                 <div>
                                     <label className="mb-1 block text-xs text-muted-foreground">{t('english')}</label>
                                     <textarea
-                                        value={editedTexts[text.key]?.value_en ?? text.value_en}
+                                        value={editedTexts[text.key]?.value_en ?? text.value_en ?? ''}
                                         onChange={(e) => updateText(text.key, 'value_en', e.target.value)}
                                         className="vuexy-input w-full"
                                         rows={2}

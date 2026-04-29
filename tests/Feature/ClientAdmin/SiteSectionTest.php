@@ -11,11 +11,14 @@ function sectionAdmin(): array
     $tenant = Tenant::factory()->create();
     $user = User::factory()->clientAdmin($tenant->id)->create();
 
-    // Create default sections
+    // Tenant booted() seeds the 7 default sections automatically; ensure deterministic sort_order for the test.
     $sections = ['hero', 'rooms', 'services', 'gallery', 'testimonials', 'partners', 'contact'];
     foreach ($sections as $i => $name) {
         SiteSection::unguard();
-        SiteSection::create(['tenant_id' => $tenant->id, 'section_name' => $name, 'is_active' => true, 'sort_order' => $i]);
+        SiteSection::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'section_name' => $name],
+            ['is_active' => true, 'sort_order' => $i]
+        );
         SiteSection::reguard();
     }
 
@@ -61,7 +64,10 @@ test('client admin only sees their own sections', function () {
     $otherTenant = Tenant::factory()->create();
 
     SiteSection::unguard();
-    SiteSection::create(['tenant_id' => $otherTenant->id, 'section_name' => 'hero', 'is_active' => true]);
+    SiteSection::updateOrCreate(
+        ['tenant_id' => $otherTenant->id, 'section_name' => 'hero'],
+        ['is_active' => true]
+    );
     SiteSection::reguard();
 
     $this->actingAs($user)

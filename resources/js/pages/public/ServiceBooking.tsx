@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { useStorageUrl } from '@/lib/storage';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,6 +33,7 @@ interface Tenant { id: number; name: string; slug: string; logo: string | null }
 interface Props { tenant: Tenant; service: Service }
 
 export default function ServiceBooking({ tenant, service }: Props) {
+    const storageUrl = useStorageUrl();
     const flash = usePage().props.flash as { success?: string } | undefined;
     const isAr = typeof document !== 'undefined' && document.documentElement.lang === 'ar';
 
@@ -79,7 +81,7 @@ export default function ServiceBooking({ tenant, service }: Props) {
                         </CardHeader>
                         <CardContent>
                             {service.featured_image && (
-                                <img src={`/storage/${service.featured_image}`} alt="" className="mb-4 h-40 w-full rounded object-cover" />
+                                <img src={storageUrl(service.featured_image) ?? ''} alt="" className="mb-4 h-40 w-full rounded object-cover" />
                             )}
                             {(service.description_ar || service.description_en) && (
                                 <p className="mb-4 text-sm text-muted-foreground">

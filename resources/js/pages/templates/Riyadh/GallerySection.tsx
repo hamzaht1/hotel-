@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 import image1 from '@/assets/images/riyadh-template/galary/imag1.png'
 import image2 from '@/assets/images/riyadh-template/galary/imag2.png'
 import image3 from '@/assets/images/riyadh-template/galary/imag3.png'
@@ -27,6 +28,7 @@ interface GallerySectionProps {
 export default function GallerySection({ gallery: backendGallery }: GallerySectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   // Default category with translation
   const defaultCategory = t('sections.gallery.filter_all', 'الكل')
   const [activeCategory, setActiveCategory] = useState(defaultCategory)
@@ -35,7 +37,7 @@ export default function GallerySection({ gallery: backendGallery }: GallerySecti
   const galleryImages: BilingualGalleryImage[] = (backendGallery && backendGallery.length > 0)
     ? backendGallery.map((img, i) => ({
         id: img.id || i + 1,
-        src: img.url || (img.path ? `/storage/${img.path}` : image1),
+        src: img.url ?? storageUrl(img.path) ?? image1,
         categoryAr: img.category || 'عام',
         categoryEn: img.category || 'General',
         descriptionAr: img.title_ar || '',

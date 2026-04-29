@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { FormEventHandler, useRef } from 'react';
 
 interface Settings {
@@ -62,6 +63,7 @@ const FONT_OPTIONS = [
 
 export default function SiteSettingsIndex({ settings }: Props) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
 
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -187,7 +189,7 @@ export default function SiteSettingsIndex({ settings }: Props) {
                                     {settings.identity.site_logo && (
                                         <div className="mb-2">
                                             <img
-                                                src={`/storage/${settings.identity.site_logo}`}
+                                                src={storageUrl(settings.identity.site_logo) ?? ''}
                                                 alt="Site Logo"
                                                 className="h-16 w-auto rounded border object-contain bg-white p-1"
                                             />
@@ -209,7 +211,7 @@ export default function SiteSettingsIndex({ settings }: Props) {
                                     {settings.identity.site_favicon && (
                                         <div className="mb-2">
                                             <img
-                                                src={`/storage/${settings.identity.site_favicon}`}
+                                                src={storageUrl(settings.identity.site_favicon) ?? ''}
                                                 alt="Site Favicon"
                                                 className="h-10 w-auto rounded border object-contain bg-white p-1"
                                             />

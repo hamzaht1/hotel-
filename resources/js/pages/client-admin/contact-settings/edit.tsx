@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { Save } from 'lucide-react';
 
 interface ContactSettings {
@@ -20,6 +20,7 @@ interface ContactSettings {
 
 export default function ContactSettingsEdit({ settings }: { settings: ContactSettings }) {
     const { t } = useT();
+    const flash = (usePage().props as any).flash as { success?: string } | undefined;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
@@ -52,6 +53,21 @@ export default function ContactSettingsEdit({ settings }: { settings: ContactSet
                 <h1 className="mb-6 text-2xl font-bold">{t('contact_settings')}</h1>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    {flash?.success && (
+                        <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+                            {flash.success}
+                        </div>
+                    )}
+                    {Object.keys(errors).length > 0 && (
+                        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                            <p className="font-medium">{t('form_has_errors') || 'Please fix the following:'}</p>
+                            <ul className="mt-1 list-inside list-disc">
+                                {Object.entries(errors).map(([field, msg]) => (
+                                    <li key={field}>{msg as string}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <Section title={t('communication')}>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Field label={t('whatsapp')} error={errors.whatsapp}>

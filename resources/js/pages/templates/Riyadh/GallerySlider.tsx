@@ -5,6 +5,7 @@ import { FreeMode, Pagination, Navigation } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 
 // Import Swiper styles
 import 'swiper/css'
@@ -41,6 +42,7 @@ interface GallerySliderProps {
 export default function GallerySlider({ gallery: backendGallery }: GallerySliderProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   const swiperRef = useRef<SwiperType | null>(null)
   const [sliderStyle, setSliderStyle] = useState<'riyadh' | 'madina'>('riyadh')
 
@@ -74,7 +76,7 @@ export default function GallerySlider({ gallery: backendGallery }: GallerySlider
   const galleryImages: BilingualGalleryImage[] = (backendGallery && backendGallery.length > 0)
     ? backendGallery.map((img, i) => ({
         id: img.id || i + 1,
-        src: img.path ? `/storage/${img.path}` : image1,
+        src: storageUrl(img.path) ?? image1,
         altAr: img.title_ar || '',
         altEn: img.title_en || '',
       }))

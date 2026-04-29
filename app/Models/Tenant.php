@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class Tenant extends Model
 {
@@ -30,8 +31,8 @@ class Tenant extends Model
         'payment_status',
         'payment_method',
         'bank_transfer_receipt',
-        'tap_charge_id',
-        'tap_transaction_id',
+        'payment_charge_id',
+        'payment_transaction_id',
         'payment_notes',
         'org_name_ar',
         'org_name_en',
@@ -55,6 +56,79 @@ class Tenant extends Model
             'dns_verified_at' => 'datetime',
             'dns_last_checked_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Tenant $tenant) {
+            $now = now();
+
+            // 1. Default site sections (all 7, active, in default order).
+            $sectionRows = [];
+            foreach (SiteSection::AVAILABLE as $i => $name) {
+                $sectionRows[] = [
+                    'tenant_id' => $tenant->id,
+                    'section_name' => $name,
+                    'is_active' => true,
+                    'sort_order' => $i + 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            DB::table('site_sections')->insertOrIgnore($sectionRows);
+
+            // 2. Default tenant-scoped roles. Permission keys are seeded globally by the
+            //    seed_default_permissions migration; we resolve their IDs and attach.
+            //    Idempotent: re-use existing roles if a test or earlier hook already created them.
+            $manager = DB::table('roles')->where('tenant_id', $tenant->id)->where('key', 'manager')->value('id')
+                ?? DB::table('roles')->insertGetId([
+                    'tenant_id' => $tenant->id,
+                    'key' => 'manager',
+                    'name_ar' => 'مدير',
+                    'name_en' => 'Manager',
+                    'is_system' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+            $receptionist = DB::table('roles')->where('tenant_id', $tenant->id)->where('key', 'receptionist')->value('id')
+                ?? DB::table('roles')->insertGetId([
+                    'tenant_id' => $tenant->id,
+                    'key' => 'receptionist',
+                    'name_ar' => 'موظف استقبال',
+                    'name_en' => 'Receptionist',
+                    'is_system' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+            $allPermissions = DB::table('permissions')->pluck('id', 'key');
+            if ($allPermissions->isEmpty()) {
+                return; // Permissions seeder hasn't run yet (e.g. tests using an old schema); skip silently.
+            }
+
+            // Manager: every permission.
+            $managerRows = $allPermissions->map(fn ($id) => [
+                'role_id' => $manager,
+                'permission_id' => $id,
+            ])->all();
+
+            // Receptionist: read-only access to content + ability to handle messages.
+            $receptionistKeys = [
+                'rooms.view', 'gallery.view', 'site_texts.view', 'site_sections.view',
+                'contact.view', 'hotel_settings.view',
+                'services.view', 'service_categories.view',
+                'reports.messages',
+            ];
+            $receptionistRows = collect($receptionistKeys)
+                ->filter(fn ($key) => isset($allPermissions[$key]))
+                ->map(fn ($key) => [
+                    'role_id' => $receptionist,
+                    'permission_id' => $allPermissions[$key],
+                ])->all();
+
+            DB::table('role_permission')->insertOrIgnore(array_merge($managerRows, $receptionistRows));
+        });
     }
 
     public function planModel(): BelongsTo

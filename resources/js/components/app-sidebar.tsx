@@ -22,53 +22,74 @@ import {
     Sparkles,
     Plug,
     RefreshCw,
+    Star,
+    Building2,
 } from 'lucide-react';
 import AppLogo from './app-logo';
+
+type SidebarLink = { item: NavItem; permission?: string };
+
+function buildGroup(links: SidebarLink[], can: (key: string) => boolean): NavItem[] {
+    return links.filter(({ permission }) => !permission || can(permission)).map(({ item }) => item);
+}
 
 export function AppSidebar() {
     const { t } = useT();
     const { isArabic } = useLocale();
-    const { can, canAny } = usePermission();
+    const { can } = usePermission();
 
-    const clientDashboard: NavItem[] = [
+    // 📊 Dashboard
+    const dashboardGroup: NavItem[] = [
         { title: t('dashboard'), href: '/client-admin', icon: LayoutGrid },
     ];
 
-    const allManagement: { item: NavItem; permission: string }[] = [
+    // 📌 الإدارة — public-facing content
+    const managementGroup = buildGroup([
         { item: { title: t('rooms'), href: '/client-admin/rooms', icon: BedDouble }, permission: 'rooms.view' },
         { item: { title: t('gallery'), href: '/client-admin/gallery', icon: Image }, permission: 'gallery.view' },
         { item: { title: t('site_texts'), href: '/client-admin/site-texts', icon: FileText }, permission: 'site_texts.view' },
         { item: { title: t('sections'), href: '/client-admin/site-sections', icon: ToggleRight }, permission: 'site_sections.view' },
         { item: { title: t('contact'), href: '/client-admin/contact-settings', icon: Phone }, permission: 'contact.view' },
-        { item: { title: t('hotel_settings'), href: '/client-admin/hotel-settings', icon: Settings }, permission: 'hotel_settings.view' },
-        { item: { title: isArabic ? 'أقسام الخدمات' : 'Service Categories', href: '/client-admin/service-categories', icon: Layers }, permission: 'services.view' },
+    ], can);
+
+    // ⚙️ النظام — system identity, services
+    const systemGroup = buildGroup([
+        { item: { title: isArabic ? 'إعدادات النظام' : 'System Settings', href: '/client-admin/system-settings', icon: Settings }, permission: 'hotel_settings.edit' },
         { item: { title: isArabic ? 'الخدمات' : 'Services', href: '/client-admin/services', icon: Sparkles }, permission: 'services.view' },
-    ];
+        { item: { title: isArabic ? 'أقسام الخدمات' : 'Service Categories', href: '/client-admin/service-categories', icon: Layers }, permission: 'services.view' },
+    ], can);
 
-    const clientManagement = allManagement
-        .filter(({ permission }) => can(permission))
-        .map(({ item }) => item);
-
-    const invoicesNav: NavItem[] = [
+    // 💼 المالية
+    const financeGroup: NavItem[] = [
         { title: isArabic ? 'الفواتير' : 'Invoices', href: '/client-admin/invoices', icon: FileText },
         { title: isArabic ? 'تجديد الاشتراك' : 'Renewal', href: '/client-admin/renewal', icon: RefreshCw },
         { title: isArabic ? 'التكاملات' : 'Integrations', href: '/client-admin/integrations', icon: Plug },
     ];
 
-    const allReports: { item: NavItem; permission: string }[] = [
-        { item: { title: isArabic ? 'تقرير الاشتراك' : 'Subscription', href: '/client-admin/reports/subscriptions', icon: CreditCard }, permission: 'reports.subscriptions' },
+    // 👥 المستخدمون — staff + roles
+    const usersGroup = buildGroup([
+        { item: { title: isArabic ? 'الموظفون' : 'Staff', href: '/client-admin/staff', icon: Users }, permission: 'staff.view' },
+        { item: { title: isArabic ? 'الأدوار والصلاحيات' : 'Roles & Permissions', href: '/client-admin/roles', icon: Shield }, permission: 'staff.view' },
+    ], can);
+
+    // 📊 التقارير — subscription reports + customer reviews
+    const reportsGroup = buildGroup([
+        { item: { title: isArabic ? 'تقرير الاشتراك' : 'Subscription Report', href: '/client-admin/reports/subscriptions', icon: CreditCard }, permission: 'reports.subscriptions' },
+        { item: { title: isArabic ? 'آراء العملاء' : 'Customer Reviews', href: '/client-admin/reviews', icon: Star }, permission: 'reviews.view' },
+    ], can);
+
+    // 🏢 حساب المنشأة — regroups subscription, invoices, and establishment data.
+    // الفواتير/تجديد الاشتراك intentionally appear here in addition to المالية, mirroring the spec.
+    const accountGroup = buildGroup([
+        { item: { title: isArabic ? 'إدارة الاشتراك' : 'Subscription', href: '/client-admin/renewal', icon: RefreshCw } },
+        { item: { title: isArabic ? 'الفواتير' : 'Invoices', href: '/client-admin/invoices', icon: FileText } },
+        { item: { title: isArabic ? 'بيانات المنشأة' : 'Establishment Data', href: '/client-admin/hotel-settings', icon: Building2 }, permission: 'hotel_settings.view' },
+    ], can);
+
+    // 💬 الرسائل والدعم
+    const supportGroup = buildGroup([
         { item: { title: isArabic ? 'الرسائل والدعم' : 'Messages & Support', href: '/client-admin/reports/messages', icon: MessageSquare }, permission: 'reports.messages' },
-    ];
-
-    const clientReports = allReports
-        .filter(({ permission }) => can(permission))
-        .map(({ item }) => item);
-
-    const staffNav: NavItem[] = [];
-    if (can('staff.view')) {
-        staffNav.push({ title: isArabic ? 'الموظفون' : 'Staff', href: '/client-admin/staff', icon: Users });
-        staffNav.push({ title: isArabic ? 'الأدوار والصلاحيات' : 'Roles & Permissions', href: '/client-admin/roles', icon: Shield });
-    }
+    ], can);
 
     return (
         <Sidebar collapsible="icon" variant="sidebar" side={isArabic ? 'right' : 'left'}>
@@ -85,16 +106,25 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={clientDashboard} label={t('main')} />
-                {clientManagement.length > 0 && (
-                    <NavMain items={clientManagement} label={t('management')} />
+                <NavMain items={dashboardGroup} label={t('main')} />
+                {managementGroup.length > 0 && (
+                    <NavMain items={managementGroup} label={isArabic ? 'الإدارة' : 'Management'} />
                 )}
-                <NavMain items={invoicesNav} label={isArabic ? 'المالية' : 'Finance'} />
-                {staffNav.length > 0 && (
-                    <NavMain items={staffNav} label={isArabic ? 'الموظفون' : 'Staff'} />
+                {systemGroup.length > 0 && (
+                    <NavMain items={systemGroup} label={isArabic ? 'النظام' : 'System'} />
                 )}
-                {clientReports.length > 0 && (
-                    <NavMain items={clientReports} label={isArabic ? 'التقارير' : 'Reports'} />
+                <NavMain items={financeGroup} label={isArabic ? 'المالية' : 'Finance'} />
+                {usersGroup.length > 0 && (
+                    <NavMain items={usersGroup} label={isArabic ? 'المستخدمون' : 'Users'} />
+                )}
+                {reportsGroup.length > 0 && (
+                    <NavMain items={reportsGroup} label={isArabic ? 'التقارير' : 'Reports'} />
+                )}
+                {accountGroup.length > 0 && (
+                    <NavMain items={accountGroup} label={isArabic ? 'حساب المنشأة' : 'Establishment Account'} />
+                )}
+                {supportGroup.length > 0 && (
+                    <NavMain items={supportGroup} label={isArabic ? 'الدعم' : 'Support'} />
                 )}
             </SidebarContent>
 

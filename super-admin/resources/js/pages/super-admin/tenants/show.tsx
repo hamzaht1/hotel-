@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { useState } from 'react';
 
 interface Tenant {
@@ -104,6 +105,7 @@ const TIMELINE_COLORS: Record<ActivityEvent['type'], string> = {
 
 export default function TenantShow({ tenant, primary_user, latest_invoice, latest_renewal, completed_requests_count, activity }: Props) {
     const { t, locale, isArabic } = useT();
+    const storageUrl = useStorageUrl();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const numLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
 
@@ -189,7 +191,7 @@ export default function TenantShow({ tenant, primary_user, latest_invoice, lates
                             <div className="flex items-center gap-3">
                                 <div className="h-14 w-14 rounded-full overflow-hidden border bg-muted flex items-center justify-center flex-shrink-0">
                                     {primary_user?.photo ? (
-                                        <img src={`/storage/${primary_user.photo}`} alt="" className="h-full w-full object-cover" />
+                                        <img src={storageUrl(primary_user.photo) ?? ''} alt="" className="h-full w-full object-cover" />
                                     ) : (
                                         <UserIcon className="h-6 w-6 text-muted-foreground" />
                                     )}

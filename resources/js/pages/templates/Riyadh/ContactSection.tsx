@@ -2,6 +2,7 @@
  * قسم تواصل معنا - قالب الرياض
  */
 import { useState } from 'react'
+import { useForm } from '@inertiajs/react'
 import { MapPin, Mail } from 'lucide-react'
 import { LiaPhoneVolumeSolid } from "react-icons/lia"
 import line from '@/assets/images/riyadh-template/contact-line.svg'
@@ -29,9 +30,10 @@ import rightLine from '@/assets/images/riyadh-template/rooms/right-line.svg'
 
 interface ContactSectionProps {
   contactSettings?: any;
+  tenant?: { slug?: string } | null;
 }
 
-export default function ContactSection({ contactSettings }: ContactSectionProps) {
+export default function ContactSection({ contactSettings, tenant }: ContactSectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   // Bilingual contact form fields configuration
@@ -68,30 +70,43 @@ export default function ContactSection({ contactSettings }: ContactSectionProps)
   ]
 
   type FieldName = typeof CONTACT_FORM_FIELDS[number]['name']
-  type FormData = Record<FieldName, string> & { message: string }
+  type FormShape = Record<FieldName, string> & { message: string }
 
-  // Form state management
-  const [formData, setFormData] = useState<FormData>({
+  // Inertia form: POSTs to the tenant-scoped contact endpoint and surfaces server validation errors.
+  const form = useForm<FormShape>({
     fullName: '',
     email: '',
     phone: '',
     message: '',
   })
+  const formData = form.data
+  const [submitted, setSubmitted] = useState(false)
 
-  // Handle form input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const name = e.target.name as FieldName | 'message'
-    // Sanitize phone to keep digits only
     const value = name === 'phone' ? e.target.value.replace(/\D/g, '') : e.target.value
-    setFormData(prev => ({ ...prev, [name]: value }))
+    form.setData(name as keyof FormShape, value)
   }
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted:', formData)
+    const slug = tenant?.slug
+    const url = slug ? `/hotel/${slug}/contact` : '/contact'
+    form.transform((d) => ({
+      name: d.fullName,
+      email: d.email,
+      phone: d.phone,
+      message: d.message,
+    }))
+    form.post(url, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setSubmitted(true)
+        form.reset()
+      },
+    })
   }
 
   // Company contact information — use backend data if available
@@ -170,6 +185,20 @@ export default function ContactSection({ contactSettings }: ContactSectionProps)
             onSubmit={handleSubmit}
             className="order-1 lg:order-1 lg:col-span-2 rounded-2xl p-6 sm:p-8 border riyadh-border bg-white/60 dark:bg-white/10 dark:border-white/20"
           >
+            {submitted && (
+              <div className="mb-4 rounded-xl bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                {isArabic ? 'تم إرسال رسالتك بنجاح، سنرد عليك قريبًا.' : 'Your message has been sent. We will reply soon.'}
+              </div>
+            )}
+            {Object.keys(form.errors).length > 0 && (
+              <div className="mb-4 rounded-xl bg-red-100 px-4 py-3 text-sm font-semibold text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                <ul className="list-inside list-disc">
+                  {Object.values(form.errors).map((msg, i) => (
+                    <li key={i}>{msg as string}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {/* Form fields grid */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {/* Dynamic form fields */}
@@ -227,10 +256,13 @@ export default function ContactSection({ contactSettings }: ContactSectionProps)
             <div className="mt-6">
               <button
                 type="submit"
-                className="w-full h-12 rounded-xl bg-[#020151] text-white dark:!bg-[#4490FF] dark:!text-white font-semibold 
-                         transition-colors duration-300 shadow-md hover:shadow-lg hover:bg-[#030175] dark:hover:!bg-[rgba(68,144,255,0.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4490FF]"
+                disabled={form.processing}
+                className="w-full h-12 rounded-xl bg-[#020151] text-white dark:!bg-[#4490FF] dark:!text-white font-semibold
+                         transition-colors duration-300 shadow-md hover:shadow-lg hover:bg-[#030175] dark:hover:!bg-[rgba(68,144,255,0.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4490FF] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {t('sections.contact.form_submit', 'إرسال الرسالة')}
+                {form.processing
+                  ? (isArabic ? 'جارٍ الإرسال…' : 'Sending…')
+                  : t('sections.contact.form_submit', 'إرسال الرسالة')}
               </button>
             </div>
           </form>

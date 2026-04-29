@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, A11y } from 'swiper/modules'
 import { HOTEL_LOGOS } from '@/data/public-data'
 import { useLang } from '@/hooks/useLang'
+import { useStorageUrl } from '@/lib/storage'
 import 'swiper/css'
 
 // Import hotel logo images
@@ -52,6 +53,7 @@ interface DbPartner {
 }
 
 export default function Hotels({ dbPartners }: { dbPartners?: DbPartner[] }) {
+  const storageUrl = useStorageUrl()
   // Hotel logo images mapping — bundled fallbacks
   const hotelLogoImages = {
     '@/assets/images/hotels-icons/logo1.svg': logo1,
@@ -67,7 +69,7 @@ export default function Hotels({ dbPartners }: { dbPartners?: DbPartner[] }) {
   // Prefer DB-sourced active tenant logos, fall back to bundled placeholders.
   const transformedLogos = (dbPartners && dbPartners.length > 0)
     ? dbPartners.map((p) => ({
-        src: `/storage/${p.logo}`,
+        src: storageUrl(p.logo) ?? '',
         alt: p.org_name_ar ?? p.name,
       }))
     : HOTEL_LOGOS.map(logo => ({

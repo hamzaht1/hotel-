@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useT } from '@/hooks/use-translations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Clock, CheckCircle, XCircle, AlertTriangle, CreditCard, Landmark, Building2, Copy, CheckCircle2 } from 'lucide-react';
 import { FormEventHandler, useMemo, useState } from 'react';
+import MoyasarForm from '@/components/MoyasarForm';
 
 interface Plan {
     name_ar: string;
     name_en: string;
     price: string;
+    billing_cycle?: string;
+    features_ar?: string[];
+    features_en?: string[];
+    limits?: Record<string, number | string>;
 }
 
 interface BankDetails {
@@ -49,19 +54,19 @@ interface Props {
     tenant: TenantInfo;
     renewals: RenewalRequest[];
     canRenew: boolean;
-    tapPublicKey: string;
     bankDetails: BankDetails;
+    moyasarPublishableKey: string | null;
+    paymentCallbackUrl: string;
 }
 
-type PaymentMode = 'tap' | 'bank_transfer';
+type PaymentMode = 'moyasar' | 'bank_transfer';
 
-export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey, bankDetails }: Props) {
+export default function RenewalIndex({ tenant, renewals, canRenew, bankDetails, moyasarPublishableKey, paymentCallbackUrl }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const isArabic = document.documentElement.dir === 'rtl';
 
-    const [paymentMode, setPaymentMode] = useState<PaymentMode>('tap');
-    const [tapProcessing, setTapProcessing] = useState(false);
+    const [paymentMode, setPaymentMode] = useState<PaymentMode>('moyasar');
     const [copied, setCopied] = useState<string | null>(null);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -99,12 +104,7 @@ export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey,
         });
     };
 
-    const handleTapPayment = () => {
-        setTapProcessing(true);
-        router.post('/client-admin/renewal/tap-payment', {}, {
-            onFinish: () => setTapProcessing(false),
-        });
-    };
+    // Inline Moyasar form handles its own submission to Moyasar's API.
 
     const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);
@@ -139,7 +139,8 @@ export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey,
     };
 
     const paymentMethodBadge = (method: string) => {
-        if (method === 'tap') {
+        if (method === 'moyasar' || method === 'tap') {
+            // 'tap' kept for historical rows pre-migration; rendered the same as online.
             return (
                 <Badge className="rounded-full bg-blue-100 text-blue-700 hover:bg-blue-100">
                     <CreditCard className="h-3 w-3 me-1" />
@@ -255,6 +256,44 @@ export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey,
                                 )}
                             </div>
                         )}
+
+                        {tenant.plan && (
+                            (((isArabic ? tenant.plan.features_ar : tenant.plan.features_en) ?? []).length > 0 ||
+                                Object.keys(tenant.plan.limits ?? {}).length > 0) && (
+                                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                    {((isArabic ? tenant.plan.features_ar : tenant.plan.features_en) ?? []).length > 0 && (
+                                        <div className="rounded-lg border p-3">
+                                            <p className="mb-2 text-sm font-semibold text-muted-foreground">
+                                                {isArabic ? 'الميزات المتاحة' : 'Plan Features'}
+                                            </p>
+                                            <ul className="space-y-1 text-sm">
+                                                {((isArabic ? tenant.plan.features_ar : tenant.plan.features_en) ?? []).map((f, i) => (
+                                                    <li key={i} className="flex items-start gap-2">
+                                                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                                                        <span>{f}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {tenant.plan.limits && Object.keys(tenant.plan.limits).length > 0 && (
+                                        <div className="rounded-lg border p-3">
+                                            <p className="mb-2 text-sm font-semibold text-muted-foreground">
+                                                {isArabic ? 'الحدود' : 'Limits'}
+                                            </p>
+                                            <ul className="space-y-1 text-sm">
+                                                {Object.entries(tenant.plan.limits).map(([k, v]) => (
+                                                    <li key={k} className="flex items-center justify-between">
+                                                        <span className="text-muted-foreground">{k}</span>
+                                                        <span className="font-semibold">{String(v)}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        )}
                     </CardContent>
                 </Card>
 
@@ -269,9 +308,9 @@ export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey,
                             <div className="mb-6 flex overflow-hidden rounded-xl border bg-muted/30">
                                 <button
                                     type="button"
-                                    onClick={() => setPaymentMode('tap')}
+                                    onClick={() => setPaymentMode('moyasar')}
                                     className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all ${
-                                        paymentMode === 'tap'
+                                        paymentMode === 'moyasar'
                                             ? 'bg-primary text-primary-foreground shadow-sm'
                                             : 'text-muted-foreground hover:bg-muted'
                                     }`}
@@ -293,8 +332,8 @@ export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey,
                                 </button>
                             </div>
 
-                            {/* ─── TAP PAYMENT ─── */}
-                            {paymentMode === 'tap' && (
+                            {/* ─── ONLINE PAYMENT (Moyasar) ─── */}
+                            {paymentMode === 'moyasar' && (
                                 <div className="space-y-4 text-center">
                                     <p className="text-sm text-muted-foreground">
                                         {isArabic
@@ -321,17 +360,21 @@ export default function RenewalIndex({ tenant, renewals, canRenew, tapPublicKey,
                                         </p>
                                     </div>
 
-                                    <Button
-                                        onClick={handleTapPayment}
-                                        disabled={tapProcessing}
-                                        className="w-full"
-                                        size="lg"
-                                    >
-                                        <CreditCard className="h-4 w-4 me-2" />
-                                        {tapProcessing
-                                            ? (isArabic ? 'جاري التوجيه للدفع...' : 'Redirecting...')
-                                            : (isArabic ? 'ادفع الآن' : 'Pay Now')}
-                                    </Button>
+                                    <div className="text-start">
+                                        <MoyasarForm
+                                            amount={Number(tenant.plan?.price ?? 0)}
+                                            description={`Diyafah Renewal — ${isArabic ? tenant.plan?.name_ar : tenant.plan?.name_en}`}
+                                            publishableKey={moyasarPublishableKey}
+                                            callbackUrl={paymentCallbackUrl}
+                                            // Apple Pay requires Apple Developer registration + a merchant-validation
+                                            // endpoint server-side; enable when that infrastructure is in place.
+                                            methods={['creditcard', 'stcpay']}
+                                            metadata={{
+                                                type: 'renewal',
+                                                tenant_id: tenant.name,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                             )}
 

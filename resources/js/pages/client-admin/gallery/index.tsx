@@ -4,12 +4,14 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Upload, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useState } from 'react';
+import { useStorageUrl } from '@/lib/storage';
 
 interface GalleryImage {
     id: number;
     title_ar: string | null;
     title_en: string | null;
     path: string;
+    url: string | null;
     category: string;
     is_active: boolean;
     sort_order: number;
@@ -27,6 +29,7 @@ interface Props {
 
 export default function GalleryIndex({ images, filters, categories }: Props) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
@@ -175,7 +178,7 @@ export default function GalleryIndex({ images, filters, categories }: Props) {
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                     {(reorderMode ? orderedImages : images.data).map((img, index) => (
                         <div key={img.id} className="group relative overflow-hidden rounded-xl border">
-                            <img src={`/storage/${img.path}`} alt={img.title_en || ''} className="aspect-square w-full object-cover" />
+                            <img src={img.url ?? storageUrl(img.path) ?? ''} alt={img.title_en || ''} className="aspect-square w-full object-cover" />
                             {reorderMode ? (
                                 <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40">
                                     <button onClick={() => swapImages(index, 'up')} disabled={index === 0} className="rounded-full bg-white p-2 text-gray-800 shadow hover:bg-gray-100 disabled:opacity-30">

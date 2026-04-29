@@ -111,13 +111,15 @@ test('client admin can create a room', function () {
         ])
         ->assertRedirect(route('client-admin.rooms.index'));
 
-    $this->assertDatabaseHas('rooms', [
-        'tenant_id' => $tenant->id,
-        'name_en' => 'Luxury Room',
-        'type' => 'suite',
-        'price' => 750.50,
-        'capacity' => 3,
-    ]);
+    $room = Room::where('tenant_id', $tenant->id)->where('name_en', 'Luxury Room')->first();
+    expect($room)->not->toBeNull()
+        ->and($room->type)->toBe('suite')
+        ->and((float) $room->price)->toBe(750.50)
+        ->and($room->capacity)->toBe(3)
+        ->and($room->description_ar)->toBe('وصف عربي')
+        ->and($room->description_en)->toBe('English description')
+        ->and($room->amenities)->toBe(['wifi', 'minibar', 'tv'])
+        ->and($room->is_active)->toBeTrue();
 });
 
 test('client admin can create a room with featured image', function () {

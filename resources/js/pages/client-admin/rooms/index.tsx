@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -29,6 +30,7 @@ const roomTypes = ['standard', 'deluxe', 'suite', 'family'];
 
 export default function RoomsIndex({ rooms, filters }: Props) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
@@ -84,7 +86,7 @@ export default function RoomsIndex({ rooms, filters }: Props) {
                         <div key={room.id} className="overflow-hidden vuexy-card">
                             <div className="aspect-video bg-muted">
                                 {room.featured_image ? (
-                                    <img src={`/storage/${room.featured_image}`} alt={room.name_en} className="h-full w-full object-cover" />
+                                    <img src={storageUrl(room.featured_image) ?? ''} alt={room.name_en} className="h-full w-full object-cover" />
                                 ) : (
                                     <div className="flex h-full items-center justify-center text-muted-foreground">No Image</div>
                                 )}

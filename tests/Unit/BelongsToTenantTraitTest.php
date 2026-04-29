@@ -91,18 +91,15 @@ test('tenant isolation works for gallery images', function () {
 });
 
 test('tenant isolation works for site sections', function () {
+    // Tenant booted() seeds the 7 default sections per tenant.
     $tenant1 = Tenant::factory()->create();
     $tenant2 = Tenant::factory()->create();
 
-    SiteSection::unguard();
-    SiteSection::create(['tenant_id' => $tenant1->id, 'section_name' => 'hero', 'is_active' => true]);
-    SiteSection::create(['tenant_id' => $tenant1->id, 'section_name' => 'rooms', 'is_active' => true]);
-    SiteSection::create(['tenant_id' => $tenant2->id, 'section_name' => 'hero', 'is_active' => false]);
-    SiteSection::reguard();
-
     app()->instance('current_tenant_id', $tenant1->id);
-    expect(SiteSection::all())->toHaveCount(2);
+    expect(SiteSection::all())->toHaveCount(7);
+    expect(SiteSection::pluck('tenant_id')->unique()->values()->all())->toBe([$tenant1->id]);
 
     app()->instance('current_tenant_id', $tenant2->id);
-    expect(SiteSection::all())->toHaveCount(1);
+    expect(SiteSection::all())->toHaveCount(7);
+    expect(SiteSection::pluck('tenant_id')->unique()->values()->all())->toBe([$tenant2->id]);
 });

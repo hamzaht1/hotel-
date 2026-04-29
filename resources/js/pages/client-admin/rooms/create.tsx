@@ -96,6 +96,17 @@ export default function CreateRoom() {
                 <h1 className="mb-6 text-2xl font-bold">{t('create_room')}</h1>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    {Object.keys(errors).length > 0 && (
+                        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                            <p className="font-medium">{t('form_has_errors') || 'Please fix the following:'}</p>
+                            <ul className="mt-1 list-inside list-disc">
+                                {Object.entries(errors).map(([field, msg]) => (
+                                    <li key={field}>{msg as string}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     {/* Basic Info */}
                     <div className="vuexy-card p-6">
                         <h2 className="mb-4 text-lg font-semibold">{t('room_details')}</h2>

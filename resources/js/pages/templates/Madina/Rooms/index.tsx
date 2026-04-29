@@ -14,6 +14,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react'
 import BookingModal, { BookingType, BookingData } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 
 // Bilingual room interface
 interface BilingualRoom {
@@ -60,6 +61,7 @@ interface Props {
 export default function RoomsSection({ rooms: backendRooms }: Props) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
   const [defaultType, setDefaultType] = useState<BookingType>('غرفة')
   const [cardStyle, setCardStyle] = useState<'default' | 'simple'>('default')
@@ -173,7 +175,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
         amenities: room.amenities || [],
         maxGuests: room.capacity || 2,
         size: 30,
-        image: room.featured_image ? `/storage/${room.featured_image}` : (room.images?.[0]?.path ? `/storage/${room.images[0].path}` : bilingualRoomsData[index % bilingualRoomsData.length]?.image),
+        image: storageUrl(room.featured_image) ?? storageUrl(room.images?.[0]?.path) ?? bilingualRoomsData[index % bilingualRoomsData.length]?.image,
         popularTag: undefined,
         isAvailable: true,
       }));
@@ -197,7 +199,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
         : undefined,
       isAvailable: true,
     }));
-  }, [isArabic, backendRooms])
+  }, [isArabic, backendRooms, storageUrl])
 
   // Update SVG gradient colors when CSS variable changes
   useEffect(() => {

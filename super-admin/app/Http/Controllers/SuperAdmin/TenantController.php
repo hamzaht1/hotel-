@@ -211,7 +211,7 @@ class TenantController extends Controller
             'admin_name' => 'nullable|string|max:255',
             'admin_email' => 'nullable|email|unique:users,email',
             'admin_password' => 'nullable|string|min:8',
-            'payment_method' => 'nullable|in:bank_transfer,tap,manual',
+            'payment_method' => 'nullable|in:bank_transfer,moyasar,tap,manual',
             'payment_status' => 'nullable|in:pending,approved,rejected',
             'bank_transfer_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'payment_notes' => 'nullable|string|max:500',
@@ -401,7 +401,7 @@ class TenantController extends Controller
             'subscription_ends_at' => 'nullable|date|after:subscription_starts_at',
             'is_active' => 'boolean',
             'admin_notes' => 'nullable|string|max:5000',
-            'payment_method' => 'nullable|in:bank_transfer,tap,manual,credit_card,mada,apple_pay',
+            'payment_method' => 'nullable|in:bank_transfer,moyasar,tap,manual,credit_card,mada,apple_pay',
             'payment_status' => 'nullable|in:pending,approved,rejected',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'integer|exists:request_tags,id',
@@ -505,16 +505,13 @@ class TenantController extends Controller
             'subscription_ends_at' => now()->addYear(),
         ]);
 
-        // Send approval email to tenant admin
         $admin = User::where('tenant_id', $tenant->id)->where('role', 'client_admin')->first();
         if ($admin) {
-            try {
-                \Illuminate\Support\Facades\Mail::to($admin->email)->send(
-                    new \App\Mail\PaymentApprovedMail($tenant, $admin)
-                );
-            } catch (\Exception $e) {
-                \Log::warning('Approval email failed: ' . $e->getMessage());
-            }
+            \App\Support\Mailer::sendIfConfigured(
+                $admin->email,
+                fn () => new \App\Mail\PaymentApprovedMail($tenant, $admin),
+                'tenant approval'
+            );
         }
 
         return back()->with('success', 'تم تفعيل المنشأة بنجاح');

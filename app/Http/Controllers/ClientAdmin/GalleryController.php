@@ -32,7 +32,7 @@ class GalleryController extends Controller
             'title_en' => 'nullable|string|max:255',
             'category' => 'required|in:general,rooms,lobby,restaurant,pool,exterior',
             'images' => 'required|array|min:1',
-            'images.*' => 'file|max:4096',
+            'images.*' => 'file|image|max:5120',
         ]);
 
         $lastOrder = GalleryImage::max('sort_order') ?? 0;
@@ -45,6 +45,7 @@ class GalleryController extends Controller
                 'path' => $path,
                 'category' => $request->category,
                 'sort_order' => $lastOrder + $index + 1,
+                'is_active' => true,
             ]);
         }
 

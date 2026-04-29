@@ -17,6 +17,7 @@ import type { Swiper as SwiperType } from 'swiper'
 import BookingModal, { BookingData, BookingType } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 
 // Import Swiper styles
 import 'swiper/css'
@@ -43,6 +44,7 @@ interface BilingualService {
   price: string;
   currency: string;
   currencyEn: string;
+  image?: string | null;
   features: {
     icon: string;
     labelAr: string;
@@ -50,9 +52,26 @@ interface BilingualService {
   }[];
 }
 
-export default function ServicesSection() {
+interface BackendService {
+  id: number;
+  name_ar: string;
+  name_en: string;
+  description_ar?: string | null;
+  description_en?: string | null;
+  price: string | number;
+  duration?: string | null;
+  featured_image?: string | null;
+  category?: { name_ar: string; name_en: string } | null;
+}
+
+interface ServicesSectionProps {
+  services?: BackendService[];
+}
+
+export default function ServicesSection({ services: backendServices }: ServicesSectionProps = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
   const [defaultType, setDefaultType] = useState<BookingType>('مساج صيني')
   const swiperRef = useRef<SwiperType | null>(null)
@@ -220,9 +239,37 @@ export default function ServicesSection() {
     }
   ]
   
+  // If the tenant has real services configured, use those; otherwise fall back to mock data so the design preview still renders.
+  const sourceData = useMemo<BilingualService[]>(() => {
+    if (Array.isArray(backendServices) && backendServices.length > 0) {
+      return backendServices.map((s) => {
+        const features: BilingualService['features'] = []
+        if (s.duration) {
+          features.push({ icon: clockIcon, labelAr: s.duration, labelEn: s.duration })
+        }
+        if (s.category) {
+          features.push({ icon: amenitiesIcon, labelAr: s.category.name_ar, labelEn: s.category.name_en })
+        }
+        return {
+          id: s.id,
+          name: s.name_ar,
+          nameEn: s.name_en,
+          description: s.description_ar ?? '',
+          descriptionEn: s.description_en ?? '',
+          price: String(s.price ?? ''),
+          currency: 'ريال',
+          currencyEn: 'SAR',
+          image: storageUrl(s.featured_image),
+          features,
+        }
+      })
+    }
+    return bilingualServicesData
+  }, [backendServices, storageUrl])
+
   // Convert to current language
   const services = useMemo(() => {
-    return bilingualServicesData.map(service => ({
+    return sourceData.map(service => ({
       id: service.id,
       name: isArabic ? service.name : service.nameEn,
       nameEn: service.nameEn,
@@ -231,13 +278,14 @@ export default function ServicesSection() {
       price: service.price,
       currency: isArabic ? service.currency : service.currencyEn,
       currencyEn: service.currencyEn,
+      image: service.image ?? null,
       features: service.features.map(feature => ({
         icon: feature.icon,
         labelAr: feature.labelAr,
         labelEn: feature.labelEn,
       })),
     }));
-  }, [isArabic])
+  }, [isArabic, sourceData])
 
   useEffect(() => {
     if (swiperRef.current) {
@@ -436,7 +484,7 @@ export default function ServicesSection() {
                       {/* Image */}
                       <div className="relative h-48 flex-shrink-0 overflow-hidden">
                         <img
-                          src={roomImage}
+                          src={service.image ?? roomImage}
                           alt={service.name}
                           className="w-full h-full object-cover"
                         />

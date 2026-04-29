@@ -144,13 +144,11 @@ class InvoiceController extends Controller
 
         $admin = User::where('tenant_id', $invoice->tenant_id)->where('role', 'client_admin')->first();
         if ($admin) {
-            try {
-                Mail::to($admin->email)->send(
-                    new \App\Mail\InvoiceSentMail($invoice, $admin)
-                );
-            } catch (\Exception $e) {
-                \Log::warning('Invoice email failed: ' . $e->getMessage());
-            }
+            \App\Support\Mailer::sendIfConfigured(
+                $admin->email,
+                fn () => new \App\Mail\InvoiceSentMail($invoice, $admin),
+                'invoice send'
+            );
         }
 
         return back()->with('success', 'تم إرسال الفاتورة بنجاح');

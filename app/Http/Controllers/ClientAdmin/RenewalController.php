@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\RenewalRequest;
 use App\Services\InvoiceService;
-use App\Services\TapPaymentService;
+use App\Services\MoyasarPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -46,12 +46,17 @@ class RenewalController extends Controller
                     'name_ar' => $planModel->name_ar,
                     'name_en' => $planModel->name_en,
                     'price' => $planModel->price,
+                    'billing_cycle' => $planModel->billing_cycle,
+                    'features_ar' => $planModel->features_ar ?? [],
+                    'features_en' => $planModel->features_en ?? [],
+                    'limits' => $planModel->limits ?? [],
                 ] : null,
             ],
             'renewals' => $renewals,
             'invoices' => $invoices,
             'canRenew' => !$hasPendingRequest,
-            'tapPublicKey' => config('tap.public_key'),
+            'moyasarPublishableKey' => config('moyasar.publishable_key') ?: null,
+            'paymentCallbackUrl' => route('client-admin.renewal.payment.callback'),
             'bankDetails' => [
                 'bank_name_ar' => 'البنك الأهلي السعودي',
                 'bank_name_en' => 'Saudi National Bank (SNB)',
@@ -99,9 +104,9 @@ class RenewalController extends Controller
     }
 
     /**
-     * Initiate Tap payment for renewal.
+     * Initiate a Moyasar invoice for renewal payment.
      */
-    public function initiateTapPayment()
+    public function initiatePayment()
     {
         $tenant = app('current_tenant');
         $planModel = $tenant->plan_id ? \App\Models\Plan::find($tenant->plan_id) : null;
@@ -118,18 +123,17 @@ class RenewalController extends Controller
             return back()->with('error', 'لديك طلب تجديد قيد المراجعة بالفعل');
         }
 
-        // Create a pending renewal request first
         $renewal = RenewalRequest::create([
             'tenant_id' => $tenant->id,
             'plan_id' => $tenant->plan_id,
             'status' => 'pending',
-            'payment_method' => 'tap',
+            'payment_method' => 'moyasar',
             'requested_at' => now(),
         ]);
 
-        $tap = new TapPaymentService();
+        $moyasar = new MoyasarPaymentService();
 
-        $result = $tap->createCharge([
+        $result = $moyasar->createCharge([
             'amount' => (float) $planModel->price,
             'description' => "Diyafah - Renewal - {$planModel->name_en}",
             'customer_name' => $tenant->name,
@@ -141,8 +145,8 @@ class RenewalController extends Controller
                 'renewal_id' => $renewal->id,
                 'tenant_id' => $tenant->id,
             ],
-            'redirect_url' => route('client-admin.renewal.tap.callback'),
-            'webhook_url' => route('renewal.tap.webhook'),
+            'redirect_url' => route('client-admin.renewal.payment.callback'),
+            'webhook_url' => route('renewal.payment.webhook'),
         ]);
 
         if (!$result['success']) {
@@ -150,50 +154,70 @@ class RenewalController extends Controller
             return back()->with('error', 'فشل في بدء عملية الدفع. حاول مرة أخرى.');
         }
 
-        $renewal->update(['tap_charge_id' => $result['charge_id']]);
+        $renewal->update(['payment_charge_id' => $result['charge_id']]);
 
         return Inertia::location($result['redirect_url']);
     }
 
     /**
-     * Handle Tap redirect callback after renewal payment.
+     * Handle Moyasar redirect callback after renewal payment.
+     * The inline JS form posts the payment directly to Moyasar's API and we
+     * receive only the payment ID via the redirect, so the renewal record is
+     * created (or upgraded) here on a confirmed payment.
      */
-    public function tapCallback(Request $request)
+    public function paymentCallback(Request $request)
     {
-        $tapId = $request->query('tap_id');
+        $paymentId = $request->query('id') ?? $request->query('invoice_id');
         $tenant = app('current_tenant');
 
-        if (!$tapId) {
+        if (!$paymentId) {
             return redirect()->route('client-admin.renewal.index')
                 ->with('error', 'عملية الدفع غير صالحة');
         }
 
-        $tap = new TapPaymentService();
-        $charge = $tap->retrieveCharge($tapId);
-
-        $renewal = RenewalRequest::where('tap_charge_id', $tapId)
+        // Idempotent: if this payment ID has already been processed, do nothing.
+        $alreadyApproved = RenewalRequest::where('payment_charge_id', $paymentId)
             ->where('tenant_id', $tenant->id)
-            ->first();
-
-        if (!$renewal) {
+            ->where('status', 'approved')
+            ->exists();
+        if ($alreadyApproved) {
             return redirect()->route('client-admin.renewal.index')
-                ->with('error', 'طلب التجديد غير موجود');
+                ->with('success', 'تم تجديد الاشتراك بنجاح عبر الدفع الإلكتروني');
         }
 
-        if (!$charge['success'] || $charge['status'] !== 'CAPTURED') {
-            $renewal->update(['status' => 'rejected', 'notes' => 'Tap payment not captured']);
+        $moyasar = new MoyasarPaymentService();
+        $charge = $moyasar->retrieveCharge($paymentId);
+
+        if (!$charge['success'] || $charge['status'] !== 'paid') {
             return redirect()->route('client-admin.renewal.index')
                 ->with('error', 'لم يتم إكمال الدفع. حاول مرة أخرى.');
         }
 
-        // Payment successful — auto-approve renewal
-        $renewal->update([
-            'status' => 'approved',
-            'tap_transaction_id' => $charge['transaction_id'],
-            'processed_at' => now(),
-        ]);
+        // Either upgrade an existing pending record (legacy redirect flow) or
+        // create one now (inline form flow).
+        $renewal = RenewalRequest::where('payment_charge_id', $paymentId)
+            ->where('tenant_id', $tenant->id)
+            ->first();
 
-        // Extend subscription
+        if ($renewal) {
+            $renewal->update([
+                'status' => 'approved',
+                'payment_transaction_id' => $charge['transaction_id'],
+                'processed_at' => now(),
+            ]);
+        } else {
+            $renewal = RenewalRequest::create([
+                'tenant_id' => $tenant->id,
+                'plan_id' => $tenant->plan_id,
+                'status' => 'approved',
+                'payment_method' => 'moyasar',
+                'payment_charge_id' => $paymentId,
+                'payment_transaction_id' => $charge['transaction_id'],
+                'requested_at' => now(),
+                'processed_at' => now(),
+            ]);
+        }
+
         $currentEnd = $tenant->subscription_ends_at;
         $baseDate = ($currentEnd && $currentEnd->isFuture()) ? $currentEnd : now();
 
@@ -212,17 +236,19 @@ class RenewalController extends Controller
     }
 
     /**
-     * Handle Tap webhook for renewal payments.
+     * Handle Moyasar webhook for renewal payments.
      */
-    public function tapWebhook(Request $request)
+    public function paymentWebhook(Request $request)
     {
-        $chargeId = $request->input('id');
-        $status = $request->input('status');
+        $payload = $request->all();
+        $data = $payload['data'] ?? $payload;
+        $invoiceId = $data['invoice_id'] ?? $data['id'] ?? null;
+        $status = $data['status'] ?? null;
 
-        Log::info('Tap renewal webhook', ['charge_id' => $chargeId, 'status' => $status]);
+        Log::info('Moyasar renewal webhook', ['invoice_id' => $invoiceId, 'status' => $status]);
 
-        if ($status === 'CAPTURED' && $chargeId) {
-            $renewal = RenewalRequest::where('tap_charge_id', $chargeId)
+        if ($status === 'paid' && $invoiceId) {
+            $renewal = RenewalRequest::where('payment_charge_id', $invoiceId)
                 ->where('status', 'pending')
                 ->first();
 

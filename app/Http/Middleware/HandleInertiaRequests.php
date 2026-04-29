@@ -63,6 +63,11 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'dir'    => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
 
+            // Base URL for the public storage disk. Switches automatically:
+            // - R2 / S3 configured  → absolute CDN URL (e.g. https://pub-xxx.r2.dev)
+            // - local              → APP_URL/storage
+            'storageBaseUrl' => rtrim(config('filesystems.disks.public.url') ?: (config('app.url') . '/storage'), '/'),
+
             'tenant' => app()->bound('current_tenant') ? app('current_tenant') : null,
             'siteSettings' => fn () => SiteSetting::getAllGrouped(),
             'showReviewPopup' => fn () => $this->shouldShowReviewPopup($user),

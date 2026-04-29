@@ -29,6 +29,7 @@ import {
     YAxis,
 } from 'recharts';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 
 interface Stats {
     total_clients: number;
@@ -122,6 +123,7 @@ export default function SuperAdminDashboard({
     quickLinks = { requests: '/super-admin', invoices: '/super-admin', clients: '/super-admin' },
 }: Props) {
     const { t, locale } = useT();
+    const storageUrl = useStorageUrl();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const numLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
 
@@ -309,7 +311,7 @@ export default function SuperAdminDashboard({
                                     </div>
                                     {tpl.preview_image && (
                                         <img
-                                            src={`/storage/${tpl.preview_image}`}
+                                            src={storageUrl(tpl.preview_image) ?? ''}
                                             alt=""
                                             className="h-10 w-10 rounded object-cover"
                                         />

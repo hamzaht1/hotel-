@@ -38,14 +38,21 @@ test('client admin can upload gallery images', function () {
             'title_en' => 'Hotel Photo',
             'category' => 'lobby',
             'images' => [
-                UploadedFile::fake()->create('lobby1.jpg', 100, 'image/jpeg'),
-                UploadedFile::fake()->create('lobby2.jpg', 100, 'image/jpeg'),
+                UploadedFile::fake()->image('lobby1.jpg', 600, 400),
+                UploadedFile::fake()->image('lobby2.jpg', 600, 400),
             ],
         ])
         ->assertRedirect();
 
-    expect(GalleryImage::where('tenant_id', $tenant->id)->count())->toBe(2);
-    expect(GalleryImage::where('tenant_id', $tenant->id)->first()->category)->toBe('lobby');
+    $images = GalleryImage::where('tenant_id', $tenant->id)->get();
+    expect($images)->toHaveCount(2);
+    foreach ($images as $img) {
+        expect($img->category)->toBe('lobby')
+            ->and($img->is_active)->toBeTrue()
+            ->and($img->path)->toStartWith('gallery/')
+            ->and($img->url)->not->toBeNull();
+        Storage::disk('public')->assertExists($img->path);
+    }
 });
 
 test('gallery upload validates category', function () {

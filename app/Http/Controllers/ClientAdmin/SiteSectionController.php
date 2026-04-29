@@ -9,13 +9,11 @@ use Inertia\Inertia;
 
 class SiteSectionController extends Controller
 {
-    private const AVAILABLE_SECTIONS = ['hero', 'rooms', 'services', 'gallery', 'testimonials', 'partners', 'contact'];
-
     public function index()
     {
         $sections = SiteSection::orderBy('sort_order')->get();
         $existing = $sections->pluck('section_name')->all();
-        $missing = array_values(array_diff(self::AVAILABLE_SECTIONS, $existing));
+        $missing = array_values(array_diff(SiteSection::AVAILABLE, $existing));
 
         return Inertia::render('client-admin/site-sections/index', [
             'sections' => $sections,
@@ -26,7 +24,7 @@ class SiteSectionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'section_name' => 'required|string|in:' . implode(',', self::AVAILABLE_SECTIONS),
+            'section_name' => 'required|string|in:' . implode(',', SiteSection::AVAILABLE),
         ]);
 
         $exists = SiteSection::where('section_name', $validated['section_name'])->exists();

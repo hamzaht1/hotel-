@@ -1,7 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { Save, Upload } from 'lucide-react';
 import { useState } from 'react';
 
@@ -11,7 +12,9 @@ interface HotelSettings {
     description_ar: string | null;
     description_en: string | null;
     logo: string | null;
+    logo_url: string | null;
     favicon: string | null;
+    favicon_url: string | null;
     star_rating: number;
     currency: string;
     timezone: string;
@@ -23,28 +26,16 @@ interface HotelSettings {
 
 export default function HotelSettingsEdit({ settings }: { settings: HotelSettings }) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
+    const flash = (usePage().props as any).flash as { success?: string } | undefined;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
         { title: t('hotel_settings'), href: '/client-admin/hotel-settings' },
     ];
 
-    const { data, setData, post, processing, errors } = useForm<{
-        _method: string;
-        hotel_name_ar: string;
-        hotel_name_en: string;
-        description_ar: string;
-        description_en: string;
-        star_rating: string;
-        currency: string;
-        timezone: string;
-        check_in_time: string;
-        check_out_time: string;
-        primary_color: { light: string; dark: string };
-        secondary_color: { light: string; dark: string };
-        logo: File | null;
-        favicon: File | null;
-    }>({
+    // Inertia's FormDataType doesn't accept nested objects in its strict generic; let it infer instead.
+    const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
         hotel_name_ar: settings.hotel_name_ar || '',
         hotel_name_en: settings.hotel_name_en || '',
@@ -57,11 +48,12 @@ export default function HotelSettingsEdit({ settings }: { settings: HotelSetting
         check_out_time: settings.check_out_time || '12:00',
         primary_color: settings.primary_color || { light: '#A67D5F', dark: '#C9A882' },
         secondary_color: settings.secondary_color || { light: '#C9A882', dark: '#A67D5F' },
-        logo: null,
-        favicon: null,
+        logo: null as File | null,
+        favicon: null as File | null,
     });
 
-    const [logoPreview, setLogoPreview] = useState<string | null>(settings.logo ? `/storage/${settings.logo}` : null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(settings.logo_url ?? storageUrl(settings.logo));
+    const [faviconPreview, setFaviconPreview] = useState<string | null>(settings.favicon_url ?? storageUrl(settings.favicon));
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -75,6 +67,21 @@ export default function HotelSettingsEdit({ settings }: { settings: HotelSetting
                 <h1 className="mb-6 text-2xl font-bold">{t('hotel_settings')}</h1>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    {flash?.success && (
+                        <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+                            {flash.success}
+                        </div>
+                    )}
+                    {Object.keys(errors).length > 0 && (
+                        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                            <p className="font-medium">{t('form_has_errors') || 'Please fix the following:'}</p>
+                            <ul className="mt-1 list-inside list-disc">
+                                {Object.entries(errors).map(([field, msg]) => (
+                                    <li key={field}>{msg as string}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <Section title={t('hotel_identity')}>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Field label={t('hotel_name_ar')} error={errors.hotel_name_ar}>
@@ -143,11 +150,12 @@ export default function HotelSettingsEdit({ settings }: { settings: HotelSetting
                                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition hover:bg-muted">
                                     <Upload className="h-5 w-5 text-muted-foreground" />
                                     <span className="text-sm text-muted-foreground">{t('upload_favicon')}</span>
-                                    <input type="file" accept="image/*" onChange={(e) => {
+                                    <input type="file" accept="image/*,.ico" onChange={(e) => {
                                         const f = e.target.files?.[0];
-                                        if (f) setData('favicon', f);
+                                        if (f) { setData('favicon', f); setFaviconPreview(URL.createObjectURL(f)); }
                                     }} className="hidden" />
                                 </label>
+                                {faviconPreview && <img src={faviconPreview} alt="Favicon" className="mt-2 h-10 w-10 object-contain" />}
                             </div>
                         </div>
 

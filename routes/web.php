@@ -13,6 +13,7 @@ use App\Http\Controllers\ClientAdmin\SiteTextController;
 use App\Http\Controllers\ClientAdmin\SiteSectionController;
 use App\Http\Controllers\ClientAdmin\ContactSettingController;
 use App\Http\Controllers\ClientAdmin\HotelSettingController;
+use App\Http\Controllers\ClientAdmin\SystemSettingController;
 use App\Http\Controllers\ClientAdmin\ReportController;
 use App\Http\Controllers\ClientAdmin\InvoiceController;
 use App\Http\Controllers\ClientAdmin\ServiceCategoryController;
@@ -49,8 +50,37 @@ if (!function_exists('inertiaWithLang')) {
 Route::get('/Privacy', fn () => inertiaWithLang('public/Privacy'))->name('privacy');
 Route::get('/templates', function () {
     syncLangFiles('messages');
+
+    $templates = \App\Models\Template::where('is_active', true)
+        ->orderBy('sort_order')
+        ->orderBy('id')
+        ->get()
+        ->map(function ($t) {
+            $previewUrl = $t->preview_image
+                ? \Illuminate\Support\Facades\Storage::disk('public')->url($t->preview_image)
+                : null;
+
+            $regions = is_array($t->settings['regions'] ?? null)
+                ? array_values($t->settings['regions'])
+                : [];
+
+            return [
+                'id' => $t->id,
+                'key' => $t->key,
+                'name_ar' => $t->name_ar,
+                'name_en' => $t->name_en,
+                'description_ar' => $t->description_ar,
+                'description_en' => $t->description_en,
+                'preview_url' => $previewUrl,
+                'demo_url' => $t->demo_url,
+                'regions' => $regions,
+                'is_coming_soon' => (bool) ($t->is_coming_soon ?? false),
+            ];
+        })
+        ->values();
+
     return \Inertia\Inertia::render('public/Templates', [
-        'activeTemplates' => \App\Models\Template::where('is_active', true)->pluck('key')->toArray(),
+        'templates' => $templates,
     ]);
 })->name('templates');
 
@@ -101,16 +131,16 @@ Route::prefix('setup')->name('setup.')->group(function () {
 
     Route::get('payment-method', [SetupController::class, 'paymentMethod'])->name('paymentMethod');
     Route::post('payment-method', [SetupController::class, 'storePayment'])->name('payment.store');
-    Route::post('tap-payment', [SetupController::class, 'initiateTapPayment'])->name('tap.initiate');
-    Route::get('tap-callback', [SetupController::class, 'tapCallback'])->name('tap.callback');
+    Route::post('payment', [SetupController::class, 'initiatePayment'])->name('payment.initiate');
+    Route::get('payment-callback', [SetupController::class, 'paymentCallback'])->name('payment.callback');
 
     Route::get('pending', [SetupController::class, 'pending'])->name('pending');
     Route::get('complete', [SetupController::class, 'complete'])->name('complete');
 });
 
-// ─── Tap Webhooks (no auth, CSRF excluded in bootstrap/app.php) ──
-Route::post('/webhooks/tap/setup', [SetupController::class, 'tapWebhook'])->name('setup.tap.webhook');
-Route::post('/webhooks/tap/renewal', [RenewalController::class, 'tapWebhook'])->name('renewal.tap.webhook');
+// ─── Payment Webhooks (no auth, CSRF excluded in bootstrap/app.php) ──
+Route::post('/webhooks/payment/setup', [SetupController::class, 'paymentWebhook'])->name('setup.payment.webhook');
+Route::post('/webhooks/payment/renewal', [RenewalController::class, 'paymentWebhook'])->name('renewal.payment.webhook');
 
 // ─── Tenant Public Site (by slug) ───────────────────────────
 Route::get('/hotel/{slug}', [TenantSiteController::class, 'show'])->name('tenant.site');
@@ -183,6 +213,10 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::get('hotel-settings', [HotelSettingController::class, 'edit'])->name('hotel-settings.edit');
         Route::put('hotel-settings', [HotelSettingController::class, 'update'])->name('hotel-settings.update');
 
+        // System Settings (tenant-level branding/identity, mirrors super-admin/site-settings)
+        Route::get('system-settings', [SystemSettingController::class, 'edit'])->name('system-settings.edit');
+        Route::put('system-settings', [SystemSettingController::class, 'update'])->name('system-settings.update');
+
         // Reports
         Route::get('reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
         Route::get('reports/subscriptions', [ReportController::class, 'subscriptions'])->name('reports.subscriptions');
@@ -216,8 +250,8 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         // Renewal
         Route::get('renewal', [RenewalController::class, 'index'])->name('renewal.index');
         Route::post('renewal', [RenewalController::class, 'store'])->name('renewal.store');
-        Route::post('renewal/tap-payment', [RenewalController::class, 'initiateTapPayment'])->name('renewal.tap.initiate');
-        Route::get('renewal/tap-callback', [RenewalController::class, 'tapCallback'])->name('renewal.tap.callback');
+        Route::post('renewal/payment', [RenewalController::class, 'initiatePayment'])->name('renewal.payment.initiate');
+        Route::get('renewal/payment-callback', [RenewalController::class, 'paymentCallback'])->name('renewal.payment.callback');
 
         // Reviews
         Route::get('reviews', [ClientReviewController::class, 'index'])->name('reviews.index');

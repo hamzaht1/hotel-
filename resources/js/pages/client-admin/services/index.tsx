@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, Clock } from 'lucide-react';
@@ -39,6 +40,7 @@ interface Props {
 
 export default function ServicesIndex({ services, categories, filters }: Props) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
     const flash = (usePage().props as any).flash;
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -112,7 +114,7 @@ export default function ServicesIndex({ services, categories, filters }: Props) 
                         <div key={service.id} className="overflow-hidden vuexy-card">
                             <div className="aspect-video bg-muted">
                                 {service.featured_image ? (
-                                    <img src={`/storage/${service.featured_image}`} alt={service.name_en} className="h-full w-full object-cover" />
+                                    <img src={storageUrl(service.featured_image) ?? ''} alt={service.name_en} className="h-full w-full object-cover" />
                                 ) : (
                                     <div className="flex h-full items-center justify-center text-muted-foreground">No Image</div>
                                 )}

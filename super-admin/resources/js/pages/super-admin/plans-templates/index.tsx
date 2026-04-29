@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { useState } from 'react';
 
 interface Plan {
@@ -72,6 +73,7 @@ const PLAN_KPI_ICONS: Record<string, { Icon: React.ComponentType<{ className?: s
 
 export default function PlansTemplatesIndex({ plans, templates, stats, filters }: Props) {
     const { t, locale, isArabic } = useT();
+    const storageUrl = useStorageUrl();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const [tab, setTab] = useState<'plans' | 'templates'>(filters.tab === 'templates' ? 'templates' : 'plans');
     const numLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
@@ -293,7 +295,7 @@ export default function PlansTemplatesIndex({ plans, templates, stats, filters }
                                 <Card key={tpl.id} className="overflow-hidden py-0 gap-0">
                                     {tpl.preview_image ? (
                                         <div className="relative h-40">
-                                            <img src={`/storage/${tpl.preview_image}`} alt={tpl.name_en} className="h-full w-full object-cover" />
+                                            <img src={storageUrl(tpl.preview_image) ?? ''} alt={tpl.name_en} className="h-full w-full object-cover" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                                             <div className="absolute bottom-3 start-4">
                                                 <Badge className="rounded-full bg-white/20 text-white backdrop-blur-sm border-white/30">{tpl.key.toUpperCase()}</Badge>

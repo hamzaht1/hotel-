@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 import leftLine from '../images/rooms/left-line.svg'
 import rightLine from '../images/rooms/right-line.svg'
 import CircularGallery from './CircularGallery'
@@ -29,6 +30,7 @@ interface Props {
 export default function Gallery({ gallery }: Props) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   const [galleryStyle, setGalleryStyle] = useState<'riyadh' | 'madina'>('riyadh')
 
   // Load gallery slider style from localStorage
@@ -68,7 +70,7 @@ export default function Gallery({ gallery }: Props) {
   // Map dynamic backend data if available, otherwise use static fallback
   const dynamicGalleryItems = gallery && gallery.length > 0
     ? gallery.map(img => ({
-        image: img.url || `/storage/${img.path}`,
+        image: img.url ?? storageUrl(img.path) ?? '',
         text: isArabic ? (img.title_ar || img.category) : (img.title_en || img.category),
       }))
     : null;

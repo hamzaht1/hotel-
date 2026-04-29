@@ -9,6 +9,8 @@ class SiteSection extends Model
 {
     use BelongsToTenant;
 
+    public const AVAILABLE = ['hero', 'rooms', 'services', 'gallery', 'testimonials', 'partners', 'contact'];
+
     protected $fillable = [
         'tenant_id',
         'section_name',

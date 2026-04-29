@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Plus, Upload, X } from 'lucide-react';
@@ -24,6 +25,7 @@ const amenitiesList = ['wifi', 'tv', 'minibar', 'safe', 'air_conditioning', 'bal
 
 export default function EditRoom({ room }: { room: Room }) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
@@ -75,7 +77,7 @@ export default function EditRoom({ room }: { room: Room }) {
     });
 
     const [featuredPreview, setFeaturedPreview] = useState<string | null>(
-        room.featured_image ? `/storage/${room.featured_image}` : null
+        storageUrl(room.featured_image)
     );
     const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
@@ -131,6 +133,17 @@ export default function EditRoom({ room }: { room: Room }) {
                 <h1 className="mb-6 text-2xl font-bold">{t('edit_room')}</h1>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    {Object.keys(errors).length > 0 && (
+                        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                            <p className="font-medium">{t('form_has_errors') || 'Please fix the following:'}</p>
+                            <ul className="mt-1 list-inside list-disc">
+                                {Object.entries(errors).map(([field, msg]) => (
+                                    <li key={field}>{msg as string}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     <div className="vuexy-card p-6">
                         <h2 className="mb-4 text-lg font-semibold">{t('room_details')}</h2>
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -193,7 +206,7 @@ export default function EditRoom({ room }: { room: Room }) {
                                         const isMarkedForDeletion = data.delete_images.includes(img.id);
                                         return (
                                             <div key={img.id} className="relative">
-                                                <img src={`/storage/${img.path}`} alt="" className={`h-20 w-20 rounded-lg object-cover transition ${isMarkedForDeletion ? 'opacity-30' : ''}`} />
+                                                <img src={storageUrl(img.path) ?? ''} alt="" className={`h-20 w-20 rounded-lg object-cover transition ${isMarkedForDeletion ? 'opacity-30' : ''}`} />
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteImage(img.id)}

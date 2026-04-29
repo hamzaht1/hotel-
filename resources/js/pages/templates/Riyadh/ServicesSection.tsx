@@ -6,6 +6,7 @@ import React, { useState, useMemo } from 'react'
 import BookingModal, { BookingData, BookingType } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 import { TemplateService } from '@/types/template-types'
 
 // Import icons
@@ -27,6 +28,7 @@ interface BilingualService {
   price: string;
   currency: string;
   currencyEn: string;
+  image?: string | null;
   features: {
     icon: string;
     labelAr: string;
@@ -34,15 +36,31 @@ interface BilingualService {
   }[];
 }
 
-export default function ServicesSection() {
+interface BackendService {
+  id: number;
+  name_ar: string;
+  name_en: string;
+  description_ar?: string | null;
+  description_en?: string | null;
+  price: string | number;
+  duration?: string | null;
+  featured_image?: string | null;
+  category?: { name_ar: string; name_en: string } | null;
+}
+
+interface ServicesSectionProps {
+  services?: BackendService[];
+}
+
+export default function ServicesSection({ services: backendServices }: ServicesSectionProps = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
   const [defaultType, setDefaultType] = useState<BookingType>('مساج صيني')
-  
-  // Mock bilingual services data
-  // In a real application, this would likely come from an API or backend
-  const services = useMemo(() => [
+
+  // Mock bilingual services data — used as preview when no real services are configured.
+  const mockServices = useMemo<BilingualService[]>(() => [
     {
       id: 1,
       name: "مساج صيني",
@@ -111,6 +129,39 @@ export default function ServicesSection() {
     }
   ] as BilingualService[], [])
 
+  const services = useMemo<(BilingualService & { name: string; description: string; currency: string })[]>(() => {
+    const source: BilingualService[] = (Array.isArray(backendServices) && backendServices.length > 0)
+      ? backendServices.map((s) => {
+          const features: BilingualService['features'] = []
+          if (s.duration) {
+            features.push({ icon: wifiIcon, labelAr: s.duration, labelEn: s.duration })
+          }
+          if (s.category) {
+            features.push({ icon: amenitiesIcon, labelAr: s.category.name_ar, labelEn: s.category.name_en })
+          }
+          return {
+            id: s.id,
+            name: s.name_ar,
+            nameEn: s.name_en,
+            description: s.description_ar ?? '',
+            descriptionEn: s.description_en ?? '',
+            price: String(s.price ?? ''),
+            currency: 'ريال',
+            currencyEn: 'SAR',
+            image: storageUrl(s.featured_image),
+            features,
+          }
+        })
+      : mockServices
+
+    return source.map((s) => ({
+      ...s,
+      name: isArabic ? s.name : s.nameEn,
+      description: isArabic ? s.description : s.descriptionEn,
+      currency: isArabic ? s.currency : s.currencyEn,
+    }))
+  }, [backendServices, mockServices, isArabic, storageUrl])
+
   const onBookClick = (type: BookingType) => {
     // In a real app, we would handle language-specific booking types here
     // For now, we're using the Arabic type since that's what's supported in BookingType
@@ -165,7 +216,7 @@ export default function ServicesSection() {
               {/* Service image */}
               <div className="h-92 overflow-hidden rounded-xl mb-4 flex-shrink-0">
                 <img
-                  src={roomImage}
+                  src={service.image ?? roomImage}
                   alt={service.name}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />

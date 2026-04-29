@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use App\Mail\SubscriptionExpiryWarningMail;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Mailer;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
 
 class CheckSubscriptionExpiry extends Command
 {
@@ -31,8 +31,10 @@ class CheckSubscriptionExpiry extends Command
                     ->first();
 
                 if ($admin) {
-                    Mail::to($admin->email)->send(
-                        new SubscriptionExpiryWarningMail($tenant, $admin, $days)
+                    Mailer::sendIfConfigured(
+                        $admin->email,
+                        fn () => new SubscriptionExpiryWarningMail($tenant, $admin, $days),
+                        "expiry warning ({$days}d)"
                     );
                 }
             }

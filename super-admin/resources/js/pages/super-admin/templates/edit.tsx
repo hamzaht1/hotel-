@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 
 interface Template {
     id: number;
@@ -27,6 +28,7 @@ interface Template {
 
 export default function TemplateEdit({ template }: { template: Template }) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
@@ -105,7 +107,7 @@ export default function TemplateEdit({ template }: { template: Template }) {
                             </Field>
                             <div className="sm:col-span-2">
                                 {template.preview_image && (
-                                    <img src={`/storage/${template.preview_image}`} alt="preview" className="mb-2 h-40 rounded border object-cover" />
+                                    <img src={storageUrl(template.preview_image) ?? ''} alt="preview" className="mb-2 h-40 rounded border object-cover" />
                                 )}
                                 <Field label="Replace preview image" error={(errors as Record<string, string>).preview_image}>
                                     <Input type="file" accept="image/*" onChange={(e) => setData('preview_image', e.target.files?.[0] ?? null)} />

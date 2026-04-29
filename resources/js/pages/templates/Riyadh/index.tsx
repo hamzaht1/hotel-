@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from 'react'
 import TemplateLayout from '@/layouts/TemplateLayout'
 import HeroSection from './HeroSection'
 import RoomsSection from './RoomsSection'
@@ -14,6 +15,7 @@ interface Props {
   hotelSettings?: any;
   contactSettings?: any;
   rooms?: any[];
+  services?: any[];
   gallery?: any[];
   siteTexts?: Record<string, any>;
   activeSections?: string[];
@@ -25,10 +27,20 @@ interface Props {
  * قالب الرياض - قالب فندق احترافي مستوحى من العاصمة السعودية
  * Riyadh Template - Professional hotel template inspired by the Saudi capital
  */
-export default function Riyadh({ tenant, hotelSettings, contactSettings, rooms, gallery, siteTexts, activeSections, locale }: Props) {
+export default function Riyadh({ tenant, hotelSettings, contactSettings, rooms, services, gallery, siteTexts, activeSections, locale }: Props) {
   const t = useTemplateT()
 
-  const shouldShow = (name: string) => !activeSections || activeSections.length === 0 || activeSections.includes(name);
+  const sectionMap: Record<string, ReactNode> = {
+    hero: <HeroSection hotelSettings={hotelSettings} siteTexts={siteTexts} />,
+    rooms: <RoomsSection rooms={rooms} />,
+    services: <ServicesSection services={services} />,
+    partners: <PartnersSection />,
+    testimonials: <TestimonialsSection />,
+    gallery: <GallerySection gallery={gallery} />,
+    contact: <ContactSection contactSettings={contactSettings} tenant={tenant} />,
+  }
+
+  const useDynamic = Array.isArray(activeSections) && activeSections.length > 0
 
   return (
     <TemplateLayout
@@ -37,21 +49,23 @@ export default function Riyadh({ tenant, hotelSettings, contactSettings, rooms, 
       templateName={hotelSettings?.hotel_name_en || t('template.riyadh.name', 'قالب الرياض')}
     >
       <div className="template--riyadh overflow-hidden bg-background dark:bg-black text-foreground dark:text-white">
-        {shouldShow('hero') && <HeroSection hotelSettings={hotelSettings} siteTexts={siteTexts} />}
-
-        {shouldShow('rooms') && <RoomsSection rooms={rooms} />}
-
-        {shouldShow('services') && <ServicesSection />}
-
-        {shouldShow('partners') && <PartnersSection />}
-
-        {shouldShow('testimonials') && <TestimonialsSection />}
-
-        {shouldShow('gallery') && <GallerySection gallery={gallery} />}
+        {useDynamic ? (
+          activeSections!.map((name, i) =>
+            sectionMap[name] ? <Fragment key={`${name}-${i}`}>{sectionMap[name]}</Fragment> : null
+          )
+        ) : (
+          <>
+            {sectionMap.hero}
+            {sectionMap.rooms}
+            {sectionMap.services}
+            {sectionMap.partners}
+            {sectionMap.testimonials}
+            {sectionMap.gallery}
+            {sectionMap.contact}
+          </>
+        )}
 
         <GallerySlider gallery={gallery} />
-
-        {shouldShow('contact') && <ContactSection contactSettings={contactSettings} />}
       </div>
     </TemplateLayout>
   )

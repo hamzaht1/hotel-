@@ -24,26 +24,24 @@ test('admin users bypass permission checks', function () {
 test('staff user with permission can access route', function () {
     $tenant = Tenant::factory()->create();
 
-    // Create permission
-    $permId = DB::table('permissions')->insertGetId([
-        'key' => 'staff.view',
-        'name_ar' => 'عرض الموظفين',
-        'name_en' => 'View Staff',
-        'group' => 'staff',
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
+    // Permission keys are seeded automatically by seed_default_permissions migration.
+    $permId = DB::table('permissions')->where('key', 'staff.view')->value('id')
+        ?? DB::table('permissions')->insertGetId([
+            'key' => 'staff.view',
+            'name_ar' => 'عرض الموظفين',
+            'name_en' => 'View Staff',
+            'group' => 'staff',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-    // Create role with the permission
-    $role = Role::create([
-        'tenant_id' => $tenant->id,
-        'key' => 'manager',
-        'name_ar' => 'مدير',
-        'name_en' => 'Manager',
-        'is_system' => false,
-    ]);
+    // Tenant booted hook auto-creates 'manager' role per tenant.
+    $role = Role::updateOrCreate(
+        ['tenant_id' => $tenant->id, 'key' => 'manager'],
+        ['name_ar' => 'مدير', 'name_en' => 'Manager', 'is_system' => false]
+    );
 
-    DB::table('role_permission')->insert([
+    DB::table('role_permission')->insertOrIgnore([
         'role_id' => $role->id,
         'permission_id' => $permId,
     ]);
@@ -68,14 +66,11 @@ test('staff user with permission can access route', function () {
 test('staff user without permission gets 403', function () {
     $tenant = Tenant::factory()->create();
 
-    // Create role WITHOUT staff.view permission
-    $role = Role::create([
-        'tenant_id' => $tenant->id,
-        'key' => 'limited',
-        'name_ar' => 'محدود',
-        'name_en' => 'Limited',
-        'is_system' => false,
-    ]);
+    // Use a key not in the auto-seeded defaults so the role has zero permissions.
+    $role = Role::updateOrCreate(
+        ['tenant_id' => $tenant->id, 'key' => 'limited'],
+        ['name_ar' => 'محدود', 'name_en' => 'Limited', 'is_system' => false]
+    );
 
     $staff = User::create([
         'name' => 'Limited Staff',

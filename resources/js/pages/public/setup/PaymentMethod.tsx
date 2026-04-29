@@ -5,6 +5,7 @@ import SetupBanner from "@/components/public/setup/SetupBanner";
 import AnimatedHeading from '@/components/motion/AnimatedHeading';
 import { useLang } from '@/hooks/useLang';
 import { Upload, Building2, Copy, CheckCircle2, CreditCard, Landmark } from "lucide-react";
+import MoyasarForm from "@/components/MoyasarForm";
 
 interface BankDetails {
   bank_name_ar: string;
@@ -19,16 +20,17 @@ interface Props {
   setup: Record<string, string>;
   bankDetails: BankDetails;
   planPrice: number;
-  tapPublicKey: string;
+  moyasarPublishableKey: string | null;
+  paymentCallbackUrl: string;
 }
 
-type PaymentMode = 'tap' | 'bank_transfer';
+type PaymentMode = 'moyasar' | 'bank_transfer';
 
-export default function PaymentMethod({ setup, bankDetails, planPrice, tapPublicKey }: Props) {
+export default function PaymentMethod({ setup, bankDetails, planPrice, moyasarPublishableKey, paymentCallbackUrl }: Props) {
   const { __ } = useLang();
   const serverErrors = usePage().props.errors as Record<string, string>;
 
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('tap');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('moyasar');
   const [receipt, setReceipt] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
@@ -69,12 +71,7 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, tapPublic
     });
   };
 
-  const submitTapPayment = () => {
-    setProcessing(true);
-    router.post("/setup/tap-payment", {}, {
-      onFinish: () => setProcessing(false),
-    });
-  };
+  // Inline Moyasar form handles its own submission; no manual click handler needed.
 
   const goPrev = () => router.visit("/setup/review");
 
@@ -114,9 +111,9 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, tapPublic
             <div className="mx-auto mb-8 flex max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <button
                 type="button"
-                onClick={() => setPaymentMode('tap')}
+                onClick={() => setPaymentMode('moyasar')}
                 className={`flex flex-1 items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-all ${
-                  paymentMode === 'tap'
+                  paymentMode === 'moyasar'
                     ? 'bg-public-primary text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
@@ -145,14 +142,14 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, tapPublic
               </div>
             )}
 
-            {/* ─── TAP PAYMENT ─── */}
-            {paymentMode === 'tap' && (
+            {/* ─── ONLINE PAYMENT (Moyasar) ─── */}
+            {paymentMode === 'moyasar' && (
               <div className="mx-auto max-w-lg">
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm text-center">
                   <div className="mx-auto grid size-16 place-items-center rounded-full bg-blue-50 mb-4">
                     <CreditCard className="size-8 text-blue-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">الدفع الإلكتروني عبر Tap</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">الدفع الإلكتروني عبر Moyasar</h3>
                   <p className="text-sm text-slate-600 mb-6">
                     ادفع بأمان باستخدام بطاقة مدى أو فيزا أو ماستركارد أو Apple Pay.
                     سيتم تفعيل حسابك فوراً بعد إتمام الدفع.
@@ -175,14 +172,22 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, tapPublic
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={submitTapPayment}
-                    disabled={processing}
-                    className="w-full rounded-xl bg-public-primary px-8 py-3.5 font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-all text-base"
-                  >
-                    {processing ? "جاري التوجيه للدفع..." : "ادفع الآن"}
-                  </button>
+                  <div className="text-start">
+                    <MoyasarForm
+                      amount={price}
+                      description={`Diyafah — ${planName} — ${setup?.org_name_ar ?? ''}`}
+                      publishableKey={moyasarPublishableKey}
+                      callbackUrl={paymentCallbackUrl}
+                      // Apple Pay requires a registered merchant ID + server-side
+                      // validate_merchant_url; enable once that infrastructure is in place.
+                      methods={['creditcard', 'stcpay']}
+                      metadata={{
+                        type: 'setup',
+                        plan_id: setup?.plan_id ?? '',
+                        email: setup?.email ?? '',
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

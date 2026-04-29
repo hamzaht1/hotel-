@@ -14,6 +14,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { pickSiteText } from '@/lib/site-texts'
 
 // Swiper styles
 import 'swiper/css'
@@ -42,7 +43,11 @@ type BilingualSlide = {
   ctaHref?: string
 }
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  siteTexts?: Record<string, Record<string, { value_ar?: string | null; value_en?: string | null }>>
+}
+
+export default function HeroSection({ siteTexts }: HeroSectionProps = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const [windowWidth, setWindowWidth] = useState(0)
@@ -130,16 +135,34 @@ export default function HeroSection() {
     },
   ]
   
-  // Convert bilingual slides to current language
-  const slides = slidesData.map(slide => ({
-    src: slide.src,
-    videoId: slide.videoId,
-    type: slide.type,
-    title: isArabic ? slide.titleAr : slide.titleEn,
-    description: isArabic ? slide.descriptionAr : slide.descriptionEn,
-    ctaLabel: isArabic ? slide.ctaLabelAr : slide.ctaLabelEn,
-    ctaHref: slide.ctaHref,
-  }))
+  // Convert bilingual slides to current language; the first slide is overridable via SiteText (section=hero).
+  const slides = slidesData.map((slide, index) => {
+    const baseTitle = isArabic ? slide.titleAr : slide.titleEn
+    const baseDescription = isArabic ? slide.descriptionAr : slide.descriptionEn
+    const baseCta = isArabic ? slide.ctaLabelAr : slide.ctaLabelEn
+
+    if (index === 0) {
+      return {
+        src: slide.src,
+        videoId: slide.videoId,
+        type: slide.type,
+        title: pickSiteText(siteTexts, 'hero', 'title', baseTitle, isArabic),
+        description: pickSiteText(siteTexts, 'hero', 'subtitle', baseDescription, isArabic),
+        ctaLabel: pickSiteText(siteTexts, 'hero', 'cta', baseCta, isArabic),
+        ctaHref: slide.ctaHref,
+      }
+    }
+
+    return {
+      src: slide.src,
+      videoId: slide.videoId,
+      type: slide.type,
+      title: baseTitle,
+      description: baseDescription,
+      ctaLabel: baseCta,
+      ctaHref: slide.ctaHref,
+    }
+  })
 
   // Determine modules based on slider style
   const swiperModules = sliderStyle === 'dots' 
@@ -167,9 +190,7 @@ export default function HeroSection() {
         onBeforeInit={(swiper) => {
           if (sliderStyle === 'arrows' && swiper && swiper.params && swiper.params.navigation && typeof swiper.params.navigation !== 'boolean') {
             try {
-              // @ts-expect-error - Swiper types don't include dynamic assignment
               swiper.params.navigation.prevEl = prevRef.current
-              // @ts-expect-error - Swiper types don't include dynamic assignment
               swiper.params.navigation.nextEl = nextRef.current
             } catch (e) {
               // Navigation not available
@@ -181,9 +202,7 @@ export default function HeroSection() {
             setTimeout(() => {
               if (swiper.params && swiper.params.navigation && typeof swiper.params.navigation !== 'boolean') {
                 try {
-                  // @ts-expect-error - dynamic runtime assignment
                   swiper.params.navigation.prevEl = prevRef.current
-                  // @ts-expect-error - dynamic runtime assignment
                   swiper.params.navigation.nextEl = nextRef.current
                 } catch (e) {
                   // Navigation not available

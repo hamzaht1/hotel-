@@ -63,11 +63,13 @@ export default function ClientInvoicesIndex({ invoices }: Props) {
     };
 
     const paymentMethodLabel = (method: string | null) => {
-        if (method === 'tap') {
+        if (method === 'moyasar' || method === 'tap') {
+            // 'tap' kept for historical invoices created before the gateway switch.
+            const label = method === 'moyasar' ? 'Moyasar' : 'Tap';
             return (
                 <span className="inline-flex items-center gap-1 text-blue-600">
                     <CreditCard className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">Tap</span>
+                    <span className="text-xs font-medium">{label}</span>
                 </span>
             );
         }

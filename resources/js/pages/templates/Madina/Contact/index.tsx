@@ -11,6 +11,7 @@
  * Form submission handled via onConfirm callback
  */
 import { useState, useEffect } from 'react'
+import { useForm } from '@inertiajs/react'
 import { MapPin, Mail } from 'lucide-react'
 import { LiaPhoneVolumeSolid } from "react-icons/lia"
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
@@ -37,9 +38,10 @@ interface BilingualFormField {
 
 interface Props {
   contactSettings?: any;
+  tenant?: { slug?: string } | null;
 }
 
-export default function ContactSection({ contactSettings }: Props = {}) {
+export default function ContactSection({ contactSettings, tenant }: Props = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const [formStyle, setFormStyle] = useState<'default' | 'simple'>('default')
@@ -113,30 +115,46 @@ export default function ContactSection({ contactSettings }: Props = {}) {
   ]
 
   type FieldName = typeof CONTACT_FORM_FIELDS[number]['name']
-  type FormData = Record<FieldName, string> & { message: string; subject?: string }
+  type FormShape = Record<FieldName, string> & { message: string; subject?: string }
 
-  // Form state management
-  const [formData, setFormData] = useState<FormData>({
+  // Inertia form: POSTs to the tenant-scoped contact endpoint and surfaces server validation errors.
+  const form = useForm<FormShape>({
     fullName: '',
     email: '',
     phone: '',
     subject: '',
     message: '',
   })
+  const formData = form.data
+  const [submitted, setSubmitted] = useState(false)
 
-  // Handle form input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const name = e.target.name as FieldName | 'message' | 'subject'
     const value = name === 'phone' ? e.target.value.replace(/\D/g, '') : e.target.value
-    setFormData(prev => ({ ...prev, [name]: value }))
+    form.setData(name as keyof FormShape, value)
   }
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
+    const slug = tenant?.slug
+    const url = slug ? `/hotel/${slug}/contact` : '/contact'
+    // The backend expects `name` (not `fullName`); transform on the wire only.
+    form.transform((d) => ({
+      name: d.fullName,
+      email: d.email,
+      phone: d.phone,
+      subject: d.subject,
+      message: d.message,
+    }))
+    form.post(url, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setSubmitted(true)
+        form.reset()
+      },
+    })
   }
 
   // Resolve contact information from backend settings or use hardcoded defaults
@@ -311,6 +329,20 @@ export default function ContactSection({ contactSettings }: Props = {}) {
               
               {/* Form content */}
               <div className="relative z-10 p-6 sm:p-8">
+                {submitted && (
+                  <div className="mb-4 rounded-xl bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    {isArabic ? 'تم إرسال رسالتك بنجاح، سنرد عليك قريبًا.' : 'Your message has been sent. We will reply soon.'}
+                  </div>
+                )}
+                {Object.keys(form.errors).length > 0 && (
+                  <div className="mb-4 rounded-xl bg-red-100 px-4 py-3 text-sm font-semibold text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                    <ul className="list-inside list-disc">
+                      {Object.values(form.errors).map((msg, i) => (
+                        <li key={i}>{msg as string}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {/* Form fields - Vertical layout */}
                 <div className="space-y-3">
                 {/* Dynamic form fields */}
@@ -376,7 +408,8 @@ export default function ContactSection({ contactSettings }: Props = {}) {
               <div className="mt-6 flex justify-center">
                 <button
                   type="submit"
-                  className="relative transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  disabled={form.processing}
+                  className="relative transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   style={{
                     '--focus-ring': 'var(--madina-primary)'
                   } as React.CSSProperties & { '--focus-ring': string }}

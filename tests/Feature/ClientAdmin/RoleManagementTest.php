@@ -16,6 +16,8 @@ function createClientAdminForRoles(): array
 
 function seedPermissions(): array
 {
+    // Permission keys are seeded automatically by the seed_default_permissions migration;
+    // resolve existing IDs and only insert anything still missing.
     $permissions = [
         ['key' => 'staff.view', 'name_ar' => 'عرض الموظفين', 'name_en' => 'View Staff', 'group' => 'staff'],
         ['key' => 'staff.create', 'name_ar' => 'إضافة موظف', 'name_en' => 'Create Staff', 'group' => 'staff'],
@@ -27,6 +29,11 @@ function seedPermissions(): array
 
     $ids = [];
     foreach ($permissions as $perm) {
+        $existing = DB::table('permissions')->where('key', $perm['key'])->value('id');
+        if ($existing) {
+            $ids[] = $existing;
+            continue;
+        }
         $ids[] = DB::table('permissions')->insertGetId(array_merge($perm, [
             'created_at' => now(),
             'updated_at' => now(),
@@ -42,13 +49,11 @@ test('client admin can list roles with permissions', function () {
     [$user, $tenant] = createClientAdminForRoles();
     $permIds = seedPermissions();
 
-    $role = Role::create([
-        'tenant_id' => $tenant->id,
-        'key' => 'receptionist',
-        'name_ar' => 'موظف استقبال',
-        'name_en' => 'Receptionist',
-        'is_system' => false,
-    ]);
+    // The Tenant booted hook auto-creates default 'manager' / 'receptionist' roles per tenant.
+    $role = Role::updateOrCreate(
+        ['tenant_id' => $tenant->id, 'key' => 'receptionist'],
+        ['name_ar' => 'موظف استقبال', 'name_en' => 'Receptionist', 'is_system' => false]
+    );
     $role->permissions()->sync([$permIds[0], $permIds[1]]);
 
     $this->actingAs($user)
@@ -109,13 +114,10 @@ test('client admin cannot delete system roles', function () {
 test('client admin cannot delete role with assigned users', function () {
     [$user, $tenant] = createClientAdminForRoles();
 
-    $role = Role::create([
-        'tenant_id' => $tenant->id,
-        'key' => 'receptionist',
-        'name_ar' => 'موظف استقبال',
-        'name_en' => 'Receptionist',
-        'is_system' => false,
-    ]);
+    $role = Role::updateOrCreate(
+        ['tenant_id' => $tenant->id, 'key' => 'receptionist'],
+        ['name_ar' => 'موظف استقبال', 'name_en' => 'Receptionist', 'is_system' => false]
+    );
 
     // Assign a user to this role
     User::create([
@@ -141,13 +143,10 @@ test('client admin can update custom role permissions', function () {
     [$user, $tenant] = createClientAdminForRoles();
     $permIds = seedPermissions();
 
-    $role = Role::create([
-        'tenant_id' => $tenant->id,
-        'key' => 'receptionist',
-        'name_ar' => 'موظف استقبال',
-        'name_en' => 'Receptionist',
-        'is_system' => false,
-    ]);
+    $role = Role::updateOrCreate(
+        ['tenant_id' => $tenant->id, 'key' => 'receptionist'],
+        ['name_ar' => 'موظف استقبال', 'name_en' => 'Receptionist', 'is_system' => false]
+    );
     $role->permissions()->sync([$permIds[0]]);
 
     $this->actingAs($user)

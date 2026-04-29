@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class Tenant extends Model
@@ -52,6 +53,76 @@ class Tenant extends Model
             'subscription_starts_at' => 'date',
             'subscription_ends_at' => 'date',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Tenant $tenant) {
+            $now = now();
+
+            // 1. Default site sections.
+            $sectionRows = [];
+            foreach (SiteSection::AVAILABLE as $i => $name) {
+                $sectionRows[] = [
+                    'tenant_id' => $tenant->id,
+                    'section_name' => $name,
+                    'is_active' => true,
+                    'sort_order' => $i + 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            DB::table('site_sections')->insertOrIgnore($sectionRows);
+
+            // 2. Default tenant-scoped roles. Permissions are seeded globally by
+            //    seed_default_permissions migration; this hook attaches them.
+            $manager = DB::table('roles')->where('tenant_id', $tenant->id)->where('key', 'manager')->value('id')
+                ?? DB::table('roles')->insertGetId([
+                    'tenant_id' => $tenant->id,
+                    'key' => 'manager',
+                    'name_ar' => 'مدير',
+                    'name_en' => 'Manager',
+                    'is_system' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+            $receptionist = DB::table('roles')->where('tenant_id', $tenant->id)->where('key', 'receptionist')->value('id')
+                ?? DB::table('roles')->insertGetId([
+                    'tenant_id' => $tenant->id,
+                    'key' => 'receptionist',
+                    'name_ar' => 'موظف استقبال',
+                    'name_en' => 'Receptionist',
+                    'is_system' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+            $allPermissions = DB::table('permissions')->pluck('id', 'key');
+            if ($allPermissions->isEmpty()) {
+                return;
+            }
+
+            $managerRows = $allPermissions->map(fn ($id) => [
+                'role_id' => $manager,
+                'permission_id' => $id,
+            ])->all();
+
+            $receptionistKeys = [
+                'rooms.view', 'gallery.view', 'site_texts.view', 'site_sections.view',
+                'contact.view', 'hotel_settings.view',
+                'services.view', 'service_categories.view',
+                'reports.messages',
+            ];
+            $receptionistRows = collect($receptionistKeys)
+                ->filter(fn ($key) => isset($allPermissions[$key]))
+                ->map(fn ($key) => [
+                    'role_id' => $receptionist,
+                    'permission_id' => $allPermissions[$key],
+                ])->all();
+
+            DB::table('role_permission')->insertOrIgnore(array_merge($managerRows, $receptionistRows));
+        });
     }
 
     public const TIER_BRONZE = 'bronze';

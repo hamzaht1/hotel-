@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, Navigation } from 'swiper/modules'
-import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 
 // Swiper styles
 import 'swiper/css'
@@ -26,11 +26,16 @@ interface HeroSectionProps {
 
 export default function HeroSection({ hotelSettings, siteTexts }: HeroSectionProps) {
   const t = useTemplateT()
+  const { isArabic } = useTemplateLanguage()
 
-  // Helper to get site text with fallback
+  // Helper to get site text with fallback, locale-aware (AR/EN with the other as fallback).
   const getText = (section: string, key: string, fallback: string) => {
     const text = siteTexts?.[section]?.[key];
-    if (text) return text.value_ar || text.value_en || fallback;
+    if (!text) return fallback;
+    const primary = isArabic ? text.value_ar : text.value_en;
+    if (primary && primary.trim() !== '') return primary;
+    const secondary = isArabic ? text.value_en : text.value_ar;
+    if (secondary && secondary.trim() !== '') return secondary;
     return fallback;
   }
   const [windowWidth, setWindowWidth] = useState(0)

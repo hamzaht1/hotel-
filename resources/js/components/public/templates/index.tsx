@@ -7,6 +7,7 @@ import FiltersBar from './FiltersBar'
 import TemplatesGrid from './TemplatesGrid'
 import { FILTERS, TEMPLATES, type Region, type RegionOption, type TemplateItem } from './constants'
 import { useLang } from '@/hooks/useLang'
+import { useStorageUrl } from '@/lib/storage'
 
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 
@@ -38,18 +39,19 @@ const KEY_TO_REGION: Record<string, RegionOption> = {
  */
 export default function Templates({ dbTemplates }: Props) {
   const { __ } = useLang()
+  const storageUrl = useStorageUrl()
 
   const items: TemplateItem[] = useMemo(() => {
     if (!dbTemplates || dbTemplates.length === 0) return TEMPLATES
     return dbTemplates.map<TemplateItem>((t, i) => ({
       id: t.id,
-      src: t.preview_image ? `/storage/${t.preview_image}` : TEMPLATES[i % TEMPLATES.length].src,
+      src: storageUrl(t.preview_image) ?? TEMPLATES[i % TEMPLATES.length].src,
       title: t.name_ar || t.name_en,
       region: KEY_TO_REGION[t.key] ?? 'madinah',
       templateSlug: t.is_active && !t.is_coming_soon ? t.key : undefined,
       comingSoon: t.is_coming_soon || !t.is_active,
     }))
-  }, [dbTemplates])
+  }, [dbTemplates, storageUrl])
 
   // Active filter state (use localized "all")
   const [active, setActive] = useState<Region>('all')

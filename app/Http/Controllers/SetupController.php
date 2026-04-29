@@ -7,10 +7,12 @@ use App\Models\Plan;
 use App\Models\Template;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\TapPaymentService;
+use App\Services\MoyasarPaymentService;
+use App\Support\Mailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -155,16 +157,11 @@ class SetupController extends Controller
 
         session(['setup' => $setup]);
 
-        // Send OTP email
-        try {
-            Mail::to($data['email'])->send(new SetupOtpMail(
-                otpCode: $otpCode,
-                userName: $data['username'],
-            ));
-        } catch (\Exception $e) {
-            // Log error but don't block — in dev, OTP is in session
-            \Log::warning('OTP email failed: ' . $e->getMessage());
-        }
+        Mailer::sendIfConfigured(
+            $data['email'],
+            fn () => new SetupOtpMail(otpCode: $otpCode, userName: $data['username']),
+            'setup OTP'
+        );
 
         return redirect()->route('setup.verifyOtp');
     }
@@ -227,14 +224,11 @@ class SetupController extends Controller
         $setup['otp_expires_at'] = now()->addMinutes(10)->toISOString();
         session(['setup' => $setup]);
 
-        try {
-            Mail::to($setup['email'])->send(new SetupOtpMail(
-                otpCode: $otpCode,
-                userName: $setup['username'] ?? '',
-            ));
-        } catch (\Exception $e) {
-            \Log::warning('OTP resend failed: ' . $e->getMessage());
-        }
+        Mailer::sendIfConfigured(
+            $setup['email'],
+            fn () => new SetupOtpMail(otpCode: $otpCode, userName: $setup['username'] ?? ''),
+            'OTP resend'
+        );
 
         return back()->with('success', 'تم إعادة إرسال رمز التحقق.');
     }
@@ -271,7 +265,8 @@ class SetupController extends Controller
         return Inertia::render('public/setup/PaymentMethod', [
             'setup' => $setup,
             'planPrice' => $plan ? (float) $plan->price : 0,
-            'tapPublicKey' => config('tap.public_key'),
+            'moyasarPublishableKey' => config('moyasar.publishable_key') ?: null,
+            'paymentCallbackUrl' => route('setup.payment.callback'),
             'bankDetails' => [
                 'bank_name_ar' => 'البنك الأهلي السعودي',
                 'bank_name_en' => 'Saudi National Bank (SNB)',
@@ -316,9 +311,9 @@ class SetupController extends Controller
     }
 
     /**
-     * Initiate a Tap payment charge.
+     * Initiate a Moyasar invoice (hosted payment page) for the setup checkout.
      */
-    public function initiateTapPayment(Request $request)
+    public function initiatePayment(Request $request)
     {
         $setup = session('setup', []);
 
@@ -331,9 +326,9 @@ class SetupController extends Controller
             return back()->withErrors(['payment' => 'الباقة غير موجودة']);
         }
 
-        $tap = new TapPaymentService();
+        $moyasar = new MoyasarPaymentService();
 
-        $result = $tap->createCharge([
+        $result = $moyasar->createCharge([
             'amount' => (float) $plan->price,
             'description' => "Diyafah - {$plan->name_en} Plan Subscription",
             'customer_name' => $setup['username'] ?? '',
@@ -345,65 +340,83 @@ class SetupController extends Controller
                 'plan_id' => $plan->id,
                 'email' => $setup['email'],
             ],
-            'redirect_url' => route('setup.tap.callback'),
-            'webhook_url' => route('setup.tap.webhook'),
+            'redirect_url' => route('setup.payment.callback'),
+            'webhook_url' => route('setup.payment.webhook'),
         ]);
 
         if (!$result['success']) {
             return back()->withErrors(['payment' => 'فشل في بدء عملية الدفع. حاول مرة أخرى.']);
         }
 
-        // Store charge ID in session for verification
-        $setup['tap_charge_id'] = $result['charge_id'];
+        // Store charge ID in session for verification on callback.
+        $setup['payment_charge_id'] = $result['charge_id'];
         session(['setup' => $setup]);
 
         return Inertia::location($result['redirect_url']);
     }
 
     /**
-     * Handle Tap redirect callback after payment.
+     * Handle redirect back from Moyasar after the customer completes (or fails) payment.
+     * Moyasar appends `id` and `status` query parameters to the callback URL.
      */
-    public function tapCallback(Request $request)
+    public function paymentCallback(Request $request)
     {
-        $tapId = $request->query('tap_id');
+        $invoiceId = $request->query('id') ?? $request->query('invoice_id');
         $setup = session('setup', []);
 
-        if (!$tapId || empty($setup['otp_verified'])) {
+        if (!$invoiceId || empty($setup['otp_verified'])) {
             return redirect()->route('setup.paymentMethod')
                 ->withErrors(['payment' => 'عملية الدفع غير صالحة']);
         }
 
-        $tap = new TapPaymentService();
-        $charge = $tap->retrieveCharge($tapId);
+        $moyasar = new MoyasarPaymentService();
+        $charge = $moyasar->retrieveCharge($invoiceId);
 
-        if (!$charge['success'] || $charge['status'] !== 'CAPTURED') {
+        if (!$charge['success'] || $charge['status'] !== 'paid') {
             return redirect()->route('setup.paymentMethod')
                 ->withErrors(['payment' => 'لم يتم إكمال الدفع. حاول مرة أخرى.']);
         }
 
-        // Payment successful — create tenant as auto-approved
-        $tenant = $this->createTenantFromSetup($setup, [
-            'payment_status' => 'approved',
-            'payment_method' => 'tap',
-            'tap_charge_id' => $charge['charge_id'],
-            'tap_transaction_id' => $charge['transaction_id'],
-            'is_active' => true,
-            'subscription_starts_at' => now(),
-            'subscription_ends_at' => now()->addYear(),
-        ]);
+        // Idempotent: if a tenant with this charge already exists (refresh / re-redirect),
+        // skip recreation and go straight to the completion page.
+        $existing = Tenant::where('payment_charge_id', $charge['charge_id'])->first();
+        if ($existing) {
+            session()->forget('setup');
+            return redirect()->route('setup.complete');
+        }
 
-        $this->createTenantDefaults($tenant, $setup);
+        try {
+            $tenant = DB::transaction(function () use ($setup, $charge) {
+                $tenant = $this->createTenantFromSetup($setup, [
+                    'payment_status' => 'approved',
+                    'payment_method' => 'moyasar',
+                    'payment_charge_id' => $charge['charge_id'],
+                    'payment_transaction_id' => $charge['transaction_id'],
+                    'is_active' => true,
+                    'subscription_starts_at' => now(),
+                    'subscription_ends_at' => now()->addYear(),
+                ]);
 
-        // Send approval email
+                $this->createTenantDefaults($tenant, $setup);
+
+                return $tenant;
+            });
+        } catch (\Throwable $e) {
+            Log::error('Tenant creation after payment failed', [
+                'charge_id' => $charge['charge_id'],
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('setup.paymentMethod')
+                ->withErrors(['payment' => 'تعذر إنشاء الحساب. تواصل مع الدعم — تم استلام الدفع.']);
+        }
+
         $admin = User::where('tenant_id', $tenant->id)->where('role', 'client_admin')->first();
         if ($admin) {
-            try {
-                Mail::to($admin->email)->send(
-                    new \App\Mail\PaymentApprovedMail($tenant, $admin)
-                );
-            } catch (\Exception $e) {
-                Log::warning('Tap approval email failed: ' . $e->getMessage());
-            }
+            Mailer::sendIfConfigured(
+                $admin->email,
+                fn () => new \App\Mail\PaymentApprovedMail($tenant, $admin),
+                'payment approval'
+            );
         }
 
         session()->forget('setup');
@@ -412,18 +425,20 @@ class SetupController extends Controller
     }
 
     /**
-     * Handle Tap webhook (server-to-server confirmation).
+     * Handle Moyasar webhook (server-to-server confirmation).
+     * Moyasar wraps the payment object in `{ type, data: { ... } }`.
      */
-    public function tapWebhook(Request $request)
+    public function paymentWebhook(Request $request)
     {
-        $chargeId = $request->input('id');
-        $status = $request->input('status');
+        $payload = $request->all();
+        $data = $payload['data'] ?? $payload;
+        $invoiceId = $data['invoice_id'] ?? $data['id'] ?? null;
+        $status = $data['status'] ?? null;
 
-        Log::info('Tap webhook received', ['charge_id' => $chargeId, 'status' => $status]);
+        Log::info('Moyasar webhook received', ['invoice_id' => $invoiceId, 'status' => $status]);
 
-        if ($status === 'CAPTURED' && $chargeId) {
-            // Find tenant by tap_charge_id and activate if still pending
-            $tenant = Tenant::where('tap_charge_id', $chargeId)
+        if ($status === 'paid' && $invoiceId) {
+            $tenant = Tenant::where('payment_charge_id', $invoiceId)
                 ->where('payment_status', 'pending')
                 ->first();
 
@@ -460,10 +475,14 @@ class SetupController extends Controller
 
     private function createTenantFromSetup(array $setup, array $paymentFields): Tenant
     {
+        // The wizard caches the slug in session. If a different (likely abandoned) tenant
+        // grabbed it before the user paid, append numeric suffixes until we find a free one.
+        $slug = $this->uniqueTenantSlug($setup['slug'] ?? null);
+
         $tenant = Tenant::create(array_merge([
             'name' => $setup['org_name_en'] ?? $setup['org_name_ar'],
-            'slug' => $setup['slug'],
-            'subdomain' => $setup['slug'],
+            'slug' => $slug,
+            'subdomain' => $slug,
             'template' => $this->resolveTemplateSlug($setup['template_id'] ?? 'madina'),
             'email' => $setup['email'],
             'plan_id' => $setup['plan_id'] ?? null,
@@ -478,17 +497,23 @@ class SetupController extends Controller
         return $tenant;
     }
 
+    private function uniqueTenantSlug(?string $candidate): string
+    {
+        $base = $candidate ?: ('tenant-' . Str::random(6));
+        $base = Str::slug($base) ?: 'tenant';
+
+        $slug = $base;
+        $i = 2;
+        while (Tenant::where('slug', $slug)->exists()) {
+            $slug = $base . '-' . $i;
+            $i++;
+        }
+        return $slug;
+    }
+
     private function createTenantDefaults(Tenant $tenant, array $setup): void
     {
-        // Create default site sections
-        $sections = ['hero', 'rooms', 'services', 'gallery', 'testimonials', 'partners', 'contact'];
-        foreach ($sections as $i => $section) {
-            $tenant->siteSections()->create([
-                'section_name' => $section,
-                'is_active' => true,
-                'sort_order' => $i,
-            ]);
-        }
+        // Site sections are seeded automatically by Tenant::booted() — no need to insert them here.
 
         // Create default hotel settings
         $tenant->hotelSettings()->create([

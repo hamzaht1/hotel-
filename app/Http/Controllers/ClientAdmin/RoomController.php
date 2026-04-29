@@ -47,9 +47,9 @@ class RoomController extends Controller
             'amenities' => 'nullable|array',
             'amenities.*' => 'string',
             'is_active' => 'nullable',
-            'featured_image' => 'nullable|file|max:2048',
+            'featured_image' => 'nullable|file|image|max:5120',
             'images' => 'nullable|array',
-            'images.*' => 'file|max:2048',
+            'images.*' => 'file|image|max:5120',
         ]);
 
         $validated['amenities'] = $request->input('amenities', []);
@@ -96,9 +96,9 @@ class RoomController extends Controller
             'amenities' => 'nullable|array',
             'amenities.*' => 'string',
             'is_active' => 'nullable',
-            'featured_image' => 'nullable|file|max:2048',
+            'featured_image' => 'nullable|file|image|max:5120',
             'new_images' => 'nullable|array',
-            'new_images.*' => 'file|max:2048',
+            'new_images.*' => 'file|image|max:5120',
             'delete_images' => 'nullable|array',
             'delete_images.*' => 'integer|exists:room_images,id',
         ]);

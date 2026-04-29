@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { useT } from '@/hooks/use-translations';
+import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Upload } from 'lucide-react';
@@ -35,6 +36,7 @@ interface Props {
 
 export default function EditService({ service, categories }: Props) {
     const { t } = useT();
+    const storageUrl = useStorageUrl();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
@@ -69,7 +71,7 @@ export default function EditService({ service, categories }: Props) {
     });
 
     const [featuredPreview, setFeaturedPreview] = useState<string | null>(
-        service.featured_image ? `/storage/${service.featured_image}` : null
+        storageUrl(service.featured_image)
     );
 
     function handleFeaturedImage(e: React.ChangeEvent<HTMLInputElement>) {

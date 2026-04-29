@@ -7,6 +7,7 @@ import SubscribeButton from './navbar/SubscribeButton'
 import MobileDrawer from './navbar/MobileDrawer'
 import { useNavItems } from './navbar/NavItems'
 import { useLang } from '@/hooks/useLang'
+import { useStorageUrl } from '@/lib/storage'
 
 /**
  * Navbar component - Main navigation header
@@ -37,9 +38,10 @@ export default function Navbar() {
   const items = useNavItems()
   // Language translation function
   const { __ } = useLang()
+  const storageUrl = useStorageUrl()
   // Site settings from Inertia shared props
   const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
-  const siteLogo = siteSettings?.identity?.site_logo ? `/storage/${siteSettings.identity.site_logo}` : '/logo.png'
+  const siteLogo = storageUrl(siteSettings?.identity?.site_logo) ?? '/logo.png'
 
   // Toggle mobile menu
   const toggle = () => setOpen((v) => !v)

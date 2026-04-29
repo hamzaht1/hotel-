@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react'
 import BookingModal, { BookingType, BookingData } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 import { riyadhRoomsData } from '@/data/templates/riyadh/rooms-data'
 import { TemplateRoom } from '@/types/template-types'
 
@@ -73,6 +74,7 @@ interface RoomsSectionProps {
 export default function RoomsSection({ rooms: backendRooms }: RoomsSectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
   const [defaultType, setDefaultType] = useState<BookingType>('غرفة')
 
@@ -87,7 +89,7 @@ export default function RoomsSection({ rooms: backendRooms }: RoomsSectionProps)
         descriptionEn: room.description_en || room.description || '',
         price: room.price,
         maxGuests: room.capacity || 2,
-        image: room.featured_image ? `/storage/${room.featured_image}` : roomImage,
+        image: storageUrl(room.featured_image) ?? roomImage,
         amenities: room.amenities || [],
       }));
     }
@@ -102,7 +104,7 @@ export default function RoomsSection({ rooms: backendRooms }: RoomsSectionProps)
       bedTypeEn: getBilingualRoomData(room.id).bedTypeEn,
       image: roomImage,
     })) as BilingualRoom[];
-  }, [backendRooms])
+  }, [backendRooms, storageUrl])
 
   const onBookClick = () => {
     // In a real app, we'd pass the room ID here

@@ -4,6 +4,7 @@ import { usePage } from "@inertiajs/react";
 import { Instagram, Youtube, Facebook, Twitter } from "lucide-react";
 import { SOCIAL_LINKS, PAYMENT_METHODS } from "@/data/public-data";
 import { useLang } from '@/hooks/useLang'
+import { useStorageUrl } from '@/lib/storage'
 import footerline from "@/assets/images/icons/footer-line.svg";
 import vision2030 from "@/assets/images/icons/footer-logo-1.svg";
 import khidmah from "@/assets/images/icons/footer-logo-2.svg";
@@ -27,6 +28,7 @@ export default function Footer() {
   // Get current year for copyright
   const year = new Date().getFullYear();
   const { __ } = useLang()
+  const storageUrl = useStorageUrl()
   const { siteSettings, locale } = usePage<{ siteSettings?: { social?: Record<string, string>; footer?: Record<string, string>; identity?: { site_logo?: string | null } }; locale?: string }>().props
 
   // Override social links with DB settings if available
@@ -36,7 +38,7 @@ export default function Footer() {
     x: siteSettings?.social?.social_twitter || '',
   };
   const footerText = locale === 'ar' ? siteSettings?.footer?.footer_text_ar : siteSettings?.footer?.footer_text_en;
-  const footerLogo = siteSettings?.identity?.site_logo ? `/storage/${siteSettings.identity.site_logo}` : null;
+  const footerLogo = storageUrl(siteSettings?.identity?.site_logo);
 
   // Social media icons mapping
   const socialIcons = {
