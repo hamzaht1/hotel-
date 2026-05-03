@@ -1,10 +1,10 @@
 providers = ["php"]
 
 [phases.setup]
-nixPkgs = ["php83", "php83Packages.composer", "php83Extensions.pgsql", "php83Extensions.pdo_pgsql", "php83Extensions.gd", "php83Extensions.mbstring", "php83Extensions.xml", "php83Extensions.curl", "php83Extensions.zip", "php83Extensions.bcmath", "php83Extensions.intl"]
+nixPkgs = ["php83", "php83Packages.composer", "php83Extensions.pgsql", "php83Extensions.pdo_pgsql", "php83Extensions.gd", "php83Extensions.mbstring", "php83Extensions.xml", "php83Extensions.curl", "php83Extensions.zip", "php83Extensions.bcmath", "php83Extensions.intl", "nodejs_22", "npm-10_x"]
 
 [phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader --no-interaction"]
+cmds = ["composer install --no-dev --optimize-autoloader --no-interaction", "npm ci"]
 
 [phases.build]
-cmds = ["echo 'Using pre-built frontend assets from git'"]
+cmds = ["npm run build"]
