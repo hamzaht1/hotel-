@@ -34,7 +34,9 @@ interface Props {
 
 export default function PagesIndex({ pages, filters }: Props) {
     const { t } = useT();
-    const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
+    const pageProps = usePage().props as { flash?: { success?: string; error?: string }; mainAppUrl?: string };
+    const flash = pageProps.flash;
+    const mainAppUrl = (pageProps.mainAppUrl ?? '').replace(/\/$/, '');
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
@@ -136,7 +138,7 @@ export default function PagesIndex({ pages, filters }: Props) {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-6 w-6"
-                                                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/page/${page.slug}`)}
+                                                    onClick={() => navigator.clipboard.writeText(`${mainAppUrl || window.location.origin}/page/${page.slug}`)}
                                                     title="Copy URL"
                                                 >
                                                     <Copy className="h-3 w-3" />
@@ -153,7 +155,7 @@ export default function PagesIndex({ pages, filters }: Props) {
                                             <div className="flex items-center gap-1">
                                                 {page.is_published && (
                                                     <Button variant="ghost" size="icon" asChild title="View">
-                                                        <a href={`/page/${page.slug}`} target="_blank" rel="noopener noreferrer">
+                                                        <a href={`${mainAppUrl}/page/${page.slug}`} target="_blank" rel="noopener noreferrer">
                                                             <ExternalLink className="h-4 w-4" />
                                                         </a>
                                                     </Button>

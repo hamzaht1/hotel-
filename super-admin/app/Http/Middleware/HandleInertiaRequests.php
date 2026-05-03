@@ -45,6 +45,8 @@ class HandleInertiaRequests extends Middleware
 
             // Base URL for the public storage disk; respects R2 / local automatically.
             'storageBaseUrl' => rtrim(config('filesystems.disks.public.url') ?: (config('app.url') . '/storage'), '/'),
+            // Main public app base URL — used for cross-app previews (e.g. /page/{slug}).
+            'mainAppUrl' => rtrim(env('MAIN_APP_URL', env('APP_URL', 'http://localhost')), '/'),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
