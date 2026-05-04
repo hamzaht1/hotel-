@@ -17,7 +17,7 @@ class PageController extends Controller
                 'id', 'slug', 'title_ar', 'title_en',
                 'content_ar', 'content_en',
                 'meta_description_ar', 'meta_description_en',
-                'layout', 'show_header', 'show_footer',
+                'layout', 'show_header', 'show_footer', 'header_config',
             ]),
             'headerMenu' => $page->show_header
                 ? (optional(Menu::where('location', 'header')->first())->items ?? [])

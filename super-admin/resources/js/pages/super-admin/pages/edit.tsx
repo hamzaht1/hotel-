@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { useT } from '@/hooks/use-translations';
-import PageForm, { PageFormData } from './form';
+import PageForm, { HeaderConfig, PageFormData } from './form';
 
 interface PageData {
     id: number;
@@ -25,6 +25,7 @@ interface PageData {
     layout: string;
     show_header: boolean;
     show_footer: boolean;
+    header_config: HeaderConfig | null;
 }
 
 export default function EditPage({ page }: { page: PageData }) {
@@ -56,6 +57,7 @@ export default function EditPage({ page }: { page: PageData }) {
         layout: page.layout,
         show_header: page.show_header,
         show_footer: page.show_footer,
+        header_config: page.header_config,
     });
 
     function submit(e: React.FormEvent) {

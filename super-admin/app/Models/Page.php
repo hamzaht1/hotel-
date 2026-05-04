@@ -30,6 +30,7 @@ class Page extends Model
         'layout',
         'show_header',
         'show_footer',
+        'header_config',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class Page extends Model
             'show_header' => 'boolean',
             'show_footer' => 'boolean',
             'attachments' => 'array',
+            'header_config' => 'array',
         ];
     }
 

@@ -1,13 +1,26 @@
 // Shared Page form used by create.tsx and edit.tsx
 import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Save, Eye, Send, Bold, Italic, Underline, Type, Link as LinkIcon, Image as ImageIcon, Table, Plus, X } from 'lucide-react';
+import { Save, Eye, Send, Bold, Italic, Underline, Type, Link as LinkIcon, Image as ImageIcon, Table, Plus, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+
+export interface HeaderLink {
+    label_ar: string;
+    label_en: string;
+    url: string;
+}
+
+export interface HeaderConfig {
+    logo_url: string;
+    background_color: string;
+    text_color: string;
+    links: HeaderLink[];
+}
 
 export interface PageFormData {
     title_ar: string;
@@ -29,6 +42,11 @@ export interface PageFormData {
     layout: string;
     show_header: boolean;
     show_footer: boolean;
+    header_config: HeaderConfig | null;
+}
+
+export function emptyHeaderConfig(): HeaderConfig {
+    return { logo_url: '', background_color: '', text_color: '', links: [] };
 }
 
 export function emptyForm(): PageFormData {
@@ -42,6 +60,7 @@ export function emptyForm(): PageFormData {
         attachments: [],
         is_published: false, sort_order: 0, layout: 'default',
         show_header: true, show_footer: true,
+        header_config: null,
     };
 }
 
@@ -62,6 +81,50 @@ export default function PageForm({
     function insertAtCursor(snippet: string) {
         const fieldKey = activeContent === 'ar' ? 'content_ar' : 'content_en';
         setData(fieldKey, (data[fieldKey] ?? '') + snippet);
+    }
+
+    const customHeaderEnabled = data.header_config !== null;
+
+    function toggleCustomHeader(enabled: boolean) {
+        setData('header_config', enabled ? emptyHeaderConfig() : null);
+    }
+
+    function updateHeaderField<K extends keyof HeaderConfig>(key: K, value: HeaderConfig[K]) {
+        if (!data.header_config) return;
+        setData('header_config', { ...data.header_config, [key]: value });
+    }
+
+    function addHeaderLink() {
+        if (!data.header_config) return;
+        setData('header_config', {
+            ...data.header_config,
+            links: [...data.header_config.links, { label_ar: '', label_en: '', url: '' }],
+        });
+    }
+
+    function updateHeaderLink(i: number, patch: Partial<HeaderLink>) {
+        if (!data.header_config) return;
+        setData('header_config', {
+            ...data.header_config,
+            links: data.header_config.links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)),
+        });
+    }
+
+    function removeHeaderLink(i: number) {
+        if (!data.header_config) return;
+        setData('header_config', {
+            ...data.header_config,
+            links: data.header_config.links.filter((_, idx) => idx !== i),
+        });
+    }
+
+    function moveHeaderLink(i: number, dir: -1 | 1) {
+        if (!data.header_config) return;
+        const links = [...data.header_config.links];
+        const j = i + dir;
+        if (j < 0 || j >= links.length) return;
+        [links[i], links[j]] = [links[j], links[i]];
+        setData('header_config', { ...data.header_config, links });
     }
 
     function addAttachment() {
@@ -129,6 +192,99 @@ export default function PageForm({
                                 <span>{isArabic ? 'عرض الفوتر' : 'Show footer'}</span>
                             </label>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Custom header */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">{isArabic ? 'هيدر مخصص للصفحة' : 'Custom page header'}</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {isArabic
+                                ? 'عند التفعيل سيستخدم هذا الهيدر بدل الهيدر العام (يجب تفعيل "عرض الهيدر" أعلاه).'
+                                : 'When enabled, this header replaces the global one (requires "Show header" above).'}
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <label className="flex items-center gap-2 text-sm">
+                            <Checkbox checked={customHeaderEnabled} onCheckedChange={(v) => toggleCustomHeader(v === true)} />
+                            <span>{isArabic ? 'استخدام هيدر مخصص' : 'Use custom header'}</span>
+                        </label>
+
+                        {customHeaderEnabled && data.header_config && (
+                            <>
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    <Field label={isArabic ? 'رابط الشعار' : 'Logo URL'}>
+                                        <Input
+                                            value={data.header_config.logo_url}
+                                            onChange={(e) => updateHeaderField('logo_url', e.target.value)}
+                                            placeholder="https://..."
+                                        />
+                                    </Field>
+                                    <Field label={isArabic ? 'لون الخلفية' : 'Background color'}>
+                                        <Input
+                                            type="text"
+                                            value={data.header_config.background_color}
+                                            onChange={(e) => updateHeaderField('background_color', e.target.value)}
+                                            placeholder="#ffffff"
+                                        />
+                                    </Field>
+                                    <Field label={isArabic ? 'لون النص' : 'Text color'}>
+                                        <Input
+                                            type="text"
+                                            value={data.header_config.text_color}
+                                            onChange={(e) => updateHeaderField('text_color', e.target.value)}
+                                            placeholder="#111827"
+                                        />
+                                    </Field>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Label className="text-sm">{isArabic ? 'الروابط' : 'Links'}</Label>
+                                        <Button type="button" variant="outline" size="sm" onClick={addHeaderLink}>
+                                            <Plus className="h-4 w-4" /> {isArabic ? 'إضافة رابط' : 'Add link'}
+                                        </Button>
+                                    </div>
+                                    {data.header_config.links.length === 0 && (
+                                        <p className="text-sm text-muted-foreground">{isArabic ? 'لا توجد روابط بعد' : 'No links yet'}</p>
+                                    )}
+                                    <div className="space-y-2">
+                                        {data.header_config.links.map((link, i) => (
+                                            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_1.5fr_auto] items-start rounded border p-2">
+                                                <Input
+                                                    value={link.label_ar}
+                                                    onChange={(e) => updateHeaderLink(i, { label_ar: e.target.value })}
+                                                    placeholder={isArabic ? 'النص (عربي)' : 'Label (AR)'}
+                                                    dir="rtl"
+                                                />
+                                                <Input
+                                                    value={link.label_en}
+                                                    onChange={(e) => updateHeaderLink(i, { label_en: e.target.value })}
+                                                    placeholder={isArabic ? 'النص (إنجليزي)' : 'Label (EN)'}
+                                                />
+                                                <Input
+                                                    value={link.url}
+                                                    onChange={(e) => updateHeaderLink(i, { url: e.target.value })}
+                                                    placeholder="/about"
+                                                />
+                                                <div className="flex gap-1 justify-end">
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveHeaderLink(i, -1)} disabled={i === 0} title={isArabic ? 'أعلى' : 'Move up'}>
+                                                        <ArrowUp className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveHeaderLink(i, 1)} disabled={i === data.header_config!.links.length - 1} title={isArabic ? 'أسفل' : 'Move down'}>
+                                                        <ArrowDown className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeHeaderLink(i)} title={isArabic ? 'حذف' : 'Remove'}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 

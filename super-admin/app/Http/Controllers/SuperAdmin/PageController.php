@@ -55,6 +55,14 @@ class PageController extends Controller
             'layout' => 'required|string|in:default',
             'show_header' => 'boolean',
             'show_footer' => 'boolean',
+            'header_config' => 'nullable|array',
+            'header_config.logo_url' => 'nullable|string|max:500',
+            'header_config.background_color' => 'nullable|string|max:32',
+            'header_config.text_color' => 'nullable|string|max:32',
+            'header_config.links' => 'nullable|array',
+            'header_config.links.*.label_ar' => 'nullable|string|max:255',
+            'header_config.links.*.label_en' => 'nullable|string|max:255',
+            'header_config.links.*.url' => 'nullable|string|max:500',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);
@@ -94,6 +102,14 @@ class PageController extends Controller
             'layout' => 'required|string|in:default',
             'show_header' => 'boolean',
             'show_footer' => 'boolean',
+            'header_config' => 'nullable|array',
+            'header_config.logo_url' => 'nullable|string|max:500',
+            'header_config.background_color' => 'nullable|string|max:32',
+            'header_config.text_color' => 'nullable|string|max:32',
+            'header_config.links' => 'nullable|array',
+            'header_config.links.*.label_ar' => 'nullable|string|max:255',
+            'header_config.links.*.label_en' => 'nullable|string|max:255',
+            'header_config.links.*.url' => 'nullable|string|max:500',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);
