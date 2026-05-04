@@ -218,6 +218,11 @@ export default function TenantShow({ tenant, primary_user, latest_invoice, lates
                         </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <Button size="sm" asChild className="bg-emerald-600 hover:bg-emerald-700">
+                            <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                                <Globe className="h-4 w-4" /> {isArabic ? 'زيارة الموقع' : 'Visit site'}
+                            </a>
+                        </Button>
                         {isPending && can('tenants.approve') && (
                             <Button size="sm" onClick={approveRequest} className="bg-emerald-600 hover:bg-emerald-700">
                                 <CheckCircle className="h-4 w-4" /> {isArabic ? 'قبول الطلب' : 'Approve'}

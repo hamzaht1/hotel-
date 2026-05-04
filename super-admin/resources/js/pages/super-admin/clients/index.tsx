@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
-    Plus, Search, Eye, Pencil, Star, Users, Download,
+    Plus, Search, Eye, Pencil, Star, Users, Download, ExternalLink,
     Award, Gem, Medal, Trophy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ interface Tenant {
     total_invoices_count: number;
     tier: 'bronze' | 'silver' | 'gold' | 'platinum';
     tier_is_override: boolean;
+    custom_domain: string | null;
+    subdomain: string | null;
     created_at: string;
 }
 
@@ -86,7 +88,14 @@ function statusBadge(status: string, isAr: boolean) {
 
 export default function ClientsIndex({ tenants, stats, range, filters, plans, cities }: Props) {
     const { t, locale, isArabic } = useT();
-    const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
+    const pageProps = usePage().props as { flash?: { success?: string; error?: string }; mainAppUrl?: string };
+    const flash = pageProps.flash;
+    const mainAppUrl = (pageProps.mainAppUrl ?? '').replace(/\/$/, '');
+
+    function siteUrlFor(t: Tenant): string {
+        if (t.custom_domain) return `https://${t.custom_domain}`;
+        return `${mainAppUrl}/hotel/${t.slug}`;
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
@@ -295,6 +304,9 @@ export default function ClientsIndex({ tenants, stats, range, filters, plans, ci
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-0.5">
                                                 <TierPicker tenantId={row.id} current={row.tier_is_override ? row.tier : 'auto'} onChange={changeTier} isArabic={isArabic} />
+                                                <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" asChild title={isArabic ? 'زيارة موقع العميل' : 'Visit client site'}>
+                                                    <a href={siteUrlFor(row)} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                                                </Button>
                                                 <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-600" asChild title={isArabic ? 'عرض' : 'View'}>
                                                     <Link href={`/super-admin/clients/${row.id}`}><Eye className="h-4 w-4" /></Link>
                                                 </Button>

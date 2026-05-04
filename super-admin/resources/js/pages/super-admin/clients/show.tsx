@@ -4,7 +4,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     ArrowLeft, Mail, Eye, Trash2, Star, Award, Gem, Trophy, Medal,
     CheckCircle, XCircle, AlertCircle, FileText, MessageSquare, CreditCard,
-    RefreshCw, BarChart3,
+    RefreshCw, BarChart3, ExternalLink, Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,8 @@ interface Tenant {
     is_active: boolean;
     tier: string;
     logo_url: string | null;
+    custom_domain: string | null;
+    subdomain: string | null;
     subscription_starts_at: string | null;
     subscription_ends_at: string | null;
     invoices_count: number;
@@ -117,7 +119,10 @@ function paymentStatusBadge(invoice: Invoice, isAr: boolean) {
 
 export default function ClientShow({ tenant, primary_user, invoices, renewals, messages, reviews, stats }: Props) {
     const { t, locale, isArabic } = useT();
-    const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
+    const pageProps = usePage().props as { flash?: { success?: string; error?: string }; mainAppUrl?: string };
+    const flash = pageProps.flash;
+    const mainAppUrl = (pageProps.mainAppUrl ?? '').replace(/\/$/, '');
+    const siteUrl = tenant.custom_domain ? `https://${tenant.custom_domain}` : `${mainAppUrl}/hotel/${tenant.slug}`;
     const [tab, setTab] = useState<Tab>('payments');
     const [msgOpen, setMsgOpen] = useState(false);
 
@@ -167,6 +172,28 @@ export default function ClientShow({ tenant, primary_user, invoices, renewals, m
                             {new Date(tenant.created_at).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+                            <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                                <Globe className="h-4 w-4" />
+                                {isArabic ? 'زيارة موقع العميل' : 'Visit client site'}
+                                <ExternalLink className="h-3 w-3 opacity-70" />
+                            </a>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Site URL banner */}
+                <div className="rounded-lg border bg-muted/30 px-4 py-2.5 flex items-center gap-3 text-sm">
+                    <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground flex-shrink-0">{isArabic ? 'رابط الموقع' : 'Site URL'}:</span>
+                    <a href={siteUrl} target="_blank" rel="noopener noreferrer"
+                       className="font-mono text-xs text-primary hover:underline truncate flex-1" dir="ltr">
+                        {siteUrl}
+                    </a>
+                    {tenant.custom_domain && (
+                        <Badge variant="outline" className="text-[10px]">{isArabic ? 'نطاق مخصص' : 'custom'}</Badge>
+                    )}
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-3">
