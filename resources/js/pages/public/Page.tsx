@@ -11,6 +11,8 @@ interface PageData {
     meta_description_ar: string | null;
     meta_description_en: string | null;
     layout: string;
+    show_header: boolean;
+    show_footer: boolean;
 }
 
 interface Props {
@@ -26,7 +28,7 @@ export default function Page({ page }: Props) {
     const metaDescription = isArabic ? page.meta_description_ar : page.meta_description_en;
 
     return (
-        <PublicLayout>
+        <PublicLayout showHeader={page.show_header} showFooter={page.show_footer}>
             <Head title={title}>
                 {metaDescription && <meta name="description" content={metaDescription} />}
             </Head>

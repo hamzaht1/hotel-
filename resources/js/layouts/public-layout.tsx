@@ -10,8 +10,13 @@ import { MotionConfig, AnimatePresence, motion } from 'motion/react'
 type Locale = 'ar' | 'en'
 const RTL_LOCALES: Locale[] = ['ar']
 
+type PublicLayoutProps = PropsWithChildren<{
+  showHeader?: boolean
+  showFooter?: boolean
+}>
+
 // Layout: PublicLayout wraps public pages with header and footer used by marketing pages.
-export default function PublicLayout({ children }: PropsWithChildren) {
+export default function PublicLayout({ children, showHeader = true, showFooter = true }: PublicLayoutProps) {
   // We read both: props (for locale/dir) + page.url (for route-keyed transitions)
   const page = usePage()
   // page.props comes from the server and has many possible fields. Cast via
@@ -47,7 +52,7 @@ export default function PublicLayout({ children }: PropsWithChildren) {
       transition={{ duration: 0.25, ease: 'easeOut' }} // default tween
     >
       <div key={locale} dir={effectiveDir} className="flex min-h-screen flex-col">
-        <Navbar key={`nav-${locale}`} />
+        {showHeader && <Navbar key={`nav-${locale}`} />}
 
         <main className="flex-1">
           {/* AnimatePresence: enables exit animations on route change */}
@@ -65,7 +70,7 @@ export default function PublicLayout({ children }: PropsWithChildren) {
           </AnimatePresence>
         </main>
 
-        <Footer />
+        {showFooter && <Footer />}
       </div>
     </MotionConfig>
   )
