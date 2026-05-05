@@ -232,12 +232,18 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         // Detailed reports
         Route::get('reports/financial', [ReportController::class, 'financial'])->middleware('permission:reports.financial')->name('reports.financial');
         Route::get('reports/subscriptions', [ReportController::class, 'subscriptions'])->middleware('permission:reports.subscriptions')->name('reports.subscriptions');
+
+        // Support center (conversations with all tenants)
         Route::middleware('permission:reports.messages')->group(function () {
-            Route::get('reports/messages', [ReportController::class, 'messages'])->name('reports.messages');
-            Route::post('reports/messages/{id}/reply', [ReportController::class, 'replyMessage'])->name('reports.messages.reply');
-            Route::post('reports/messages/{id}/status', [ReportController::class, 'updateStatus'])->name('reports.messages.status');
-            Route::post('reports/messages/{id}/read', [ReportController::class, 'markRead'])->name('reports.messages.read');
-            Route::post('reports/messages/{id}/urgent', [ReportController::class, 'toggleUrgent'])->name('reports.messages.urgent');
-            Route::delete('reports/messages/{id}', [ReportController::class, 'deleteMessage'])->name('reports.messages.destroy');
+            Route::get('support', [\App\Http\Controllers\SuperAdmin\SupportController::class, 'index'])->name('support.index');
+            Route::post('support/{conversation}/reply', [\App\Http\Controllers\SuperAdmin\SupportController::class, 'reply'])->name('support.reply');
+            Route::post('support/{conversation}/take', [\App\Http\Controllers\SuperAdmin\SupportController::class, 'take'])->name('support.take');
+            Route::post('support/{conversation}/status', [\App\Http\Controllers\SuperAdmin\SupportController::class, 'updateStatus'])->name('support.status');
+            Route::post('support/{conversation}/ai-suggestions', [\App\Http\Controllers\SuperAdmin\SupportController::class, 'aiSuggestions'])->name('support.ai-suggestions');
+
+            Route::get('broadcasts', [\App\Http\Controllers\SuperAdmin\BroadcastController::class, 'index'])->name('broadcasts.index');
+            Route::get('broadcasts/create', [\App\Http\Controllers\SuperAdmin\BroadcastController::class, 'create'])->name('broadcasts.create');
+            Route::post('broadcasts', [\App\Http\Controllers\SuperAdmin\BroadcastController::class, 'store'])->name('broadcasts.store');
+            Route::post('broadcasts/{broadcast}/send', [\App\Http\Controllers\SuperAdmin\BroadcastController::class, 'send'])->name('broadcasts.send');
         });
     });

@@ -88,7 +88,7 @@ export function AppSidebar() {
 
     // 💬 الرسائل والدعم
     const supportGroup = buildGroup([
-        { item: { title: isArabic ? 'الرسائل والدعم' : 'Messages & Support', href: '/client-admin/reports/messages', icon: MessageSquare }, permission: 'reports.messages' },
+        { item: { title: isArabic ? 'الرسائل والدعم' : 'Messages & Support', href: '/client-admin/support', icon: MessageSquare }, permission: 'reports.messages' },
     ], can);
 
     return (

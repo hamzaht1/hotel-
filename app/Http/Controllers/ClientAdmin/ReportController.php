@@ -4,8 +4,6 @@ namespace App\Http\Controllers\ClientAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
-use App\Models\SupportMessage;
-use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -85,73 +83,4 @@ class ReportController extends Controller
         ]);
     }
 
-    // ─── Support Messages Reports ──────────────────────────────
-
-    public function messages(Request $request)
-    {
-        $query = SupportMessage::query();
-
-        if ($request->type) {
-            $query->where('type', $request->type);
-        }
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-        if ($request->search) {
-            $query->where(function ($q) use ($request) {
-                $q->where('client_name', 'like', "%{$request->search}%")
-                  ->orWhere('subject', 'like', "%{$request->search}%");
-            });
-        }
-
-        $sortField = $request->sort ?? 'created_at';
-        $sortDir = $request->direction ?? 'desc';
-        $query->orderBy($sortField, $sortDir);
-
-        $messages = $query->paginate(20)->withQueryString();
-
-        $stats = [
-            'total' => SupportMessage::count(),
-            'open' => SupportMessage::where('status', 'open')->count(),
-            'in_progress' => SupportMessage::where('status', 'in_progress')->count(),
-            'closed' => SupportMessage::where('status', 'closed')->count(),
-            'by_type' => [
-                'support' => SupportMessage::where('type', 'support')->count(),
-                'complaint' => SupportMessage::where('type', 'complaint')->count(),
-                'inquiry' => SupportMessage::where('type', 'inquiry')->count(),
-                'technical' => SupportMessage::where('type', 'technical')->count(),
-            ],
-        ];
-
-        return Inertia::render('client-admin/reports/Messages', [
-            'messages' => $messages,
-            'stats' => $stats,
-            'filters' => $request->only(['type', 'status', 'search', 'sort', 'direction']),
-        ]);
-    }
-
-    // ─── Send Message ──────────────────────────────────────────
-
-    public function sendMessage(Request $request)
-    {
-        $data = $request->validate([
-            'type' => 'required|in:support,complaint,inquiry,technical',
-            'subject' => 'required|string|max:255',
-            'message' => 'required|string|max:2000',
-        ]);
-
-        $user = $request->user();
-
-        SupportMessage::create([
-            'tenant_id' => $user->tenant_id,
-            'client_name' => $user->name,
-            'client_email' => $user->email,
-            'type' => $data['type'],
-            'subject' => $data['subject'],
-            'message' => $data['message'],
-            'status' => 'open',
-        ]);
-
-        return back()->with('success', 'تم إرسال رسالتك بنجاح');
-    }
 }

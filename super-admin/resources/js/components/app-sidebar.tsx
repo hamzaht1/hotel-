@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/use-locale';
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FormInput, Plug, PaintBucket, FileStack, Menu, Receipt, Percent, Star, UserCog } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FormInput, Plug, PaintBucket, FileStack, Menu, Receipt, Percent, Star, UserCog, Send } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface GatedNavItem extends NavItem {
@@ -53,7 +53,8 @@ export function AppSidebar() {
 
     const reportsNav: GatedNavItem[] = [
         { title: isArabic ? 'التقارير' : 'Reports', href: '/super-admin/reports', icon: BarChart3, perm: 'reports.view' },
-        { title: isArabic ? 'الرسائل والدعم' : 'Messages & Support', href: '/super-admin/reports/messages', icon: MessageSquare, perm: 'reports.messages' },
+        { title: isArabic ? 'مركز الدعم' : 'Support center', href: '/super-admin/support', icon: MessageSquare, perm: 'reports.messages' },
+        { title: isArabic ? 'الرسائل الجماعية' : 'Broadcasts', href: '/super-admin/broadcasts', icon: Send, perm: 'reports.messages' },
     ];
 
     const sa = visible(superAdminNav);

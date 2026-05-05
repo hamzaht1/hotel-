@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContactMessage;
-use App\Models\SupportMessage;
+use App\Models\Conversation;
+use App\Models\ConversationMessage;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ContactController extends Controller
 {
@@ -34,19 +36,24 @@ class ContactController extends Controller
             'message' => $validated['message'],
         ]);
 
-        // Mirror into support_messages as a non-deletable "contact" record so
-        // admin/support views surface these alongside tickets.
         if ($tenantId) {
-            SupportMessage::withoutGlobalScope('tenant')->create([
+            $conversation = Conversation::withoutGlobalScope('tenant')->create([
                 'tenant_id' => $tenantId,
+                'category' => Conversation::CATEGORY_INQUIRY,
+                'status' => Conversation::STATUS_NEW,
+                'subject' => $validated['subject'] ?? 'Contact form submission',
+                'source' => Conversation::SOURCE_CONTACT,
                 'client_name' => $validated['name'],
                 'client_email' => $validated['email'] ?? null,
-                'type' => 'inquiry',
-                'subject' => $validated['subject'] ?? 'Contact form submission',
-                'message' => $validated['message'],
-                'status' => 'open',
-                'source' => SupportMessage::SOURCE_CONTACT,
-                'is_read' => false,
+                'last_message_at' => Carbon::now(),
+                'admin_unread_count' => 1,
+            ]);
+
+            ConversationMessage::create([
+                'conversation_id' => $conversation->id,
+                'sender_type' => ConversationMessage::SENDER_TENANT,
+                'sender_name' => $validated['name'],
+                'body' => $validated['message'],
             ]);
         }
 

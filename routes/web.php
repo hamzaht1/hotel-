@@ -226,8 +226,13 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         // Reports
         Route::get('reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
         Route::get('reports/subscriptions', [ReportController::class, 'subscriptions'])->name('reports.subscriptions');
-        Route::get('reports/messages', [ReportController::class, 'messages'])->name('reports.messages');
-        Route::post('reports/messages', [ReportController::class, 'sendMessage'])->name('reports.messages.send');
+
+        // Support (conversations with super-admin)
+        Route::get('support', [\App\Http\Controllers\ClientAdmin\SupportController::class, 'index'])->name('support.index');
+        Route::get('support/create', [\App\Http\Controllers\ClientAdmin\SupportController::class, 'create'])->name('support.create');
+        Route::post('support', [\App\Http\Controllers\ClientAdmin\SupportController::class, 'store'])->name('support.store');
+        Route::get('support/{conversation}', [\App\Http\Controllers\ClientAdmin\SupportController::class, 'show'])->name('support.show');
+        Route::post('support/{conversation}/reply', [\App\Http\Controllers\ClientAdmin\SupportController::class, 'reply'])->name('support.reply');
 
         // Service Bookings (inbox)
         Route::get('service-bookings', [\App\Http\Controllers\ClientAdmin\ServiceBookingController::class, 'index'])->name('service-bookings.index');
