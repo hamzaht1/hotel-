@@ -22,9 +22,9 @@ class SystemSettingController extends Controller
         $validated = $request->validate([
             'site_name_ar' => 'nullable|string|max:255',
             'site_name_en' => 'nullable|string|max:255',
-            'site_logo' => 'nullable|file|image|max:5120',
-            'site_logo_dark' => 'nullable|file|image|max:5120',
-            'site_favicon' => 'nullable|file|image|max:1024',
+            'site_logo' => 'nullable|file|image|max:5120|dimensions:min_width=100,min_height=30,max_width=2000,max_height=1000',
+            'site_logo_dark' => 'nullable|file|image|max:5120|dimensions:min_width=100,min_height=30,max_width=2000,max_height=1000',
+            'site_favicon' => 'nullable|file|image|max:1024|dimensions:min_width=16,min_height=16,max_width=512,max_height=512,min_ratio=1/2,max_ratio=2/1',
             'primary_color' => 'nullable|string|max:20',
             'secondary_color' => 'nullable|string|max:20',
             'accent_color' => 'nullable|string|max:20',
@@ -44,6 +44,13 @@ class SystemSettingController extends Controller
             'social_instagram' => 'nullable|string|max:255',
             'social_linkedin' => 'nullable|string|max:255',
             'social_facebook' => 'nullable|string|max:255',
+        ], [
+            'site_logo.dimensions' => 'أبعاد الشعار غير صالحة. الأدنى 100×30 والأقصى 2000×1000 (يُنصح بـ 400×120 PNG/SVG شفاف).',
+            'site_logo_dark.dimensions' => 'أبعاد الشعار الداكن غير صالحة. الأدنى 100×30 والأقصى 2000×1000.',
+            'site_favicon.dimensions' => 'أبعاد الأيقونة غير صالحة. يجب أن تكون مربعة تقريباً، بين 16×16 و 512×512 (يُنصح بـ 64×64).',
+            'site_logo.max' => 'حجم الشعار يجب ألا يتجاوز 5 ميجابايت.',
+            'site_logo_dark.max' => 'حجم الشعار الداكن يجب ألا يتجاوز 5 ميجابايت.',
+            'site_favicon.max' => 'حجم الأيقونة يجب ألا يتجاوز 1 ميجابايت.',
         ]);
 
         // File uploads — replace any previous file on the same key.

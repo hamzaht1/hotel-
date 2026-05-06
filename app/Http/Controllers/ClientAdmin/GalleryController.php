@@ -32,7 +32,11 @@ class GalleryController extends Controller
             'title_en' => 'nullable|string|max:255',
             'category' => 'required|in:general,rooms,lobby,restaurant,pool,exterior',
             'images' => 'required|array|min:1',
-            'images.*' => 'file|image|max:5120',
+            'images.*' => 'file|image|max:5120|dimensions:min_width=600,min_height=400,max_width=4000,max_height=3000',
+        ], [
+            'images.*.image' => 'يجب أن يكون الملف صورة (JPG, PNG, WEBP).',
+            'images.*.max' => 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت.',
+            'images.*.dimensions' => 'أبعاد الصورة غير صالحة. الحد الأدنى 600×400 والحد الأقصى 4000×3000 (يُنصح بـ 1200×800).',
         ]);
 
         $lastOrder = GalleryImage::max('sort_order') ?? 0;
