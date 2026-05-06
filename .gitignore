@@ -23,3 +23,7 @@ yarn-error.log
 *.zip
 /vuexy-admin-v10.11.1
 composer.phar
+
+**/caddy
+frankenphp
+frankenphp-worker.php
