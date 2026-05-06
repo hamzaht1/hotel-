@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\SiteSetting;
+use App\Models\TenantSiteSetting;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -69,7 +70,12 @@ class HandleInertiaRequests extends Middleware
             'storageBaseUrl' => rtrim(config('filesystems.disks.public.url') ?: (config('app.url') . '/storage'), '/'),
 
             'tenant' => app()->bound('current_tenant') ? app('current_tenant') : null,
-            'siteSettings' => fn () => SiteSetting::getAllGrouped(),
+            // When a tenant context is bound (client-admin or public /hotel/{slug}),
+            // expose THAT tenant's branding/identity. Outside a tenant context fall
+            // back to the global Diyafah platform settings.
+            'siteSettings' => fn () => app()->bound('current_tenant_id')
+                ? TenantSiteSetting::getAllGrouped()
+                : SiteSetting::getAllGrouped(),
             'showReviewPopup' => fn () => $this->shouldShowReviewPopup($user),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
