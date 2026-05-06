@@ -4,10 +4,12 @@
  */
 import React, { useState, useEffect, useRef } from 'react'
 import { Globe, Menu as MenuIcon, X as XIcon, Moon, Sun } from 'lucide-react'
+import { usePage } from '@inertiajs/react'
 import { useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useAppearance } from '@/hooks/use-appearance'
 import { useTemplateT } from '@/hooks/useTemplateTranslations'
-import logoImage from './images/logo.svg'
+import { useStorageUrl } from '@/lib/storage'
+import defaultLogoImage from './images/logo.svg'
 
 // Logo component
 export interface LogoProps {
@@ -15,15 +17,21 @@ export interface LogoProps {
 }
 
 export const Logo = ({ scrolled = false }: LogoProps) => {
+  const storageUrl = useStorageUrl()
+  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
+  const tenantLogo = storageUrl(siteSettings?.identity?.site_logo)
+  const logoImage = tenantLogo || defaultLogoImage
+  const isCustomLogo = !!tenantLogo
+
   // Initially: show original image
   if (!scrolled) {
-  return (
-    <img 
-      src={logoImage} 
-      alt="Logo" 
-        style={{ 
-          width: '150px', 
-          height: '150px', 
+    return (
+      <img
+        src={logoImage}
+        alt="Logo"
+        style={{
+          width: '150px',
+          height: '150px',
           objectFit: 'contain',
           transition: 'opacity 0.3s ease'
         }}
@@ -31,7 +39,23 @@ export const Logo = ({ scrolled = false }: LogoProps) => {
     )
   }
 
-  // After scroll: use primary or custom logo color
+  // After scroll: a custom (uploaded) logo stays as-is — masking only works
+  // for the bundled SVG silhouette. Default logo gets the primary-color tint.
+  if (isCustomLogo) {
+    return (
+      <img
+        src={logoImage}
+        alt="Logo"
+        style={{
+          width: '150px',
+          height: '150px',
+          objectFit: 'contain',
+          transition: 'opacity 0.3s ease'
+        }}
+      />
+    )
+  }
+
   return (
     <div
       style={{

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import logo from '@/assets/images/riyadh-template/footer/logo.png'
+import { usePage } from '@inertiajs/react'
+import defaultLogo from '@/assets/images/riyadh-template/footer/logo.png'
 import mapImage from '@/assets/images/riyadh-template/footer/map.png'
 // import footerFrame from '@/assets/images/riyadh-template/footer/footer-frame-1.svg'
 import footerBackground from '@/assets/images/riyadh-template/footer/footer-frame-2.svg'
 import paymentLogos from '@/assets/images/riyadh-template/footer/payment-logos.svg'
 import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 
 /**
  * Template footer component with hotel information and links
@@ -12,6 +14,9 @@ import { useTemplateT } from '@/hooks/useTemplateTranslations'
 export default function TemplateFooter() {
   const t = useTemplateT()
   const [windowWidth, setWindowWidth] = useState(0)
+  const storageUrl = useStorageUrl()
+  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
+  const logo = storageUrl(siteSettings?.identity?.site_logo) || defaultLogo
   
   useEffect(() => {
     const handleResize = () => {

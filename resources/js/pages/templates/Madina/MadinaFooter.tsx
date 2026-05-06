@@ -11,7 +11,9 @@
  * - Copyright information
  */
 import React from 'react'
+import { usePage } from '@inertiajs/react'
 import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import { useStorageUrl } from '@/lib/storage'
 
 // Import images from template folder
 import mapImage from './images/footer/map.png'
@@ -21,8 +23,19 @@ import altBackground from './images/footer/alt-background.png'
 // Import Logo component
 import { Logo as HeaderLogo } from './Logo'
 
-// Logo component for footer - uses white colors (scrolled=false means white)
-const Logo = () => <HeaderLogo scrolled={false} />
+// Logo for footer: prefer the tenant's uploaded logo, fall back to the
+// embedded SVG that follows the template's primary palette.
+function FooterLogo() {
+  const storageUrl = useStorageUrl()
+  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
+  const tenantLogo = storageUrl(siteSettings?.identity?.site_logo)
+
+  if (tenantLogo) {
+    return <img src={tenantLogo} alt="Logo" style={{ width: '150px', height: '150px', objectFit: 'contain' }} />
+  }
+
+  return <HeaderLogo scrolled={false} />
+}
 
 export default function MadinaFooter() {
   const t = useTemplateT()
@@ -68,7 +81,7 @@ export default function MadinaFooter() {
           {/* Section 1: Logo and Description */}
           <div className="space-y-4">
             <div className="h-20 w-auto mb-4" style={{ display: 'flex', alignItems: 'center' }}>
-              <Logo />
+              <FooterLogo />
             </div>
             <p className="text-white text-sm leading-relaxed">
               {t('footer.description', 'نحن لسنا مجرد فنادق، بل وجهة للراحة والفخامة. نحن نؤمن بأن كل رحلة تستحق نهاية مثالية، ولهذا نسعى جاهدين لتقديم أفضل الخدمات')}

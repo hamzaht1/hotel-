@@ -31,14 +31,17 @@ export default function Gallery({ gallery }: Props) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const storageUrl = useStorageUrl()
-  // Default to 'madina' (Swiper) when items come from the backend (R2/cross-origin):
-  // the 'riyadh' (WebGL) style requires CORS headers on the storage bucket which
-  // aren't configured by default. Local-asset galleries can still use 'riyadh'.
+  // Backend galleries are served from cross-origin storage (R2). The riyadh
+  // style uses WebGL which needs CORS headers on every image; without them
+  // textures fail and the gallery is empty. Force the Swiper-based madina
+  // style (plain <img>) whenever items come from the backend, ignoring
+  // localStorage and ThemeSwitcher events.
   const hasBackendGallery = !!(gallery && gallery.length > 0)
   const [galleryStyle, setGalleryStyle] = useState<'riyadh' | 'madina'>(hasBackendGallery ? 'madina' : 'riyadh')
 
-  // Load gallery slider style from localStorage
   useEffect(() => {
+    if (hasBackendGallery) return // pinned to madina/Swiper
+
     const savedStyle = localStorage.getItem('madina-gallery-slider-style')
     if (savedStyle) {
       if (savedStyle === 'madina') {
@@ -47,21 +50,20 @@ export default function Gallery({ gallery }: Props) {
         setGalleryStyle('riyadh')
       }
     }
-    
-    // Listen for custom event from ThemeSwitcher
+
     const handleStyleChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ type: 'riyadh' | 'madina'; id: string }>
       if (customEvent.detail && customEvent.detail.type) {
         setGalleryStyle(customEvent.detail.type)
       }
     }
-    
+
     window.addEventListener('madina-gallery-slider-style-changed', handleStyleChange)
-    
+
     return () => {
       window.removeEventListener('madina-gallery-slider-style-changed', handleStyleChange)
     }
-  }, [])
+  }, [hasBackendGallery])
 
   // Static fallback gallery items
   const staticGalleryItems = [

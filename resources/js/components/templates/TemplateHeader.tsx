@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
+import { usePage } from '@inertiajs/react'
 import { TiArrowSortedUp } from "react-icons/ti"
 import { Globe, Menu as MenuIcon, X as XIcon } from 'lucide-react'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useAppearance } from '@/hooks/use-appearance'
+import { useStorageUrl } from '@/lib/storage'
 import hotelLogo from '@/assets/images/riyadh-template/hero-logo.png'
 import whitelogo from '@/assets/images/riyadh-template/white-logo.png'
 import phoneIcon from '@/assets/images/riyadh-template/phone.svg'
@@ -22,6 +24,12 @@ export default function TemplateHeader() {
   const { toggleLanguage, isArabic } = useTemplateLanguage()
   const { appearance, updateAppearance } = useAppearance()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const storageUrl = useStorageUrl()
+  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null; site_logo_dark?: string | null } } }>().props
+  const tenantLogo = storageUrl(siteSettings?.identity?.site_logo)
+  const tenantLogoDark = storageUrl(siteSettings?.identity?.site_logo_dark) || tenantLogo
+  const lightLogoSrc = tenantLogo || hotelLogo
+  const darkLogoSrc = tenantLogoDark || whitelogo
 
   const toggleTheme = () => {
     const newMode = appearance === 'dark' ? 'light' : 'dark'
@@ -93,7 +101,7 @@ export default function TemplateHeader() {
             <div className="flex items-center">
               {/* Hotel Logo Image */}
               <img 
-                src={appearance === 'dark' ? whitelogo : hotelLogo}
+                src={appearance === 'dark' ? darkLogoSrc : lightLogoSrc}
                 alt="Hotel Logo"
                 className="h-18 w-auto drop-shadow-sm"
               />
