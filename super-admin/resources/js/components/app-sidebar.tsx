@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/use-locale';
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FormInput, Plug, PaintBucket, FileStack, Menu, Receipt, Percent, Star, UserCog, Send } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, Plug, PaintBucket, FileStack, Menu, Receipt, Percent, Star, UserCog, Send } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface GatedNavItem extends NavItem {
@@ -38,7 +38,6 @@ export function AppSidebar() {
 
     const managementNav: GatedNavItem[] = [
         { title: isArabic ? 'الباقات والقوالب' : 'Plans & Templates', href: '/super-admin/plans-templates', icon: Package, perm: ['plans.manage', 'templates.manage'] },
-        { title: isArabic ? 'النماذج' : 'Form Builder', href: '/super-admin/form-builder', icon: FormInput, perm: 'form_builder.manage' },
         { title: isArabic ? 'التكاملات' : 'Integrations', href: '/super-admin/integrations', icon: Plug, perm: 'integrations.manage' },
         { title: isArabic ? 'الصفحات' : 'Pages', href: '/super-admin/pages', icon: FileStack, perm: 'pages.manage' },
         { title: isArabic ? 'هوية الموقع' : 'Site Branding', href: '/super-admin/site-settings', icon: PaintBucket, perm: 'site_settings.edit' },

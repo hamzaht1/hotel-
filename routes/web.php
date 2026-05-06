@@ -164,6 +164,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // ─── CMS Pages ─────────────────────────────────────────────
 Route::get('/page/{slug}', [PageController::class, 'show'])->name('page.show');
+Route::post('/page/{slug}/submit', [PageController::class, 'submit'])->name('page.submit');
 
 // ─── Contact Form (public) ─────────────────────────────────
 Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');

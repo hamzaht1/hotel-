@@ -3,7 +3,6 @@
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\DiscountCodeController;
 use App\Http\Controllers\SuperAdmin\InvoiceController;
-use App\Http\Controllers\SuperAdmin\FormBuilderController;
 use App\Http\Controllers\SuperAdmin\TemplateController;
 use App\Http\Controllers\SuperAdmin\PlanController;
 use App\Http\Controllers\SuperAdmin\TenantController;
@@ -70,14 +69,6 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
             Route::get('discount-codes/{discountCode}/edit', [DiscountCodeController::class, 'edit'])->name('discount-codes.edit');
             Route::put('discount-codes/{discountCode}', [DiscountCodeController::class, 'update'])->name('discount-codes.update');
             Route::post('discount-codes/{discountCode}/toggle', [DiscountCodeController::class, 'toggleStatus'])->name('discount-codes.toggle');
-        });
-
-        // Form Builder
-        Route::middleware('permission:form_builder.manage')->group(function () {
-            Route::get('form-builder', [FormBuilderController::class, 'index'])->name('form-builder.index');
-            Route::post('form-builder', [FormBuilderController::class, 'store'])->name('form-builder.store');
-            Route::put('form-builder/{formTemplate}', [FormBuilderController::class, 'update'])->name('form-builder.update');
-            Route::delete('form-builder/{formTemplate}', [FormBuilderController::class, 'destroy'])->name('form-builder.destroy');
         });
 
         // Templates
@@ -189,6 +180,9 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
             Route::get('pages/{page}/edit', [PageController::class, 'edit'])->name('pages.edit');
             Route::put('pages/{page}', [PageController::class, 'update'])->name('pages.update');
             Route::delete('pages/{page}', [PageController::class, 'destroy'])->name('pages.destroy');
+            Route::get('pages/{page}/submissions', [\App\Http\Controllers\SuperAdmin\PageSubmissionController::class, 'index'])->name('pages.submissions.index');
+            Route::get('pages/{page}/submissions/export', [\App\Http\Controllers\SuperAdmin\PageSubmissionController::class, 'export'])->name('pages.submissions.export');
+            Route::delete('pages/{page}/submissions/{submission}', [\App\Http\Controllers\SuperAdmin\PageSubmissionController::class, 'destroy'])->name('pages.submissions.destroy');
         });
 
         // Menus

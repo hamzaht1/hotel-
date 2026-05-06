@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { useT } from '@/hooks/use-translations';
-import PageForm, { HeaderConfig, PageFormData } from './form';
+import PageForm, { FormFieldDef, HeaderConfig, PageFormData } from './form';
 
 interface PageData {
     id: number;
@@ -26,6 +26,9 @@ interface PageData {
     show_header: boolean;
     show_footer: boolean;
     header_config: HeaderConfig | null;
+    form_fields: FormFieldDef[] | null;
+    form_submit_label_ar: string | null;
+    form_submit_label_en: string | null;
 }
 
 export default function EditPage({ page }: { page: PageData }) {
@@ -58,6 +61,9 @@ export default function EditPage({ page }: { page: PageData }) {
         show_header: page.show_header,
         show_footer: page.show_footer,
         header_config: page.header_config,
+        form_fields: page.form_fields ?? [],
+        form_submit_label_ar: page.form_submit_label_ar ?? '',
+        form_submit_label_en: page.form_submit_label_en ?? '',
     });
 
     function submit(e: React.FormEvent) {
@@ -77,6 +83,7 @@ export default function EditPage({ page }: { page: PageData }) {
                 title={isArabic ? 'تعديل الصفحة' : 'Edit page'}
                 isArabic={isArabic}
                 cancelHref="/super-admin/pages"
+                submissionsHref={`/super-admin/pages/${page.id}/submissions`}
             />
         </AppLayout>
     );

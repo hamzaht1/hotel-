@@ -1,5 +1,6 @@
 import PublicLayout from '@/layouts/public-layout';
 import CustomPageHeader, { HeaderConfig } from '@/components/public/CustomPageHeader';
+import PagePublicForm, { PublicFormField } from '@/components/public/PagePublicForm';
 import { Head, usePage } from '@inertiajs/react';
 
 interface PageData {
@@ -15,6 +16,9 @@ interface PageData {
     show_header: boolean;
     show_footer: boolean;
     header_config: HeaderConfig | null;
+    form_fields: PublicFormField[] | null;
+    form_submit_label_ar: string | null;
+    form_submit_label_en: string | null;
 }
 
 interface Props {
@@ -30,6 +34,8 @@ export default function Page({ page }: Props) {
     const metaDescription = isArabic ? page.meta_description_ar : page.meta_description_en;
 
     const useCustomHeader = page.show_header && page.header_config !== null;
+    const formFields = page.form_fields ?? [];
+    const hasForm = formFields.length > 0;
 
     return (
         <PublicLayout
@@ -45,12 +51,22 @@ export default function Page({ page }: Props) {
                     <h1 className="text-center text-3xl font-bold text-public-primary sm:text-4xl">
                         {title}
                     </h1>
-                    <div
-                        className="prose prose-lg mx-auto mt-8 max-w-none text-slate-700 dark:text-slate-300"
-                        dangerouslySetInnerHTML={{ __html: content }}
-                    />
+                    {content && (
+                        <div
+                            className="prose prose-lg mx-auto mt-8 max-w-none text-slate-700 dark:text-slate-300"
+                            dangerouslySetInnerHTML={{ __html: content }}
+                        />
+                    )}
                 </div>
             </section>
+            {hasForm && (
+                <PagePublicForm
+                    slug={page.slug}
+                    fields={formFields}
+                    submitLabelAr={page.form_submit_label_ar}
+                    submitLabelEn={page.form_submit_label_en}
+                />
+            )}
         </PublicLayout>
     );
 }

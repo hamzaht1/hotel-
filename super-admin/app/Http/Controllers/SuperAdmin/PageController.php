@@ -63,6 +63,18 @@ class PageController extends Controller
             'header_config.links.*.label_ar' => 'nullable|string|max:255',
             'header_config.links.*.label_en' => 'nullable|string|max:255',
             'header_config.links.*.url' => 'nullable|string|max:500',
+            'form_fields' => 'nullable|array',
+            'form_fields.*.key' => 'required_with:form_fields|string|max:60',
+            'form_fields.*.type' => 'required_with:form_fields|in:text,email,tel,number,textarea,select,radio,checkbox,file',
+            'form_fields.*.label_ar' => 'nullable|string|max:255',
+            'form_fields.*.label_en' => 'nullable|string|max:255',
+            'form_fields.*.placeholder_ar' => 'nullable|string|max:255',
+            'form_fields.*.placeholder_en' => 'nullable|string|max:255',
+            'form_fields.*.required' => 'boolean',
+            'form_fields.*.options' => 'nullable|array',
+            'form_fields.*.options.*' => 'string|max:255',
+            'form_submit_label_ar' => 'nullable|string|max:60',
+            'form_submit_label_en' => 'nullable|string|max:60',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);
@@ -110,6 +122,18 @@ class PageController extends Controller
             'header_config.links.*.label_ar' => 'nullable|string|max:255',
             'header_config.links.*.label_en' => 'nullable|string|max:255',
             'header_config.links.*.url' => 'nullable|string|max:500',
+            'form_fields' => 'nullable|array',
+            'form_fields.*.key' => 'required_with:form_fields|string|max:60',
+            'form_fields.*.type' => 'required_with:form_fields|in:text,email,tel,number,textarea,select,radio,checkbox,file',
+            'form_fields.*.label_ar' => 'nullable|string|max:255',
+            'form_fields.*.label_en' => 'nullable|string|max:255',
+            'form_fields.*.placeholder_ar' => 'nullable|string|max:255',
+            'form_fields.*.placeholder_en' => 'nullable|string|max:255',
+            'form_fields.*.required' => 'boolean',
+            'form_fields.*.options' => 'nullable|array',
+            'form_fields.*.options.*' => 'string|max:255',
+            'form_submit_label_ar' => 'nullable|string|max:60',
+            'form_submit_label_en' => 'nullable|string|max:60',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);

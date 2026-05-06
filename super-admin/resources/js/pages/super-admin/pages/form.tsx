@@ -1,7 +1,7 @@
 // Shared Page form used by create.tsx and edit.tsx
 import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Save, Eye, Send, Bold, Italic, Underline, Type, Link as LinkIcon, Image as ImageIcon, Table, Plus, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { Save, Eye, Send, Bold, Italic, Underline, Type, Link as LinkIcon, Image as ImageIcon, Table, Plus, X, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,6 +20,19 @@ export interface HeaderConfig {
     background_color: string;
     text_color: string;
     links: HeaderLink[];
+}
+
+export type FormFieldType = 'text' | 'email' | 'tel' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'file';
+
+export interface FormFieldDef {
+    key: string;
+    type: FormFieldType;
+    label_ar: string;
+    label_en: string;
+    placeholder_ar?: string;
+    placeholder_en?: string;
+    required: boolean;
+    options?: string[];
 }
 
 export interface PageFormData {
@@ -43,6 +56,9 @@ export interface PageFormData {
     show_header: boolean;
     show_footer: boolean;
     header_config: HeaderConfig | null;
+    form_fields: FormFieldDef[];
+    form_submit_label_ar: string;
+    form_submit_label_en: string;
 }
 
 export function emptyHeaderConfig(): HeaderConfig {
@@ -61,11 +77,14 @@ export function emptyForm(): PageFormData {
         is_published: false, sort_order: 0, layout: 'default',
         show_header: true, show_footer: true,
         header_config: null,
+        form_fields: [],
+        form_submit_label_ar: '',
+        form_submit_label_en: '',
     };
 }
 
 export default function PageForm({
-    data, setData, errors, processing, onSubmit, title, isArabic, cancelHref,
+    data, setData, errors, processing, onSubmit, title, isArabic, cancelHref, submissionsHref,
 }: {
     data: PageFormData;
     setData: <K extends keyof PageFormData>(key: K, value: PageFormData[K]) => void;
@@ -75,6 +94,7 @@ export default function PageForm({
     title: string;
     isArabic: boolean;
     cancelHref: string;
+    submissionsHref?: string;
 }) {
     const [activeContent, setActiveContent] = useState<'ar' | 'en'>('ar');
 
@@ -134,6 +154,34 @@ export default function PageForm({
         setData('attachments', [...data.attachments, { url, name }]);
     }
 
+    function addFormField() {
+        const next: FormFieldDef = {
+            key: `field_${data.form_fields.length + 1}`,
+            type: 'text',
+            label_ar: '',
+            label_en: '',
+            required: false,
+            options: [],
+        };
+        setData('form_fields', [...data.form_fields, next]);
+    }
+
+    function updateFormField(i: number, patch: Partial<FormFieldDef>) {
+        setData('form_fields', data.form_fields.map((f, idx) => idx === i ? { ...f, ...patch } : f));
+    }
+
+    function removeFormField(i: number) {
+        setData('form_fields', data.form_fields.filter((_, idx) => idx !== i));
+    }
+
+    function moveFormField(i: number, dir: -1 | 1) {
+        const fields = [...data.form_fields];
+        const j = i + dir;
+        if (j < 0 || j >= fields.length) return;
+        [fields[i], fields[j]] = [fields[j], fields[i]];
+        setData('form_fields', fields);
+    }
+
     function removeAttachment(i: number) {
         setData('attachments', data.attachments.filter((_, idx) => idx !== i));
     }
@@ -143,6 +191,11 @@ export default function PageForm({
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold">{title}</h1>
                 <div className="flex gap-2">
+                    {submissionsHref && (
+                        <Button type="button" variant="outline" size="sm" asChild>
+                            <Link href={submissionsHref}><Inbox className="h-4 w-4" /> {isArabic ? 'الاستجابات' : 'Submissions'}</Link>
+                        </Button>
+                    )}
                     <Button type="button" variant="outline" size="sm" onClick={(e) => { setData('is_published', false); (e.currentTarget.closest('form') as HTMLFormElement | null)?.requestSubmit(); }}>
                         <Save className="h-4 w-4" /> {isArabic ? 'حفظ كمسودة' : 'Save as draft'}
                     </Button>
@@ -284,6 +337,112 @@ export default function PageForm({
                                     </div>
                                 </div>
                             </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Form fields (Google-form style) */}
+                <Card>
+                    <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="text-base">{isArabic ? 'حقول النموذج' : 'Form fields'}</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {isArabic ? 'أضف حقولاً لجمع معلومات من زوار الصفحة (مثل Google Forms).' : 'Add fields to collect info from visitors (Google Forms style).'}
+                            </p>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={addFormField}>
+                            <Plus className="h-4 w-4" /> {isArabic ? 'إضافة حقل' : 'Add field'}
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {data.form_fields.length === 0 && (
+                            <p className="text-sm text-muted-foreground">{isArabic ? 'لا توجد حقول. اضغط "إضافة حقل" للبدء.' : 'No fields yet. Click "Add field" to start.'}</p>
+                        )}
+                        {data.form_fields.map((field, i) => (
+                            <div key={i} className="rounded border p-3 space-y-2 bg-muted/20">
+                                <div className="grid gap-2 sm:grid-cols-[1fr_1fr_140px_auto] items-start">
+                                    <Input
+                                        value={field.label_ar}
+                                        onChange={(e) => updateFormField(i, { label_ar: e.target.value })}
+                                        placeholder={isArabic ? 'التسمية (عربي)' : 'Label (AR)'}
+                                        dir="rtl"
+                                    />
+                                    <Input
+                                        value={field.label_en}
+                                        onChange={(e) => updateFormField(i, { label_en: e.target.value })}
+                                        placeholder={isArabic ? 'التسمية (إنجليزي)' : 'Label (EN)'}
+                                    />
+                                    <select
+                                        className="h-9 rounded-md border bg-background px-2 text-sm"
+                                        value={field.type}
+                                        onChange={(e) => updateFormField(i, { type: e.target.value as FormFieldType })}>
+                                        <option value="text">Text</option>
+                                        <option value="email">Email</option>
+                                        <option value="tel">Phone</option>
+                                        <option value="number">Number</option>
+                                        <option value="textarea">Textarea</option>
+                                        <option value="select">Select</option>
+                                        <option value="radio">Radio</option>
+                                        <option value="checkbox">Checkbox</option>
+                                        <option value="file">File</option>
+                                    </select>
+                                    <div className="flex gap-1 justify-end">
+                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveFormField(i, -1)} disabled={i === 0}>
+                                            <ArrowUp className="h-4 w-4" />
+                                        </Button>
+                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveFormField(i, 1)} disabled={i === data.form_fields.length - 1}>
+                                            <ArrowDown className="h-4 w-4" />
+                                        </Button>
+                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeFormField(i)}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-[1fr_1fr_140px] items-center">
+                                    <Input
+                                        value={field.key}
+                                        onChange={(e) => updateFormField(i, { key: e.target.value.replace(/[^a-z0-9_]/gi, '_').toLowerCase() })}
+                                        placeholder="key"
+                                        className="font-mono text-xs h-8"
+                                    />
+                                    <Input
+                                        value={field.placeholder_en ?? ''}
+                                        onChange={(e) => updateFormField(i, { placeholder_en: e.target.value })}
+                                        placeholder={isArabic ? 'نص توضيحي (إنجليزي)' : 'Placeholder (EN)'}
+                                        className="h-8 text-xs"
+                                    />
+                                    <label className="flex items-center gap-2 text-xs">
+                                        <Checkbox checked={field.required} onCheckedChange={(v) => updateFormField(i, { required: v === true })} />
+                                        {isArabic ? 'إلزامي' : 'Required'}
+                                    </label>
+                                </div>
+
+                                {(field.type === 'select' || field.type === 'radio' || field.type === 'checkbox') && (
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">{isArabic ? 'الخيارات (سطر لكل خيار)' : 'Options (one per line)'}</Label>
+                                        <Textarea
+                                            rows={3}
+                                            className="text-xs font-mono"
+                                            value={(field.options ?? []).join('\n')}
+                                            onChange={(e) => updateFormField(i, { options: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) })}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {data.form_fields.length > 0 && (
+                            <div className="grid gap-2 sm:grid-cols-2 pt-2 border-t">
+                                <div className="space-y-1">
+                                    <Label className="text-xs">{isArabic ? 'نص الزر (عربي)' : 'Submit label (AR)'}</Label>
+                                    <Input value={data.form_submit_label_ar} onChange={(e) => setData('form_submit_label_ar', e.target.value)} placeholder={isArabic ? 'إرسال' : 'Submit (AR)'} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">{isArabic ? 'نص الزر (إنجليزي)' : 'Submit label (EN)'}</Label>
+                                    <Input value={data.form_submit_label_en} onChange={(e) => setData('form_submit_label_en', e.target.value)} placeholder="Submit" />
+                                </div>
+                            </div>
                         )}
                     </CardContent>
                 </Card>

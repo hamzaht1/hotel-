@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Page extends Model
 {
@@ -31,6 +32,9 @@ class Page extends Model
         'show_header',
         'show_footer',
         'header_config',
+        'form_fields',
+        'form_submit_label_ar',
+        'form_submit_label_en',
     ];
 
     protected function casts(): array
@@ -41,11 +45,17 @@ class Page extends Model
             'show_footer' => 'boolean',
             'attachments' => 'array',
             'header_config' => 'array',
+            'form_fields' => 'array',
         ];
     }
 
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);
+    }
+
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(PageSubmission::class);
     }
 }
