@@ -242,14 +242,6 @@ export default function SiteSettingsIndex({ settings }: Props) {
     // current origin so the page still works if MAIN_APP_URL isn't configured.
     const mainAppUrl = (pageProps.mainAppUrl ?? '').replace(/\/+$/, '');
     const previewUrl = `${mainAppUrl || ''}${PREVIEW_PATH}`;
-    const previewOrigin = useMemo(() => {
-        if (!mainAppUrl) return window.location.origin;
-        try {
-            return new URL(mainAppUrl).origin;
-        } catch {
-            return window.location.origin;
-        }
-    }, [mainAppUrl]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
@@ -270,6 +262,12 @@ export default function SiteSettingsIndex({ settings }: Props) {
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const [viewport, setViewport] = useState<Viewport>('desktop');
     const [iframeNonce, setIframeNonce] = useState(0); // bump to force iframe reload
+    // Real origin of the loaded iframe, captured from its READY ping. We trust this
+    // over the env-derived previewOrigin because the iframe can land on a different
+    // origin (redirect, misconfigured MAIN_APP_URL). Null until READY received —
+    // gating postMessage on it avoids the "target origin doesn't match" error that
+    // happens on initial mount while the iframe is still on about:blank.
+    const [iframeOrigin, setIframeOrigin] = useState<string | null>(null);
 
     // Compose what we send to the iframe. Logos use blob URLs when a new file is staged,
     // otherwise the saved storage path (the iframe resolves them via its own helper).
@@ -347,28 +345,38 @@ export default function SiteSettingsIndex({ settings }: Props) {
         };
     }, [data, logoPreviewUrl, faviconPreviewUrl, settings.identity.site_logo, settings.identity.site_favicon]);
 
-    // Push edits to the iframe whenever they change.
+    // Reset the captured origin whenever the iframe is force-reloaded so we wait
+    // for a fresh READY before broadcasting again.
     useEffect(() => {
+        setIframeOrigin(null);
+    }, [iframeNonce]);
+
+    // Push edits to the iframe — only after it has announced READY (which proves
+    // it loaded the public origin and is listening). Sending earlier would error
+    // because contentWindow is still on about:blank (parent origin).
+    useEffect(() => {
+        if (!iframeOrigin) return;
         const win = iframeRef.current?.contentWindow;
         if (!win) return;
-        win.postMessage({ type: PREVIEW_MESSAGE_TYPE, overrides }, previewOrigin);
-    }, [overrides, previewOrigin]);
+        win.postMessage({ type: PREVIEW_MESSAGE_TYPE, overrides }, iframeOrigin);
+    }, [overrides, iframeOrigin]);
 
-    // The preview iframe announces it's mounted so we can send the initial state
-    // even before any field changes (and after refresh).
+    // The preview iframe announces it's mounted so we can capture its real origin
+    // (via event.origin) and send the initial state — including after a refresh.
     useEffect(() => {
         const handler = (event: MessageEvent) => {
             if (event.source !== iframeRef.current?.contentWindow) return;
             const incoming = event.data as { type?: string } | null;
             if (incoming?.type !== PREVIEW_READY_TYPE) return;
+            setIframeOrigin(event.origin);
             iframeRef.current?.contentWindow?.postMessage(
                 { type: PREVIEW_MESSAGE_TYPE, overrides },
-                previewOrigin,
+                event.origin,
             );
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [overrides, previewOrigin]);
+    }, [overrides]);
 
     // Dirty = any text/color field changed OR a file was staged.
     const isDirty = useMemo(() => {
