@@ -3,6 +3,8 @@
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\DiscountCodeController;
 use App\Http\Controllers\SuperAdmin\InvoiceController;
+use App\Http\Controllers\SuperAdmin\InvoiceTemplateController;
+use App\Http\Controllers\SuperAdmin\QuoteController;
 use App\Http\Controllers\SuperAdmin\TemplateController;
 use App\Http\Controllers\SuperAdmin\PlanController;
 use App\Http\Controllers\SuperAdmin\TenantController;
@@ -86,6 +88,7 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         // Invoices — view vs. mutating actions split
         Route::middleware('permission:invoices.view')->group(function () {
             Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+            Route::get('invoices/export.csv', [InvoiceController::class, 'exportCsv'])->name('invoices.export');
             Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
             Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
         });
@@ -102,6 +105,40 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->middleware('permission:invoices.send')->name('invoices.send');
         Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markAsPaid'])->middleware('permission:invoices.mark_paid')->name('invoices.mark-paid');
         Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('permission:invoices.delete')->name('invoices.destroy');
+
+        // Quotes — static routes (index, create) registered BEFORE wildcard {quote}
+        // so Laravel doesn't bind "create" as an id.
+        Route::middleware('permission:quotes.view')->group(function () {
+            Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
+            Route::get('quotes/export.csv', [QuoteController::class, 'exportCsv'])->name('quotes.export');
+        });
+        Route::middleware('permission:quotes.create')->group(function () {
+            Route::get('quotes/create', [QuoteController::class, 'create'])->name('quotes.create');
+            Route::post('quotes', [QuoteController::class, 'store'])->name('quotes.store');
+        });
+        Route::middleware('permission:quotes.view')->group(function () {
+            Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
+            Route::get('quotes/{quote}/pdf', [QuoteController::class, 'downloadPdf'])->name('quotes.pdf');
+        });
+        Route::middleware('permission:quotes.edit')->group(function () {
+            Route::get('quotes/{quote}/edit', [QuoteController::class, 'edit'])->name('quotes.edit');
+            Route::put('quotes/{quote}', [QuoteController::class, 'update'])->name('quotes.update');
+            Route::post('quotes/{quote}/lock', [QuoteController::class, 'lock'])->name('quotes.lock');
+            Route::post('quotes/{quote}/unlock', [QuoteController::class, 'unlock'])->name('quotes.unlock');
+        });
+        Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->middleware('permission:quotes.send')->name('quotes.send');
+        Route::post('quotes/{quote}/mark-accepted', [QuoteController::class, 'markAccepted'])->middleware('permission:quotes.mark_accepted')->name('quotes.mark-accepted');
+        Route::post('quotes/{quote}/mark-refused', [QuoteController::class, 'markRefused'])->middleware('permission:quotes.mark_refused')->name('quotes.mark-refused');
+        Route::delete('quotes/{quote}', [QuoteController::class, 'destroy'])->middleware('permission:quotes.delete')->name('quotes.destroy');
+
+        // Invoice templates — preview + set default
+        Route::middleware('permission:invoices.view')->group(function () {
+            Route::get('invoice-templates', [InvoiceTemplateController::class, 'index'])->name('invoice-templates.index');
+            Route::get('invoice-templates/{template}/preview', [InvoiceTemplateController::class, 'preview'])->name('invoice-templates.preview');
+        });
+        Route::post('invoice-templates/default', [InvoiceTemplateController::class, 'setDefault'])
+            ->middleware('permission:invoices.edit')
+            ->name('invoice-templates.set-default');
 
         // Transactions
         Route::get('transactions', [\App\Http\Controllers\SuperAdmin\TransactionController::class, 'index'])->middleware('permission:transactions.view')->name('transactions.index');

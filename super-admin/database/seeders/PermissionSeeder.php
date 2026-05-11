@@ -40,6 +40,15 @@ class PermissionSeeder extends Seeder
             ['key' => 'invoices.mark_paid', 'name_ar' => 'تسجيل دفع الفاتورة', 'name_en' => 'Mark Invoice Paid', 'group' => 'invoices'],
             ['key' => 'invoices.delete', 'name_ar' => 'حذف فاتورة', 'name_en' => 'Delete Invoice', 'group' => 'invoices'],
 
+            // Quotes
+            ['key' => 'quotes.view', 'name_ar' => 'عرض عروض الأسعار', 'name_en' => 'View Quotes', 'group' => 'quotes'],
+            ['key' => 'quotes.create', 'name_ar' => 'إنشاء عرض سعر', 'name_en' => 'Create Quote', 'group' => 'quotes'],
+            ['key' => 'quotes.edit', 'name_ar' => 'تعديل عرض سعر', 'name_en' => 'Edit Quote', 'group' => 'quotes'],
+            ['key' => 'quotes.send', 'name_ar' => 'إرسال عرض سعر', 'name_en' => 'Send Quote', 'group' => 'quotes'],
+            ['key' => 'quotes.mark_accepted', 'name_ar' => 'قبول عرض السعر', 'name_en' => 'Mark Quote Accepted', 'group' => 'quotes'],
+            ['key' => 'quotes.mark_refused', 'name_ar' => 'رفض عرض السعر', 'name_en' => 'Mark Quote Refused', 'group' => 'quotes'],
+            ['key' => 'quotes.delete', 'name_ar' => 'حذف عرض سعر', 'name_en' => 'Delete Quote', 'group' => 'quotes'],
+
             // Transactions
             ['key' => 'transactions.view', 'name_ar' => 'عرض العمليات المالية', 'name_en' => 'View Transactions', 'group' => 'transactions'],
             ['key' => 'transactions.manage', 'name_ar' => 'إدارة العمليات المالية', 'name_en' => 'Manage Transactions', 'group' => 'transactions'],
@@ -96,7 +105,7 @@ class PermissionSeeder extends Seeder
         }
 
         // Restrict to super-admin scoped groups when handing perms to roles.
-        $superAdminGroups = ['dashboard', 'tenants', 'clients', 'invoices', 'transactions', 'renewals', 'catalog', 'cms', 'reviews', 'reports', 'integrations', 'staff'];
+        $superAdminGroups = ['dashboard', 'tenants', 'clients', 'invoices', 'quotes', 'transactions', 'renewals', 'catalog', 'cms', 'reviews', 'reports', 'integrations', 'staff'];
         $allPermissionIds = DB::table('permissions')
             ->whereIn('group', $superAdminGroups)
             ->whereIn('key', array_column($permissions, 'key'))
@@ -121,6 +130,7 @@ class PermissionSeeder extends Seeder
                 'tenants.view', 'tenants.message',
                 'clients.view',
                 'invoices.view',
+                'quotes.view',
                 'reviews.view', 'reviews.reply',
                 'reports.messages',
             ])
@@ -133,6 +143,7 @@ class PermissionSeeder extends Seeder
             ->whereIn('key', [
                 'dashboard.view',
                 'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.send', 'invoices.mark_paid',
+                'quotes.view', 'quotes.create', 'quotes.edit', 'quotes.send', 'quotes.mark_accepted', 'quotes.mark_refused',
                 'transactions.view', 'transactions.manage',
                 'reports.view', 'reports.financial', 'reports.subscriptions',
                 'tenants.view', 'clients.view',

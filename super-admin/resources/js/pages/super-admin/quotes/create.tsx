@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useT } from '@/hooks/use-translations';
@@ -28,17 +27,16 @@ interface Props {
     plans: Plan[];
     salesReps: SalesRep[];
     nextNumber: string;
-    defaultTemplate?: string;
 }
 
-export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, defaultTemplate }: Props) {
+export default function CreateQuote({ tenants, salesReps, nextNumber }: Props) {
     const { t, isArabic } = useT();
     const [clientMode, setClientMode] = useState<'existing' | 'external'>('existing');
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
-        { title: isArabic ? 'الفواتير' : 'Invoices', href: '/super-admin/invoices' },
-        { title: isArabic ? 'إضافة فاتورة' : 'Add invoice', href: '/super-admin/invoices/create' },
+        { title: isArabic ? 'عروض الأسعار' : 'Quotes', href: '/super-admin/quotes' },
+        { title: isArabic ? 'إضافة عرض سعر' : 'Add quote', href: '/super-admin/quotes/create' },
     ];
 
     const { data, setData, post, processing, errors } = useForm<{
@@ -52,19 +50,18 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
         bank_iban: string;
         type: string;
         issue_date: string;
-        due_date: string;
+        valid_until: string;
         tax_rate: number;
         tax_rate_2: number;
         discount: number;
         discount_percent: number;
         notes_ar: string;
+        notes_en: string;
         client_notes: string;
         payment_terms: string;
         payment_method: string;
         sales_rep_id: string;
         commission_rate: number;
-        requires_receipt: boolean;
-        has_receipt_toggle: boolean;
         pdf_template: string;
         items: Item[];
     }>({
@@ -78,24 +75,22 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
         bank_iban: '',
         type: 'subscription',
         issue_date: new Date().toISOString().slice(0, 10),
-        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         tax_rate: 15,
         tax_rate_2: 0,
         discount: 0,
         discount_percent: 0,
         notes_ar: '',
+        notes_en: '',
         client_notes: '',
         payment_terms: '',
         payment_method: 'bank_transfer',
         sales_rep_id: '',
         commission_rate: 0,
-        requires_receipt: false,
-        has_receipt_toggle: false,
-        pdf_template: defaultTemplate || 'default',
+        pdf_template: 'default',
         items: [{ description_ar: '', description_en: '', quantity: 1, unit_price: 0 }],
     });
 
-    // Sync: if an existing tenant is picked, clear external client fields (and vice versa).
     function selectTenant(id: string) {
         setData('tenant_id', id);
         if (id) {
@@ -131,40 +126,37 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        const payload = { ...data };
-        if (clientMode === 'external') payload.tenant_id = '';
-        post('/super-admin/invoices');
+        post('/super-admin/quotes');
     }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isArabic ? 'إضافة فاتورة' : 'Add invoice'} />
+            <Head title={isArabic ? 'إضافة عرض سعر' : 'Add quote'} />
             <div className="mx-auto max-w-6xl p-6">
                 <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
                     <div>
-                        <h1 className="text-2xl font-bold">{isArabic ? 'إضافة فاتورة' : 'Add invoice'}</h1>
-                        <p className="text-xs text-muted-foreground">{isArabic ? 'رقم الفاتورة' : 'Invoice #'} {nextNumber}</p>
+                        <h1 className="text-2xl font-bold">{isArabic ? 'إضافة عرض سعر' : 'Add quote'}</h1>
+                        <p className="text-xs text-muted-foreground">{isArabic ? 'رقم العرض' : 'Quote #'} {nextNumber}</p>
                     </div>
                     <div className="flex gap-2">
                         <Button type="button" variant="outline" size="sm"><Save className="h-4 w-4" /> {isArabic ? 'حفظ' : 'Save'}</Button>
                         <Button type="button" variant="outline" size="sm"><Eye className="h-4 w-4" /> {isArabic ? 'معاينة' : 'Preview'}</Button>
-                        <Button type="submit" form="invoice-form" size="sm" disabled={processing}>
-                            <Send className="h-4 w-4" /> {isArabic ? 'إرسال الفاتورة' : 'Send invoice'}
+                        <Button type="submit" form="quote-form" size="sm" disabled={processing}>
+                            <Send className="h-4 w-4" /> {isArabic ? 'إرسال عرض السعر' : 'Send quote'}
                         </Button>
                     </div>
                 </div>
 
-                <form id="invoice-form" onSubmit={submit} className="grid gap-4 lg:grid-cols-3">
+                <form id="quote-form" onSubmit={submit} className="grid gap-4 lg:grid-cols-3">
                     <div className="lg:col-span-2 space-y-4">
-                        {/* Dates */}
                         <Card>
-                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'معلومات الفاتورة' : 'Invoice info'}</CardTitle></CardHeader>
+                            <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'معلومات عرض السعر' : 'Quote info'}</CardTitle></CardHeader>
                             <CardContent className="grid gap-3 sm:grid-cols-2">
                                 <Field label={isArabic ? 'تاريخ الإصدار' : 'Issue date'} error={errors.issue_date}>
                                     <Input type="date" value={data.issue_date} onChange={(e) => setData('issue_date', e.target.value)} />
                                 </Field>
-                                <Field label={isArabic ? 'تاريخ الاستحقاق' : 'Due date'} error={errors.due_date}>
-                                    <Input type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                                <Field label={isArabic ? 'صالح حتى' : 'Valid until'} error={errors.valid_until}>
+                                    <Input type="date" value={data.valid_until} onChange={(e) => setData('valid_until', e.target.value)} />
                                 </Field>
                                 <Field label={isArabic ? 'النوع' : 'Type'} error={errors.type}>
                                     <Select value={data.type} onValueChange={(v) => setData('type', v)}>
@@ -189,10 +181,9 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                             </CardContent>
                         </Card>
 
-                        {/* Client */}
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-base">{isArabic ? 'الفاتورة إلى' : 'Bill to'}</CardTitle>
+                                <CardTitle className="text-base">{isArabic ? 'إلى' : 'Quote to'}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="flex gap-2">
@@ -242,7 +233,6 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                             </CardContent>
                         </Card>
 
-                        {/* Bank */}
                         <Card>
                             <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'المعلومات البنكية' : 'Bank information'}</CardTitle></CardHeader>
                             <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -258,11 +248,10 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                             </CardContent>
                         </Card>
 
-                        {/* Items */}
                         <Card>
                             <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                                <CardTitle className="text-base">{isArabic ? 'عناصر الفاتورة' : 'Line items'}</CardTitle>
-                                <Button type="button" variant="outline" size="sm" onClick={addItem}><Plus className="h-4 w-4" /> {isArabic ? 'إضافة عنصر' : 'Add item'}</Button>
+                                <CardTitle className="text-base">{isArabic ? 'بنود عرض السعر' : 'Line items'}</CardTitle>
+                                <Button type="button" variant="outline" size="sm" onClick={addItem}><Plus className="h-4 w-4" /> {isArabic ? 'إضافة بند' : 'Add item'}</Button>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 {data.items.map((item, i) => (
@@ -292,14 +281,13 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                             </CardContent>
                         </Card>
 
-                        {/* Sales rep + commission */}
                         <Card>
                             <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'مندوب المبيعات' : 'Sales rep'}</CardTitle></CardHeader>
                             <CardContent className="space-y-3">
                                 <p className="text-xs text-muted-foreground">
                                     {isArabic
-                                        ? 'لا تظهر هذه البيانات للعميل — فقط في الفاتورة الداخلية وفي تقارير الربح والعمولة.'
-                                        : 'These fields are NOT visible to the client — shown only on the internal invoice and in profit/commission reports.'}
+                                        ? 'لا تظهر هذه البيانات للعميل — فقط في تقارير الربح والعمولة.'
+                                        : 'These fields are NOT visible to the client — shown only in profit/commission reports.'}
                                 </p>
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <Field label={isArabic ? 'المندوب' : 'Representative'}>
@@ -324,33 +312,30 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                             </CardContent>
                         </Card>
 
-                        {/* Toggles */}
                         <Card>
                             <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'إعدادات إضافية' : 'Additional options'}</CardTitle></CardHeader>
                             <CardContent className="space-y-3">
-                                <ToggleRow
-                                    label={isArabic ? 'طلب إيصال من العميل' : 'Request receipt from client'}
-                                    checked={data.requires_receipt}
-                                    onChange={(v) => setData('requires_receipt', v)}
-                                />
-                                <ToggleRow
-                                    label={isArabic ? 'إيصال الدفع' : 'Payment receipt'}
-                                    checked={data.has_receipt_toggle}
-                                    onChange={(v) => setData('has_receipt_toggle', v)}
-                                />
                                 <div>
-                                    <Label className="text-xs">{isArabic ? 'ملاحظات العميل' : 'Client notes'}</Label>
+                                    <Label className="text-xs">{isArabic ? 'ملاحظات (عربي)' : 'Notes (AR)'}</Label>
+                                    <Textarea value={data.notes_ar} onChange={(e) => setData('notes_ar', e.target.value)} rows={2} />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">{isArabic ? 'ملاحظات (إنجليزي)' : 'Notes (EN)'}</Label>
+                                    <Textarea value={data.notes_en} onChange={(e) => setData('notes_en', e.target.value)} rows={2} />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">{isArabic ? 'ملاحظات للعميل' : 'Client notes'}</Label>
                                     <Textarea value={data.client_notes} onChange={(e) => setData('client_notes', e.target.value)} rows={2} />
                                 </div>
                                 <div>
                                     <Label className="text-xs">{isArabic ? 'شروط الدفع' : 'Payment terms'}</Label>
                                     <Textarea value={data.payment_terms} onChange={(e) => setData('payment_terms', e.target.value)} rows={2} />
                                 </div>
-                                <Field label={isArabic ? 'قبول المدفوعات عبر' : 'Accept payments via'}>
+                                <Field label={isArabic ? 'طريقة الدفع المقترحة' : 'Suggested payment method'}>
                                     <Select value={data.payment_method} onValueChange={(v) => setData('payment_method', v)}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="bank_transfer">{isArabic ? 'الحساب المصرفي' : 'Bank account'}</SelectItem>
+                                            <SelectItem value="bank_transfer">{isArabic ? 'الحساب المصرفي' : 'Bank transfer'}</SelectItem>
                                             <SelectItem value="tap">Tap</SelectItem>
                                             <SelectItem value="credit_card">{isArabic ? 'بطاقة ائتمان' : 'Credit card'}</SelectItem>
                                             <SelectItem value="mada">مدى</SelectItem>
@@ -362,7 +347,6 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                         </Card>
                     </div>
 
-                    {/* Totals sidebar */}
                     <div className="space-y-4">
                         <Card>
                             <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'الحسابات' : 'Totals'}</CardTitle></CardHeader>
@@ -394,7 +378,7 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                         </Card>
 
                         <Button type="button" variant="outline" asChild className="w-full">
-                            <Link href="/super-admin/invoices">{isArabic ? 'إلغاء' : 'Cancel'}</Link>
+                            <Link href="/super-admin/quotes">{isArabic ? 'إلغاء' : 'Cancel'}</Link>
                         </Button>
                     </div>
                 </form>
@@ -419,14 +403,5 @@ function Row({ label, value, bold = false }: { label: string; value: string; bol
             <span className="text-muted-foreground">{label}</span>
             <span>{value}</span>
         </div>
-    );
-}
-
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-    return (
-        <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox checked={checked} onCheckedChange={(v) => onChange(v === true)} />
-            <span className="text-sm">{label}</span>
-        </label>
     );
 }

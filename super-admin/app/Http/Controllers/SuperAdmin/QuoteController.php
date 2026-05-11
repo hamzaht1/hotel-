@@ -3,71 +3,65 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Invoice;
-use App\Models\InvoiceItem;
-use App\Models\SiteSetting;
+use App\Models\Quote;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class InvoiceController extends Controller
+class QuoteController extends Controller
 {
     public function index(Request $request)
     {
-        $invoices = Invoice::query()
+        $quotes = Quote::query()
             ->with('tenant:id,name,email')
             ->when($request->search, fn ($q, $s) => $q->where(function ($q2) use ($s) {
                 $q2->whereHas('tenant', fn ($t) => $t->where('name', 'like', "%{$s}%"))
-                    ->orWhere('invoice_number', 'like', "%{$s}%")
+                    ->orWhere('quote_number', 'like', "%{$s}%")
                     ->orWhere('external_client_name', 'like', "%{$s}%");
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->tenant_id, fn ($q, $id) => $q->where('tenant_id', $id))
             ->when($request->type, fn ($q, $t) => $q->where('type', $t))
-            ->when($request->payment_method, fn ($q, $m) => $q->where('payment_method', $m))
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $stats = [
-            'total_invoices' => Invoice::count(),
-            'total_paid' => (float) Invoice::where('status', 'paid')->sum('total'),
-            'total_pending' => (float) Invoice::whereIn('status', ['draft', 'sent'])->sum('total'),
-            'total_overdue' => (float) Invoice::where('status', 'sent')->where('due_date', '<', now())->sum('total'),
-            'paid_count' => Invoice::where('status', 'paid')->count(),
-            'pending_count' => Invoice::whereIn('status', ['draft', 'sent'])->count(),
-            'overdue_count' => Invoice::where('status', 'sent')->where('due_date', '<', now())->count(),
-            'cancelled_count' => Invoice::where('status', 'cancelled')->count(),
-            'total_collected' => (float) Invoice::where('status', 'paid')->sum('total'),
+            'total_quotes' => Quote::count(),
+            'total_accepted' => (float) Quote::where('status', 'accepted')->sum('total'),
+            'total_pending' => (float) Quote::whereIn('status', ['draft', 'sent'])->sum('total'),
+            'total_expired' => (float) Quote::where('status', 'sent')->where('valid_until', '<', now())->sum('total'),
+            'accepted_count' => Quote::where('status', 'accepted')->count(),
+            'pending_count' => Quote::whereIn('status', ['draft', 'sent'])->count(),
+            'expired_count' => Quote::where('status', 'sent')->where('valid_until', '<', now())->count(),
+            'refused_count' => Quote::where('status', 'refused')->count(),
         ];
 
-        return Inertia::render('super-admin/invoices/index', [
-            'invoices' => $invoices,
+        return Inertia::render('super-admin/quotes/index', [
+            'quotes' => $quotes,
             'stats' => $stats,
-            'filters' => $request->only(['search', 'status', 'tenant_id', 'type', 'payment_method']),
+            'filters' => $request->only(['search', 'status', 'tenant_id', 'type']),
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('super-admin/invoices/create', [
+        return Inertia::render('super-admin/quotes/create', [
             'tenants' => Tenant::where('is_active', true)->orderBy('name')->get(['id', 'name', 'email', 'phone', 'org_name_ar', 'plan_id']),
             'plans' => \App\Models\Plan::orderBy('sort_order')->get(['id', 'slug', 'name_ar', 'name_en']),
             'salesReps' => User::where('role', 'super_admin')->orWhere('role', 'staff')->orderBy('name')->get(['id', 'name']),
-            'nextNumber' => Invoice::generateNumber(),
-            'defaultTemplate' => SiteSetting::get('default_invoice_pdf_template', 'default'),
+            'nextNumber' => Quote::generateNumber(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $validated = $this->validateInvoice($request);
+        $validated = $this->validateQuote($request);
 
-        $invoice = Invoice::create(array_merge($this->mapInvoiceData($validated), [
-            'invoice_number' => Invoice::generateNumber(),
+        $quote = Quote::create(array_merge($this->mapQuoteData($validated), [
+            'quote_number' => Quote::generateNumber(),
             'status' => 'draft',
             'amount' => 0,
             'tax_amount' => 0,
@@ -76,7 +70,7 @@ class InvoiceController extends Controller
         ]));
 
         foreach ($validated['items'] as $item) {
-            $invoice->items()->create([
+            $quote->items()->create([
                 'description_ar' => $item['description_ar'],
                 'description_en' => $item['description_en'],
                 'quantity' => $item['quantity'],
@@ -85,47 +79,47 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $invoice->calculateTotals();
+        $quote->calculateTotals();
 
-        return redirect()->route('super-admin.invoices.show', $invoice)
-            ->with('success', 'تم إنشاء الفاتورة بنجاح');
+        return redirect()->route('super-admin.quotes.show', $quote)
+            ->with('success', 'تم إنشاء عرض السعر بنجاح');
     }
 
-    public function show(Invoice $invoice)
+    public function show(Quote $quote)
     {
-        return Inertia::render('super-admin/invoices/show', [
-            'invoice' => $invoice->load('tenant:id,name,email,phone,org_name_ar,org_name_en', 'items'),
+        return Inertia::render('super-admin/quotes/show', [
+            'quote' => $quote->load('tenant:id,name,email,phone,org_name_ar,org_name_en', 'items'),
         ]);
     }
 
-    public function edit(Invoice $invoice)
+    public function edit(Quote $quote)
     {
-        if ($invoice->isLocked()) {
-            return back()->with('error', 'لا يمكن تعديل فاتورة مدفوعة أو مقفلة');
+        if ($quote->isLocked()) {
+            return back()->with('error', 'لا يمكن تعديل عرض سعر مقبول أو مرفوض أو مقفل');
         }
 
         $tenants = Tenant::where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']);
 
-        return Inertia::render('super-admin/invoices/edit', [
-            'invoice' => $invoice->load('items'),
+        return Inertia::render('super-admin/quotes/edit', [
+            'quote' => $quote->load('items'),
             'tenants' => $tenants,
         ]);
     }
 
-    public function update(Request $request, Invoice $invoice)
+    public function update(Request $request, Quote $quote)
     {
-        if ($invoice->isLocked()) {
-            return back()->with('error', 'لا يمكن تعديل فاتورة مدفوعة أو مقفلة');
+        if ($quote->isLocked()) {
+            return back()->with('error', 'لا يمكن تعديل عرض سعر مقبول أو مرفوض أو مقفل');
         }
 
-        $validated = $this->validateInvoice($request);
+        $validated = $this->validateQuote($request);
 
-        $invoice->update($this->mapInvoiceData($validated));
+        $quote->update($this->mapQuoteData($validated));
 
-        $invoice->items()->delete();
+        $quote->items()->delete();
 
         foreach ($validated['items'] as $item) {
-            $invoice->items()->create([
+            $quote->items()->create([
                 'description_ar' => $item['description_ar'],
                 'description_en' => $item['description_en'],
                 'quantity' => $item['quantity'],
@@ -134,83 +128,81 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $invoice->calculateTotals();
+        $quote->calculateTotals();
 
-        return redirect()->route('super-admin.invoices.show', $invoice)
-            ->with('success', 'تم تحديث الفاتورة بنجاح');
+        return redirect()->route('super-admin.quotes.show', $quote)
+            ->with('success', 'تم تحديث عرض السعر بنجاح');
     }
 
-    public function send(Invoice $invoice)
+    public function send(Quote $quote)
     {
-        $invoice->update(['status' => 'sent']);
+        $quote->update(['status' => 'sent']);
 
-        $admin = User::where('tenant_id', $invoice->tenant_id)->where('role', 'client_admin')->first();
-        if ($admin) {
-            \App\Support\Mailer::sendIfConfigured(
-                $admin->email,
-                fn () => new \App\Mail\InvoiceSentMail($invoice, $admin),
-                'invoice send'
-            );
-        }
-
-        return back()->with('success', 'تم إرسال الفاتورة بنجاح');
+        return back()->with('success', 'تم إرسال عرض السعر بنجاح');
     }
 
-    public function markAsPaid(Request $request, Invoice $invoice)
+    public function markAccepted(Quote $quote)
     {
-        $invoice->update([
-            'status' => 'paid',
-            'paid_at' => now(),
-            'payment_method' => $request->input('payment_method', 'bank_transfer'),
+        $quote->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
         ]);
 
-        return back()->with('success', 'تم تسجيل الدفع بنجاح');
+        return back()->with('success', 'تم قبول عرض السعر');
+    }
+
+    public function markRefused(Quote $quote)
+    {
+        $quote->update([
+            'status' => 'refused',
+            'refused_at' => now(),
+        ]);
+
+        return back()->with('success', 'تم رفض عرض السعر');
     }
 
     public function exportCsv(Request $request)
     {
-        $query = Invoice::query()
+        $query = Quote::query()
             ->with('tenant:id,name,email')
             ->when($request->search, fn ($q, $s) => $q->where(function ($q2) use ($s) {
                 $q2->whereHas('tenant', fn ($t) => $t->where('name', 'like', "%{$s}%"))
-                    ->orWhere('invoice_number', 'like', "%{$s}%")
+                    ->orWhere('quote_number', 'like', "%{$s}%")
                     ->orWhere('external_client_name', 'like', "%{$s}%");
             }))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->tenant_id, fn ($q, $id) => $q->where('tenant_id', $id))
             ->when($request->type, fn ($q, $t) => $q->where('type', $t))
-            ->when($request->payment_method, fn ($q, $m) => $q->where('payment_method', $m))
             ->latest();
 
-        $filename = 'invoices-'.now()->format('Y-m-d-His').'.csv';
+        $filename = 'quotes-'.now()->format('Y-m-d-His').'.csv';
 
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            // UTF-8 BOM so Excel renders Arabic correctly.
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, [
-                'Invoice #', 'Client', 'Email', 'Type', 'Status',
-                'Issue date', 'Due date', 'Payment method',
+                'Quote #', 'Client', 'Email', 'Type', 'Status',
+                'Issue date', 'Valid until',
                 'Subtotal', 'Discount', 'Tax', 'Total', 'Currency',
-                'Paid at',
+                'Accepted at', 'Refused at',
             ]);
             $query->chunk(500, function ($rows) use ($out) {
-                foreach ($rows as $inv) {
+                foreach ($rows as $q) {
                     fputcsv($out, [
-                        $inv->invoice_number,
-                        $inv->tenant?->name ?? $inv->external_client_name,
-                        $inv->tenant?->email ?? $inv->external_client_email,
-                        $inv->type,
-                        $inv->status,
-                        optional($inv->issue_date)->format('Y-m-d'),
-                        optional($inv->due_date)->format('Y-m-d'),
-                        $inv->payment_method,
-                        $inv->amount,
-                        $inv->discount,
-                        $inv->tax_amount,
-                        $inv->total,
+                        $q->quote_number,
+                        $q->tenant?->name ?? $q->external_client_name,
+                        $q->tenant?->email ?? $q->external_client_email,
+                        $q->type,
+                        $q->status,
+                        optional($q->issue_date)->format('Y-m-d'),
+                        optional($q->valid_until)->format('Y-m-d'),
+                        $q->amount,
+                        $q->discount,
+                        $q->tax_amount,
+                        $q->total,
                         'SAR',
-                        optional($inv->paid_at)->format('Y-m-d H:i'),
+                        optional($q->accepted_at)->format('Y-m-d H:i'),
+                        optional($q->refused_at)->format('Y-m-d H:i'),
                     ]);
                 }
             });
@@ -220,51 +212,47 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function downloadPdf(Invoice $invoice)
+    public function downloadPdf(Quote $quote)
     {
-        $invoice->load('tenant', 'items');
+        $quote->load('tenant', 'items');
 
-        $template = $invoice->pdf_template ?: 'default';
-        $view = view()->exists("invoices.{$template}") ? "invoices.{$template}" : 'invoices.default';
+        $template = $quote->pdf_template ?: 'default';
+        $view = view()->exists("quotes.{$template}") ? "quotes.{$template}" : 'quotes.default';
 
-        $pdf = Pdf::loadView($view, ['invoice' => $invoice]);
+        $pdf = Pdf::loadView($view, ['quote' => $quote]);
         $pdf->setPaper('A4');
 
-        return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
+        return $pdf->download("quote-{$quote->quote_number}.pdf");
     }
 
-    public function destroy(Invoice $invoice)
+    public function destroy(Quote $quote)
     {
-        if ($invoice->isLocked()) {
-            return back()->with('error', 'لا يمكن حذف فاتورة مدفوعة أو مقفلة');
+        if ($quote->isLocked()) {
+            return back()->with('error', 'لا يمكن حذف عرض سعر مقبول أو مرفوض أو مقفل');
         }
 
-        $invoice->items()->delete();
-        $invoice->delete();
+        $quote->items()->delete();
+        $quote->delete();
 
-        return redirect()->route('super-admin.invoices.index')
-            ->with('success', 'تم حذف الفاتورة');
+        return redirect()->route('super-admin.quotes.index')
+            ->with('success', 'تم حذف عرض السعر');
     }
 
-    public function lock(Invoice $invoice)
+    public function lock(Quote $quote)
     {
-        $invoice->update(['locked_at' => now()]);
+        $quote->update(['locked_at' => now()]);
 
-        return back()->with('success', 'تم قفل الفاتورة');
+        return back()->with('success', 'تم قفل عرض السعر');
     }
 
-    public function unlock(Invoice $invoice)
+    public function unlock(Quote $quote)
     {
-        if ($invoice->status === 'paid') {
-            return back()->with('error', 'لا يمكن فتح فاتورة مدفوعة');
-        }
+        $quote->update(['locked_at' => null]);
 
-        $invoice->update(['locked_at' => null]);
-
-        return back()->with('success', 'تم فتح الفاتورة');
+        return back()->with('success', 'تم فتح عرض السعر');
     }
 
-    private function validateInvoice(Request $request): array
+    private function validateQuote(Request $request): array
     {
         return $request->validate([
             'tenant_id' => 'nullable|exists:tenants,id',
@@ -274,7 +262,7 @@ class InvoiceController extends Controller
             'external_client_address' => 'nullable|string|max:1000',
             'type' => 'required|in:subscription,setup,addon',
             'issue_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:issue_date',
+            'valid_until' => 'required|date|after_or_equal:issue_date',
             'tax_rate' => 'required|numeric|min:0|max:100',
             'tax_rate_2' => 'nullable|numeric|min:0|max:100',
             'discount' => 'nullable|numeric|min:0',
@@ -293,8 +281,6 @@ class InvoiceController extends Controller
             'payment_method' => 'nullable|string|max:50',
             'sales_rep_id' => 'nullable|exists:users,id',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
-            'requires_receipt' => 'boolean',
-            'has_receipt_toggle' => 'boolean',
             'pdf_template' => 'nullable|in:default,modern,classic',
             'items' => 'required|array|min:1',
             'items.*.description_ar' => 'required|string|max:500',
@@ -304,7 +290,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    private function mapInvoiceData(array $v): array
+    private function mapQuoteData(array $v): array
     {
         return [
             'tenant_id' => $v['tenant_id'] ?? null,
@@ -318,7 +304,7 @@ class InvoiceController extends Controller
             'discount' => $v['discount'] ?? 0,
             'discount_percent' => $v['discount_percent'] ?? 0,
             'issue_date' => $v['issue_date'],
-            'due_date' => $v['due_date'],
+            'valid_until' => $v['valid_until'],
             'notes_ar' => $v['notes_ar'] ?? null,
             'notes_en' => $v['notes_en'] ?? null,
             'client_notes' => $v['client_notes'] ?? null,
@@ -333,8 +319,6 @@ class InvoiceController extends Controller
             'payment_method' => $v['payment_method'] ?? null,
             'sales_rep_id' => $v['sales_rep_id'] ?? null,
             'commission_rate' => $v['commission_rate'] ?? 0,
-            'requires_receipt' => $v['requires_receipt'] ?? false,
-            'has_receipt_toggle' => $v['has_receipt_toggle'] ?? false,
             'pdf_template' => $v['pdf_template'] ?? 'default',
         ];
     }

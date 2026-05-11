@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Plus, Pencil, Eye, FileDown, Download, FileCog } from 'lucide-react';
+import { Plus, Pencil, Eye, FileDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +9,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useT } from '@/hooks/use-translations';
 
-interface Invoice {
+interface Quote {
     id: number;
-    tenant_id: number;
-    invoice_number: string;
+    tenant_id: number | null;
+    quote_number: string;
     type: string;
     status: string;
     amount: string;
@@ -21,47 +21,48 @@ interface Invoice {
     discount: string;
     total: string;
     issue_date: string;
-    due_date: string;
-    paid_at: string | null;
+    valid_until: string;
+    accepted_at: string | null;
     payment_method: string | null;
     notes_ar: string | null;
     notes_en: string | null;
-    items: { id?: number; description_ar: string; description_en: string; quantity: number; unit_price: number; total: number }[];
-    tenant?: { id: number; name: string; email: string; phone?: string; org_name_ar?: string; org_name_en?: string };
+    external_client_name?: string | null;
+    external_client_email?: string | null;
+    tenant?: { id: number; name: string; email: string };
     created_at: string;
 }
 
 interface PaginatedData {
-    data: Invoice[];
+    data: Quote[];
     links: { url: string | null; label: string; active: boolean }[];
     current_page: number;
     last_page: number;
 }
 
 interface Props {
-    invoices: PaginatedData;
+    quotes: PaginatedData;
     stats: {
-        total_invoices: number;
-        total_paid: number;
+        total_quotes: number;
+        total_accepted: number;
         total_pending: number;
-        total_overdue: number;
+        total_expired: number;
     };
     filters: { search?: string; status?: string };
 }
 
-export default function InvoicesIndex({ invoices, stats, filters }: Props) {
+export default function QuotesIndex({ quotes, stats, filters }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
-        { title: t('invoices', 'Invoices'), href: '/super-admin/invoices' },
+        { title: t('quotes', 'Quotes'), href: '/super-admin/quotes' },
     ];
 
     function handleSearch(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        router.get('/super-admin/invoices', {
+        router.get('/super-admin/quotes', {
             search: formData.get('search') as string,
             status: filters.status,
         }, { preserveState: true });
@@ -69,14 +70,14 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
 
     const statusBadge = (status: string) => {
         switch (status) {
-            case 'paid':
-                return <Badge className="rounded-full bg-green-100 text-green-700 hover:bg-green-100">{t('paid', 'Paid')}</Badge>;
+            case 'accepted':
+                return <Badge className="rounded-full bg-green-100 text-green-700 hover:bg-green-100">{t('accepted', 'Accepted')}</Badge>;
             case 'sent':
                 return <Badge className="rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100">{t('sent', 'Sent')}</Badge>;
-            case 'overdue':
-                return <Badge className="rounded-full bg-red-100 text-red-700 hover:bg-red-100">{t('overdue', 'Overdue')}</Badge>;
-            case 'cancelled':
-                return <Badge className="rounded-full bg-gray-100 text-gray-700 hover:bg-gray-100">{t('cancelled', 'Cancelled')}</Badge>;
+            case 'refused':
+                return <Badge className="rounded-full bg-red-100 text-red-700 hover:bg-red-100">{t('refused', 'Refused')}</Badge>;
+            case 'expired':
+                return <Badge className="rounded-full bg-red-50 text-red-600 hover:bg-red-50">{t('expired', 'Expired')}</Badge>;
             default:
                 return <Badge className="rounded-full bg-gray-100 text-gray-500 hover:bg-gray-100">{t('draft', 'Draft')}</Badge>;
         }
@@ -93,7 +94,7 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={t('invoices', 'Invoices')} />
+            <Head title={t('quotes', 'Quotes')} />
             <div className="flex flex-col gap-6 p-6">
                 {flash?.success && (
                     <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
@@ -110,14 +111,14 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardContent className="p-4">
-                            <p className="text-sm text-muted-foreground">{t('total_invoices', 'Total Invoices')}</p>
-                            <p className="mt-1 text-2xl font-bold">{stats.total_invoices}</p>
+                            <p className="text-sm text-muted-foreground">{t('total_quotes', 'Total Quotes')}</p>
+                            <p className="mt-1 text-2xl font-bold">{stats.total_quotes}</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="p-4">
-                            <p className="text-sm text-muted-foreground">{t('paid', 'Paid')} (SAR)</p>
-                            <p className="mt-1 text-2xl font-bold text-green-600">{Number(stats.total_paid).toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">{t('accepted', 'Accepted')} (SAR)</p>
+                            <p className="mt-1 text-2xl font-bold text-green-600">{Number(stats.total_accepted).toLocaleString()}</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -128,25 +129,19 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                     </Card>
                     <Card>
                         <CardContent className="p-4">
-                            <p className="text-sm text-muted-foreground">{t('overdue', 'Overdue')} (SAR)</p>
-                            <p className="mt-1 text-2xl font-bold text-red-600">{Number(stats.total_overdue).toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">{t('expired', 'Expired')} (SAR)</p>
+                            <p className="mt-1 text-2xl font-bold text-red-600">{Number(stats.total_expired).toLocaleString()}</p>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold">{t('invoices', 'Invoices')}</h1>
-                    <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" asChild>
-                            <Link href="/super-admin/invoice-templates">
-                                <FileCog className="h-4 w-4" />
-                                {t('manage_templates', 'Manage templates')}
-                            </Link>
-                        </Button>
+                    <h1 className="text-2xl font-bold">{t('quotes', 'Quotes')}</h1>
+                    <div className="flex gap-2">
                         <Button variant="outline" asChild>
                             <a
-                                href={`/super-admin/invoices/export.csv?${new URLSearchParams(
+                                href={`/super-admin/quotes/export.csv?${new URLSearchParams(
                                     Object.entries(filters).filter(([, v]) => v !== undefined && v !== '') as [string, string][]
                                 ).toString()}`}
                             >
@@ -155,9 +150,9 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                             </a>
                         </Button>
                         <Button asChild>
-                            <Link href="/super-admin/invoices/create">
+                            <Link href="/super-admin/quotes/create">
                                 <Plus className="h-4 w-4" />
-                                {t('create_invoice', 'Create Invoice')}
+                                {t('create_quote', 'Create Quote')}
                             </Link>
                         </Button>
                     </div>
@@ -169,7 +164,7 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                         <Input
                             name="search"
                             type="text"
-                            placeholder={t('search_invoices', 'Search invoices...')}
+                            placeholder={t('search_quotes', 'Search quotes...')}
                             defaultValue={filters.search || ''}
                             className="vuexy-input"
                         />
@@ -177,7 +172,7 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                     <Select
                         value={filters.status || 'all'}
                         onValueChange={(value) =>
-                            router.get('/super-admin/invoices', { ...filters, status: value === 'all' ? undefined : value }, { preserveState: true })
+                            router.get('/super-admin/quotes', { ...filters, status: value === 'all' ? undefined : value }, { preserveState: true })
                         }
                     >
                         <SelectTrigger className="w-full sm:w-[160px]">
@@ -187,9 +182,9 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                             <SelectItem value="all">{t('all_status', 'All Status')}</SelectItem>
                             <SelectItem value="draft">{t('draft', 'Draft')}</SelectItem>
                             <SelectItem value="sent">{t('sent', 'Sent')}</SelectItem>
-                            <SelectItem value="paid">{t('paid', 'Paid')}</SelectItem>
-                            <SelectItem value="overdue">{t('overdue', 'Overdue')}</SelectItem>
-                            <SelectItem value="cancelled">{t('cancelled', 'Cancelled')}</SelectItem>
+                            <SelectItem value="accepted">{t('accepted', 'Accepted')}</SelectItem>
+                            <SelectItem value="refused">{t('refused', 'Refused')}</SelectItem>
+                            <SelectItem value="expired">{t('expired', 'Expired')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -200,43 +195,43 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b bg-muted/50 text-muted-foreground">
-                                    <th className="px-4 py-3 text-start font-medium">{t('invoice_number', 'Invoice #')}</th>
-                                    <th className="px-4 py-3 text-start font-medium">{t('tenant', 'Tenant')}</th>
+                                    <th className="px-4 py-3 text-start font-medium">{t('quote_number', 'Quote #')}</th>
+                                    <th className="px-4 py-3 text-start font-medium">{t('client', 'Client')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('type', 'Type')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('amount', 'Amount')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('status', 'Status')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('issue_date', 'Issue Date')}</th>
-                                    <th className="px-4 py-3 text-start font-medium">{t('due_date', 'Due Date')}</th>
+                                    <th className="px-4 py-3 text-start font-medium">{t('valid_until', 'Valid Until')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('actions', 'Actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoices.data.map((invoice) => (
-                                    <tr key={invoice.id} className="border-b last:border-0 hover:bg-muted/30">
-                                        <td className="px-4 py-3 font-medium">{invoice.invoice_number}</td>
+                                {quotes.data.map((quote) => (
+                                    <tr key={quote.id} className="border-b last:border-0 hover:bg-muted/30">
+                                        <td className="px-4 py-3 font-medium">{quote.quote_number}</td>
                                         <td className="px-4 py-3">
-                                            <div className="font-medium">{invoice.tenant?.name || '—'}</div>
-                                            <div className="text-xs text-muted-foreground">{invoice.tenant?.email}</div>
+                                            <div className="font-medium">{quote.tenant?.name || quote.external_client_name || '—'}</div>
+                                            <div className="text-xs text-muted-foreground">{quote.tenant?.email || quote.external_client_email}</div>
                                         </td>
-                                        <td className="px-4 py-3">{typeBadge(invoice.type)}</td>
-                                        <td className="px-4 py-3 font-medium">{Number(invoice.total).toLocaleString()} SAR</td>
-                                        <td className="px-4 py-3">{statusBadge(invoice.status)}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{invoice.issue_date}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{invoice.due_date}</td>
+                                        <td className="px-4 py-3">{typeBadge(quote.type)}</td>
+                                        <td className="px-4 py-3 font-medium">{Number(quote.total).toLocaleString()} SAR</td>
+                                        <td className="px-4 py-3">{statusBadge(quote.status)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{quote.issue_date}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{quote.valid_until}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-1">
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={`/super-admin/invoices/${invoice.id}`}>
+                                                    <Link href={`/super-admin/quotes/${quote.id}`}>
                                                         <Eye className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={`/super-admin/invoices/${invoice.id}/edit`}>
+                                                    <Link href={`/super-admin/quotes/${quote.id}/edit`}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <a href={`/super-admin/invoices/${invoice.id}/pdf`} target="_blank" rel="noreferrer">
+                                                    <a href={`/super-admin/quotes/${quote.id}/pdf`} target="_blank" rel="noreferrer">
                                                         <FileDown className="h-4 w-4" />
                                                     </a>
                                                 </Button>
@@ -244,10 +239,10 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                                         </td>
                                     </tr>
                                 ))}
-                                {invoices.data.length === 0 && (
+                                {quotes.data.length === 0 && (
                                     <tr>
                                         <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                                            {t('no_invoices_found', 'No invoices found')}
+                                            {t('no_quotes_found', 'No quotes found')}
                                         </td>
                                     </tr>
                                 )}
@@ -257,9 +252,9 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                 </Card>
 
                 {/* Pagination */}
-                {invoices.last_page > 1 && (
+                {quotes.last_page > 1 && (
                     <div className="flex justify-center gap-1">
-                        {invoices.links.map((link, i) => (
+                        {quotes.links.map((link, i) => (
                             <Button
                                 key={i}
                                 variant={link.active ? 'default' : 'ghost'}
