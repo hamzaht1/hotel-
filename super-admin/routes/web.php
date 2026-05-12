@@ -85,16 +85,19 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
             Route::put('templates/{template}/settings', [TemplateController::class, 'updateSettings'])->name('templates.settings');
         });
 
-        // Invoices — view vs. mutating actions split
+        // Invoices — static routes (index, export, create) registered BEFORE wildcard {invoice}
+        // so Laravel doesn't bind "create"/"export.csv" as an id.
         Route::middleware('permission:invoices.view')->group(function () {
             Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
             Route::get('invoices/export.csv', [InvoiceController::class, 'exportCsv'])->name('invoices.export');
-            Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
-            Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
         });
         Route::middleware('permission:invoices.create')->group(function () {
             Route::get('invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
             Route::post('invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+        });
+        Route::middleware('permission:invoices.view')->group(function () {
+            Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+            Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
         });
         Route::middleware('permission:invoices.edit')->group(function () {
             Route::get('invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
@@ -149,13 +152,17 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         });
 
         // Tenants (requests)
+        // Tenants — static routes (index, create) registered BEFORE wildcard {tenant}
+        // so Laravel doesn't bind "create" as an id.
         Route::middleware('permission:tenants.view')->group(function () {
             Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
-            Route::get('tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
         });
         Route::middleware('permission:tenants.create')->group(function () {
             Route::get('tenants/create', [TenantController::class, 'create'])->name('tenants.create');
             Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+        });
+        Route::middleware('permission:tenants.view')->group(function () {
+            Route::get('tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
         });
         Route::middleware('permission:tenants.edit')->group(function () {
             Route::get('tenants/{tenant}/edit', [TenantController::class, 'edit'])->name('tenants.edit');
@@ -196,14 +203,17 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
             Route::delete('roles/{role}', [\App\Http\Controllers\SuperAdmin\RoleController::class, 'destroy'])->name('roles.destroy');
         });
 
-        // Clients
+        // Clients — static routes (index, create) registered BEFORE wildcard {tenant}
+        // so Laravel doesn't bind "create" as an id.
         Route::middleware('permission:clients.view')->group(function () {
             Route::get('clients', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'index'])->name('clients.index');
-            Route::get('clients/{tenant}', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'show'])->name('clients.show');
         });
         Route::middleware('permission:clients.create')->group(function () {
             Route::get('clients/create', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'create'])->name('clients.create');
             Route::post('clients', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'store'])->name('clients.store');
+        });
+        Route::middleware('permission:clients.view')->group(function () {
+            Route::get('clients/{tenant}', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'show'])->name('clients.show');
         });
         Route::post('clients/{tenant}/tier', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'setTier'])->middleware('permission:clients.set_tier')->name('clients.tier');
         Route::post('clients/{tenant}/status', [\App\Http\Controllers\SuperAdmin\ClientController::class, 'setStatus'])->middleware('permission:clients.set_status')->name('clients.status');
