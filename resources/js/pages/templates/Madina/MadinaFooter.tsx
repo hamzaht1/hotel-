@@ -11,9 +11,13 @@
  * - Copyright information
  */
 import React from 'react'
-import { usePage } from '@inertiajs/react'
-import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import {
+  useMergedSiteTexts,
+  useTenantSiteSettings,
+} from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 
 // Import images from template folder
 import mapImage from './images/footer/map.png'
@@ -27,8 +31,13 @@ import { Logo as HeaderLogo } from './Logo'
 // embedded SVG that follows the template's primary palette.
 function FooterLogo() {
   const storageUrl = useStorageUrl()
-  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
-  const tenantLogo = storageUrl(siteSettings?.identity?.site_logo)
+  // Live-preview hook merges server settings with iframe edits so the footer
+  // logo updates instantly when the tenant uploads a new file.
+  const siteSettings = useTenantSiteSettings()
+  const rawLogo = siteSettings?.identity?.site_logo as string | null | undefined
+  const tenantLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('data:')
+    ? rawLogo
+    : storageUrl(rawLogo)
 
   if (tenantLogo) {
     return (
@@ -45,6 +54,18 @@ function FooterLogo() {
 
 export default function MadinaFooter() {
   const t = useTemplateT()
+  const { isArabic } = useTemplateLanguage()
+  // Tenant-editable footer texts (section=footer, key=title/description)
+  // come through the live-preview channel just like hero texts.
+  const siteTexts = useMergedSiteTexts()
+  const footerDescription = pickSiteText(
+    siteTexts,
+    'footer',
+    'description',
+    t('footer.description', 'نحن لسنا مجرد فنادق، بل وجهة للراحة والفخامة. نحن نؤمن بأن كل رحلة تستحق نهاية مثالية، ولهذا نسعى جاهدين لتقديم أفضل الخدمات'),
+    isArabic,
+  )
+  const footerTitle = pickSiteText(siteTexts, 'footer', 'title', '', isArabic)
 
   return (
     <footer 
@@ -89,8 +110,11 @@ export default function MadinaFooter() {
             <div className="h-20 w-auto mb-4" style={{ display: 'flex', alignItems: 'center' }}>
               <FooterLogo />
             </div>
+            {footerTitle && (
+              <h3 className="text-white text-xl font-semibold mb-2">{footerTitle}</h3>
+            )}
             <p className="text-white text-sm leading-relaxed">
-              {t('footer.description', 'نحن لسنا مجرد فنادق، بل وجهة للراحة والفخامة. نحن نؤمن بأن كل رحلة تستحق نهاية مثالية، ولهذا نسعى جاهدين لتقديم أفضل الخدمات')}
+              {footerDescription}
             </p>
           </div>
 

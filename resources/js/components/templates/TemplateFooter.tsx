@@ -1,22 +1,40 @@
 import React, { useState, useEffect } from 'react'
-import { usePage } from '@inertiajs/react'
 import defaultLogo from '@/assets/images/riyadh-template/footer/logo.png'
 import mapImage from '@/assets/images/riyadh-template/footer/map.png'
 // import footerFrame from '@/assets/images/riyadh-template/footer/footer-frame-1.svg'
 import footerBackground from '@/assets/images/riyadh-template/footer/footer-frame-2.svg'
 import paymentLogos from '@/assets/images/riyadh-template/footer/payment-logos.svg'
-import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import {
+  useMergedSiteTexts,
+  useTenantSiteSettings,
+} from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 
 /**
  * Template footer component with hotel information and links
  */
 export default function TemplateFooter() {
   const t = useTemplateT()
+  const { isArabic } = useTemplateLanguage()
   const [windowWidth, setWindowWidth] = useState(0)
   const storageUrl = useStorageUrl()
-  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
-  const logo = storageUrl(siteSettings?.identity?.site_logo) || defaultLogo
+  // Live-preview hook: logo + footer texts update instantly while editing.
+  const siteSettings = useTenantSiteSettings()
+  const rawLogo = siteSettings?.identity?.site_logo as string | null | undefined
+  const logo = (rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('data:'))
+    ? rawLogo
+    : (storageUrl(rawLogo) || defaultLogo)
+  const siteTexts = useMergedSiteTexts()
+  const footerDescription = pickSiteText(
+    siteTexts,
+    'footer',
+    'description',
+    t('footer.description', 'نحن لسنا مجرد فنادق، بل وجهة للراحة والفخامة. نحن نؤمن بأن كل رحلة تستحق نهاية مثالية، ولهذا نسعى جاهدين لتقديم أفضل الخدمات'),
+    isArabic,
+  )
+  const footerTitle = pickSiteText(siteTexts, 'footer', 'title', '', isArabic)
   
   useEffect(() => {
     const handleResize = () => {
@@ -98,8 +116,11 @@ export default function TemplateFooter() {
                 alt={t('footer.hotel_name', 'فندق الرياض')} 
                 className="h-16 w-auto max-w-[220px] object-contain mb-4"
               />
+              {footerTitle && (
+                <h3 className="text-white text-xl font-semibold mb-2">{footerTitle}</h3>
+              )}
               <p className="text-gray-300 text-sm leading-relaxed">
-                {t('footer.description', 'نحن لسنا مجرد فنادق، بل وجهة للراحة والفخامة. نحن نؤمن بأن كل رحلة تستحق نهاية مثالية، ولهذا نسعى جاهدين لتقديم أفضل الخدمات')}
+                {footerDescription}
               </p>
             </div>
             

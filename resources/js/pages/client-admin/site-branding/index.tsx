@@ -87,8 +87,6 @@ export default function SiteBranding() {
         site_logo: null as File | null,
         hero_image: null as File | null,
         hero_image_2: null as File | null,
-        footer_text_ar: settings.footer.footer_text_ar ?? '',
-        footer_text_en: settings.footer.footer_text_en ?? '',
         social_twitter: settings.social.social_twitter ?? '',
         social_instagram: settings.social.social_instagram ?? '',
         social_linkedin: settings.social.social_linkedin ?? '',
@@ -132,18 +130,25 @@ export default function SiteBranding() {
     // Convenience accessors/setters for the dedicated Hero slide blocks. Each
     // slide's title and subtitle are stored as site_texts entries so the live
     // preview and the templates both pick them up via the existing channel.
-    const getSlideText = (key: string, field: 'value_ar' | 'value_en'): string => {
-        const row = data.texts.find((t) => t.section === 'hero' && t.key === key)
+    // Generic getter/setter on the flat `texts` array. The dedicated Hero and
+    // Footer blocks both use this so the values flow through the same site_texts
+    // pipeline (live preview, upsert on save).
+    const getText = (section: string, key: string, field: 'value_ar' | 'value_en'): string => {
+        const row = data.texts.find((t) => t.section === section && t.key === key)
         return (row?.[field] as string | null) ?? ''
     }
-    const setSlideText = (key: string, field: 'value_ar' | 'value_en', value: string) => {
-        const idx = data.texts.findIndex((t) => t.section === 'hero' && t.key === key)
+    const setText = (section: string, key: string, field: 'value_ar' | 'value_en', value: string) => {
+        const idx = data.texts.findIndex((t) => t.section === section && t.key === key)
         if (idx >= 0) {
             setData('texts', data.texts.map((t, i) => (i === idx ? { ...t, [field]: value } : t)))
         } else {
-            setData('texts', [...data.texts, { section: 'hero', key, value_ar: '', value_en: '', [field]: value }])
+            setData('texts', [...data.texts, { section, key, value_ar: '', value_en: '', [field]: value }])
         }
     }
+    const getSlideText = (key: string, field: 'value_ar' | 'value_en') => getText('hero', key, field)
+    const setSlideText = (key: string, field: 'value_ar' | 'value_en', value: string) => setText('hero', key, field, value)
+    const getFooterText = (key: string, field: 'value_ar' | 'value_en') => getText('footer', key, field)
+    const setFooterText = (key: string, field: 'value_ar' | 'value_en', value: string) => setText('footer', key, field, value)
 
     // Preview iframe
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
@@ -184,10 +189,6 @@ export default function SiteBranding() {
             media: {
                 hero_image: heroImagePreviewUrl ?? settings.media.hero_image ?? null,
                 hero_image_2: heroImage2PreviewUrl ?? (settings.media as { hero_image_2?: string | null }).hero_image_2 ?? null,
-            },
-            footer: {
-                footer_text_ar: data.footer_text_ar,
-                footer_text_en: data.footer_text_en,
             },
             social: {
                 social_twitter: data.social_twitter,
@@ -307,9 +308,11 @@ export default function SiteBranding() {
                             <TextField label="Subtitle (EN)" value={getSlideText('subtitle_2', 'value_en')} onChange={(v) => setSlideText('subtitle_2', 'value_en', v)} />
                         </Section>
 
-                        <Section title="التذييل">
-                            <TextField label="نص التذييل (عربي)" value={data.footer_text_ar} onChange={(v) => setData('footer_text_ar', v)} dir="rtl" />
-                            <TextField label="Footer text (EN)" value={data.footer_text_en} onChange={(v) => setData('footer_text_en', v)} />
+                        <Section title="التذييل · Footer">
+                            <TextField label="العنوان (عربي)" value={getFooterText('title', 'value_ar')} onChange={(v) => setFooterText('title', 'value_ar', v)} dir="rtl" />
+                            <TextField label="Title (EN)" value={getFooterText('title', 'value_en')} onChange={(v) => setFooterText('title', 'value_en', v)} />
+                            <TextField label="الوصف (عربي)" value={getFooterText('description', 'value_ar')} onChange={(v) => setFooterText('description', 'value_ar', v)} dir="rtl" />
+                            <TextField label="Description (EN)" value={getFooterText('description', 'value_en')} onChange={(v) => setFooterText('description', 'value_en', v)} />
                         </Section>
 
                         <Section title="الشبكات الاجتماعية">
