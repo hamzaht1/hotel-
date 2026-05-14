@@ -15,6 +15,8 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { pickSiteText } from '@/lib/site-texts'
+import { useTenantSiteSettings } from '@/hooks/use-tenant-preview-overrides'
+import { useStorageUrl } from '@/lib/storage'
 
 // Swiper styles
 import 'swiper/css'
@@ -50,6 +52,14 @@ interface HeroSectionProps {
 export default function HeroSection({ siteTexts }: HeroSectionProps = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
+  // First-slide hero image can be overridden by the tenant. data: URLs come
+  // through unchanged (live editor uploads); persisted paths go via storageUrl.
+  const liveSettings = useTenantSiteSettings()
+  const rawHero = liveSettings?.media?.hero_image as string | null | undefined
+  const heroImageOverride = rawHero && typeof rawHero === 'string' && rawHero.startsWith('data:')
+    ? rawHero
+    : storageUrl(rawHero) ?? null
   const [windowWidth, setWindowWidth] = useState(0)
   const [sliderStyle, setSliderStyle] = useState<'arrows' | 'dots'>('arrows')
   const [sliderEffect, setSliderEffect] = useState<'slide' | 'fade'>('slide')
@@ -143,9 +153,9 @@ export default function HeroSection({ siteTexts }: HeroSectionProps = {}) {
 
     if (index === 0) {
       return {
-        src: slide.src,
+        src: heroImageOverride || slide.src,
         videoId: slide.videoId,
-        type: slide.type,
+        type: heroImageOverride ? 'image' as const : slide.type,
         title: pickSiteText(siteTexts, 'hero', 'title', baseTitle, isArabic),
         description: pickSiteText(siteTexts, 'hero', 'subtitle', baseDescription, isArabic),
         ctaLabel: pickSiteText(siteTexts, 'hero', 'cta', baseCta, isArabic),

@@ -9,6 +9,10 @@ import TestimonialsSection from './Testimonials'
 import GallerySlider from './Gallery'
 import ContactSection from './Contact'
 import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import {
+  TenantPreviewOverridesProvider,
+  useMergedSiteTexts,
+} from '@/hooks/use-tenant-preview-overrides'
 
 interface Props {
   tenant?: any;
@@ -29,12 +33,22 @@ interface Props {
  * Madina Template - Professional hotel template inspired by the Holy City of Madinah
  * Contains all required website sections for a complete hotel
  */
-export default function Madina({ tenant, hotelSettings, contactSettings, rooms, services, gallery, siteTexts, activeSections, templateTranslations, locale }: Props) {
+export default function Madina(props: Props) {
+  return (
+    <TenantPreviewOverridesProvider>
+      <MadinaInner {...props} />
+    </TenantPreviewOverridesProvider>
+  )
+}
+
+function MadinaInner({ tenant, hotelSettings, contactSettings, rooms, services, gallery, activeSections, templateTranslations, locale }: Props) {
   const t = useTemplateT()
+  // Pull the merged map so the editor can stream live text edits into the iframe.
+  const mergedTexts = useMergedSiteTexts()
 
   const heroBlock = (
     <>
-      <HeroSection siteTexts={siteTexts} />
+      <HeroSection siteTexts={mergedTexts} />
       <div className="w-full" style={{ height: '28px' }}>
         <svg
           viewBox="0 0 2707 52"

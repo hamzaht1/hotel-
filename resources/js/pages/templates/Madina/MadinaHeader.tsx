@@ -9,6 +9,7 @@ import { useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useAppearance } from '@/hooks/use-appearance'
 import { useTemplateT } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import { useTenantSiteSettings } from '@/hooks/use-tenant-preview-overrides'
 import defaultLogoImage from './images/logo.svg'
 
 // Logo component
@@ -30,8 +31,15 @@ const LOGO_BOX: React.CSSProperties = {
 
 export const Logo = ({ scrolled = false }: LogoProps) => {
   const storageUrl = useStorageUrl()
-  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null } } }>().props
-  const tenantLogo = storageUrl(siteSettings?.identity?.site_logo)
+  // useTenantSiteSettings merges server props with live preview overrides so
+  // the logo updates in real-time when the editor streams a new upload.
+  const siteSettings = useTenantSiteSettings()
+  const rawLogo = siteSettings?.identity?.site_logo as string | null | undefined
+  // The editor sends data: URLs for staged uploads — render them as-is.
+  // Persisted paths go through storageUrl for the CDN-aware absolute URL.
+  const tenantLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('data:')
+    ? rawLogo
+    : storageUrl(rawLogo)
   const logoImage = tenantLogo || defaultLogoImage
   const isCustomLogo = !!tenantLogo
 

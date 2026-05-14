@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, Navigation } from 'swiper/modules'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useTenantSiteSettings } from '@/hooks/use-tenant-preview-overrides'
+import { useStorageUrl } from '@/lib/storage'
 
 // Swiper styles
 import 'swiper/css'
@@ -27,6 +29,14 @@ interface HeroSectionProps {
 export default function HeroSection({ hotelSettings, siteTexts }: HeroSectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  const storageUrl = useStorageUrl()
+  // Tenant-configurable hero image overrides the bundled slider1 asset.
+  const liveSettings = useTenantSiteSettings()
+  const rawHero = liveSettings?.media?.hero_image as string | null | undefined
+  const heroImageOverride = rawHero && typeof rawHero === 'string' && rawHero.startsWith('data:')
+    ? rawHero
+    : storageUrl(rawHero) ?? null
+  const heroSrc = heroImageOverride || slider1
 
   // Helper to get site text with fallback, locale-aware (AR/EN with the other as fallback).
   const getText = (section: string, key: string, fallback: string) => {
@@ -72,7 +82,7 @@ export default function HeroSection({ hotelSettings, siteTexts }: HeroSectionPro
 
   const slides: Slide[] = [
     {
-      src: slider1,
+      src: heroSrc,
       title: hotelName || t('sections.hero.title', 'إقامتك المثالية تبدأ هنا'),
       description: getText('hero', 'subtitle', '') || t(
         'sections.hero.subtitle',
@@ -82,7 +92,7 @@ export default function HeroSection({ hotelSettings, siteTexts }: HeroSectionPro
       ctaHref: '#rooms',
     },
     {
-      src: slider1,
+      src: heroSrc,
       title: getText('hero', 'title_2', '') || t('sections.hero.title', 'تجربة فندقية لا تُنسى'),
       description: getText('hero', 'subtitle_2', '') || t(
         'sections.hero.subtitle',
@@ -92,7 +102,7 @@ export default function HeroSection({ hotelSettings, siteTexts }: HeroSectionPro
       ctaHref: '#rooms',
     },
     {
-      src: slider1,
+      src: heroSrc,
       title: getText('hero', 'title_3', '') || t('sections.hero.title', 'رفاهية بمعايير عالمية'),
       description: getText('hero', 'subtitle_3', '') || t(
         'sections.hero.subtitle',

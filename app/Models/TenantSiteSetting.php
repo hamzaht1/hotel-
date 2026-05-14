@@ -54,6 +54,9 @@ class TenantSiteSetting extends Model
                 'hero_subtitle_ar' => $settings['hero_subtitle_ar'] ?? '',
                 'hero_subtitle_en' => $settings['hero_subtitle_en'] ?? '',
             ],
+            'media' => [
+                'hero_image' => $settings['hero_image'] ?? null,
+            ],
             'texts' => [
                 'site_text_ar' => $settings['site_text_ar'] ?? '',
                 'site_text_en' => $settings['site_text_en'] ?? '',

@@ -5,6 +5,7 @@ import { Globe, Menu as MenuIcon, X as XIcon } from 'lucide-react'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useAppearance } from '@/hooks/use-appearance'
 import { useStorageUrl } from '@/lib/storage'
+import { useTenantSiteSettings } from '@/hooks/use-tenant-preview-overrides'
 import hotelLogo from '@/assets/images/riyadh-template/hero-logo.png'
 import whitelogo from '@/assets/images/riyadh-template/white-logo.png'
 import phoneIcon from '@/assets/images/riyadh-template/phone.svg'
@@ -25,9 +26,13 @@ export default function TemplateHeader() {
   const { appearance, updateAppearance } = useAppearance()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const storageUrl = useStorageUrl()
-  const { siteSettings } = usePage<{ siteSettings?: { identity?: { site_logo?: string | null; site_logo_dark?: string | null } } }>().props
-  const tenantLogo = storageUrl(siteSettings?.identity?.site_logo)
-  const tenantLogoDark = storageUrl(siteSettings?.identity?.site_logo_dark) || tenantLogo
+  // useTenantSiteSettings merges server props with live preview overrides so
+  // the logo updates in real-time when the editor uploads a new file.
+  const siteSettings = useTenantSiteSettings()
+  const resolveLogo = (raw: string | null | undefined) =>
+    raw && typeof raw === 'string' && raw.startsWith('data:') ? raw : storageUrl(raw)
+  const tenantLogo = resolveLogo(siteSettings?.identity?.site_logo as string | null | undefined)
+  const tenantLogoDark = resolveLogo(siteSettings?.identity?.site_logo_dark as string | null | undefined) || tenantLogo
   const lightLogoSrc = tenantLogo || hotelLogo
   const darkLogoSrc = tenantLogoDark || whitelogo
 

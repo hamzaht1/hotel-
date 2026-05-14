@@ -14,6 +14,7 @@ use App\Http\Controllers\ClientAdmin\SiteSectionController;
 use App\Http\Controllers\ClientAdmin\ContactSettingController;
 use App\Http\Controllers\ClientAdmin\HotelSettingController;
 use App\Http\Controllers\ClientAdmin\SystemSettingController;
+use App\Http\Controllers\ClientAdmin\SiteBrandingController;
 use App\Http\Controllers\ClientAdmin\ReportController;
 use App\Http\Controllers\ClientAdmin\InvoiceController;
 use App\Http\Controllers\ClientAdmin\ServiceCategoryController;
@@ -227,6 +228,11 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         // System Settings (tenant-level branding/identity, mirrors super-admin/site-settings)
         Route::get('system-settings', [SystemSettingController::class, 'edit'])->name('system-settings.edit');
         Route::put('system-settings', [SystemSettingController::class, 'update'])->name('system-settings.update');
+
+        // Unified live-preview branding editor — consolidates logo, hero image,
+        // hero text, colors, footer, social, and all site_texts in one screen.
+        Route::get('site-branding', [SiteBrandingController::class, 'index'])->name('site-branding.index');
+        Route::post('site-branding', [SiteBrandingController::class, 'update'])->name('site-branding.update');
 
         // Reports
         Route::get('reports/financial', [ReportController::class, 'financial'])->name('reports.financial');

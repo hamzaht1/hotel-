@@ -55,6 +55,7 @@ export function AppSidebar() {
     // ⚙️ النظام — system identity, services
     const systemGroup = buildGroup([
         { item: { title: isArabic ? 'إعدادات النظام' : 'System Settings', href: '/client-admin/system-settings', icon: Settings }, permission: 'hotel_settings.edit' },
+        { item: { title: isArabic ? 'تخصيص الموقع' : 'Site Branding', href: '/client-admin/site-branding', icon: Settings }, permission: 'hotel_settings.edit' },
         { item: { title: isArabic ? 'الخدمات' : 'Services', href: '/client-admin/services', icon: Sparkles }, permission: 'services.view' },
         { item: { title: isArabic ? 'أقسام الخدمات' : 'Service Categories', href: '/client-admin/service-categories', icon: Layers }, permission: 'services.view' },
     ], can);

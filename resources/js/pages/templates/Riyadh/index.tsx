@@ -9,6 +9,10 @@ import GallerySection from './GallerySection'
 import GallerySlider from './GallerySlider'
 import ContactSection from './ContactSection'
 import { useTemplateT } from '@/hooks/useTemplateTranslations'
+import {
+  TenantPreviewOverridesProvider,
+  useMergedSiteTexts,
+} from '@/hooks/use-tenant-preview-overrides'
 
 interface Props {
   tenant?: any;
@@ -27,11 +31,20 @@ interface Props {
  * قالب الرياض - قالب فندق احترافي مستوحى من العاصمة السعودية
  * Riyadh Template - Professional hotel template inspired by the Saudi capital
  */
-export default function Riyadh({ tenant, hotelSettings, contactSettings, rooms, services, gallery, siteTexts, activeSections, locale }: Props) {
+export default function Riyadh(props: Props) {
+  return (
+    <TenantPreviewOverridesProvider>
+      <RiyadhInner {...props} />
+    </TenantPreviewOverridesProvider>
+  )
+}
+
+function RiyadhInner({ tenant, hotelSettings, contactSettings, rooms, services, gallery, activeSections, locale }: Props) {
   const t = useTemplateT()
+  const mergedTexts = useMergedSiteTexts()
 
   const sectionMap: Record<string, ReactNode> = {
-    hero: <HeroSection hotelSettings={hotelSettings} siteTexts={siteTexts} />,
+    hero: <HeroSection hotelSettings={hotelSettings} siteTexts={mergedTexts} />,
     rooms: <RoomsSection rooms={rooms} />,
     services: <ServicesSection services={services} />,
     partners: <PartnersSection />,
