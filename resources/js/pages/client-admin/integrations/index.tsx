@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { CreditCard, MessageSquare, CheckCircle, XCircle, Power } from 'lucide-react';
+import { CreditCard, MessageSquare, CheckCircle, XCircle, Power, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -145,11 +145,22 @@ export default function IntegrationsIndex({ globalIntegrations, tenantIntegratio
                     </p>
                 </div>
 
+                {/* Analytics Providers */}
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        التحليلات / Analytics
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <GoogleAnalyticsCard />
+                    </div>
+                </div>
+
                 {globalIntegrations.length === 0 ? (
                     <Card>
                         <CardContent className="flex items-center justify-center py-12">
                             <p className="text-muted-foreground">
-                                لا توجد تكاملات متاحة بعد / No integrations available yet
+                                لا توجد تكاملات دفع/رسائل متاحة بعد / No payment/SMS integrations available yet
                             </p>
                         </CardContent>
                     </Card>
@@ -184,5 +195,53 @@ export default function IntegrationsIndex({ globalIntegrations, tenantIntegratio
                 )}
             </div>
         </AppLayout>
+    );
+}
+
+// Google Analytics integration card. UI-only for now; persistence will be
+// wired through integration_settings (provider="google_analytics", type="analytics")
+// once the backend exposes a save endpoint.
+function GoogleAnalyticsCard() {
+    return (
+        <Card className="overflow-hidden">
+            <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-950">
+                            <BarChart3 className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-lg">قوقل أناليتكس / Google Analytics</CardTitle>
+                        </div>
+                    </div>
+                    <Badge
+                        variant="secondary"
+                        className="rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400"
+                    >
+                        تحليلات / Analytics
+                    </Badge>
+                </div>
+            </CardHeader>
+
+            <CardContent className="pt-0 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                    تتبع زوار موقعك وعرض الإحصائيات في لوحة التحكم.
+                    <br />
+                    Track site visitors and display statistics on the dashboard.
+                </p>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="rounded-full">
+                        قريباً / Coming soon
+                    </Badge>
+                </div>
+            </CardContent>
+
+            <CardFooter className="border-t px-6 py-3 flex items-center justify-end">
+                <Button variant="outline" size="sm" disabled>
+                    <Power className="h-3.5 w-3.5 me-1" />
+                    تفعيل / Enable
+                </Button>
+            </CardFooter>
+        </Card>
     );
 }

@@ -4,7 +4,7 @@ import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import {
-    BedDouble, CalendarDays, Ticket, Sun, XCircle, Plus, Image as ImageIcon, Tag, Gift,
+    BedDouble, CalendarDays, Ticket, Sun, XCircle, Plus, Image as ImageIcon, Tag,
     ChevronLeft, ChevronRight, Star, MessageSquare, Eye,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -156,7 +156,6 @@ function KpiRow({ kpis, isArabic }: { kpis: Kpi; isArabic: boolean }) {
 function QuickActions({ isArabic }: { isArabic: boolean }) {
     const actions = [
         { href: '/client-admin/rooms/create', label_ar: 'إضافة غرفة', label_en: 'Add Room', icon: BedDouble },
-        { href: '/client-admin/services/create', label_ar: 'إضافة هدية مجانية', label_en: 'Add Free Gift', icon: Gift },
         { href: '/client-admin/services/create', label_ar: 'إضافة عرض', label_en: 'Add Promotion', icon: Tag },
         { href: '/client-admin/gallery', label_ar: 'رفع صورة', label_en: 'Upload Photo', icon: ImageIcon },
         { href: '/client-admin/services', label_ar: 'إضافة قائمة', label_en: 'Add Menu', icon: Plus },
@@ -249,9 +248,23 @@ function VisitorChart({ series, isArabic }: { series: Props['visitorSeries']; is
             </div>
             {allZero && (
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                    {isArabic
-                        ? 'لا توجد بيانات زوار بعد — سيتم تفعيل التتبع قريباً'
-                        : 'No visitor data yet — analytics tracking will be enabled soon'}
+                    {isArabic ? (
+                        <>
+                            لا توجد بيانات زوار بعد — قم بتفعيل{' '}
+                            <Link href="/client-admin/integrations" className="text-primary underline">
+                                Google Analytics
+                            </Link>{' '}
+                            لعرض الإحصائيات
+                        </>
+                    ) : (
+                        <>
+                            No visitor data yet — enable{' '}
+                            <Link href="/client-admin/integrations" className="text-primary underline">
+                                Google Analytics
+                            </Link>{' '}
+                            to see statistics
+                        </>
+                    )}
                 </p>
             )}
         </div>

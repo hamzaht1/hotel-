@@ -4,7 +4,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     MessageSquare, AlertCircle, HelpCircle, Wrench, Plus, Sparkles,
-    Inbox, Clock, CheckCircle,
+    Inbox, CheckCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,13 +116,11 @@ export default function ClientSupportIndex({ conversations, stats, filters }: Pr
                 </div>
 
                 {/* KPIs */}
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                     <KpiCard icon={Inbox} color="bg-blue-100 text-blue-600"
                         label={isArabic ? 'مفتوحة' : 'Open'} value={stats.open} />
                     <KpiCard icon={CheckCircle} color="bg-emerald-100 text-emerald-600"
                         label={isArabic ? 'تم حلها' : 'Resolved'} value={stats.resolved} />
-                    <KpiCard icon={Clock} color="bg-amber-100 text-amber-600"
-                        label={isArabic ? 'متوسط زمن الرد' : 'Avg. response'} value={formatResponseTime(stats.avg_response_seconds)} />
                 </div>
 
                 {/* Tabs source */}
