@@ -42,7 +42,13 @@ class InvoiceTemplateController extends Controller
 
         $view = view()->exists("invoices.{$template}") ? "invoices.{$template}" : 'invoices.default';
 
-        return view($view, ['invoice' => $invoice]);
+        return view($view, [
+            'invoice' => $invoice,
+            'settings' => \App\Models\InvoiceSetting::current(),
+            'banks' => \App\Models\BankAccount::orderByDesc('is_default')->get(),
+            'defaultTerms' => \App\Models\TermsTemplate::where('is_default', true)->first(),
+            'logoUrl' => null,
+        ]);
     }
 
     private function sampleInvoice(): Invoice

@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/use-locale';
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FileSignature, Plug, PaintBucket, FileStack, Receipt, Percent, Star, UserCog, Send } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FileSignature, Plug, PaintBucket, FileStack, Receipt, Percent, Star, UserCog, Send, Settings } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface GatedNavItem extends NavItem {
@@ -48,6 +48,7 @@ export function AppSidebar() {
         { title: isArabic ? 'عروض الأسعار' : 'Quotes', href: '/super-admin/quotes', icon: FileSignature, perm: 'quotes.view' },
         { title: isArabic ? 'العمليات' : 'Operations', href: '/super-admin/transactions', icon: Receipt, perm: 'transactions.view' },
         { title: isArabic ? 'أكواد الخصم' : 'Discount Codes', href: '/super-admin/discount-codes', icon: Percent, perm: 'discount_codes.manage' },
+        { title: isArabic ? 'إعدادات الفواتير' : 'Invoice Settings', href: '/super-admin/invoice-settings', icon: Settings, perm: 'invoices.edit' },
     ];
 
     const reportsNav: GatedNavItem[] = [

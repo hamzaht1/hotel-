@@ -3,6 +3,7 @@
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\DiscountCodeController;
 use App\Http\Controllers\SuperAdmin\InvoiceController;
+use App\Http\Controllers\SuperAdmin\InvoiceSettingsController;
 use App\Http\Controllers\SuperAdmin\InvoiceTemplateController;
 use App\Http\Controllers\SuperAdmin\QuoteController;
 use App\Http\Controllers\SuperAdmin\TemplateController;
@@ -242,6 +243,23 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         Route::middleware('permission:site_settings.edit')->group(function () {
             Route::get('site-settings', [SiteSettingController::class, 'index'])->name('site-settings.index');
             Route::put('site-settings', [SiteSettingController::class, 'update'])->name('site-settings.update');
+        });
+
+        // Invoice Settings — unified page (logo, company info, banks, footer, colors,
+        // packages count, terms templates, PDF visibility toggles)
+        Route::middleware('permission:invoices.edit')->group(function () {
+            Route::get('invoice-settings', [InvoiceSettingsController::class, 'index'])->name('invoice-settings.index');
+            Route::post('invoice-settings', [InvoiceSettingsController::class, 'update'])->name('invoice-settings.update');
+
+            Route::post('invoice-settings/banks', [InvoiceSettingsController::class, 'storeBank'])->name('invoice-settings.banks.store');
+            Route::put('invoice-settings/banks/{bank}', [InvoiceSettingsController::class, 'updateBank'])->name('invoice-settings.banks.update');
+            Route::post('invoice-settings/banks/{bank}/default', [InvoiceSettingsController::class, 'setDefaultBank'])->name('invoice-settings.banks.default');
+            Route::delete('invoice-settings/banks/{bank}', [InvoiceSettingsController::class, 'destroyBank'])->name('invoice-settings.banks.destroy');
+
+            Route::post('invoice-settings/terms', [InvoiceSettingsController::class, 'storeTerms'])->name('invoice-settings.terms.store');
+            Route::put('invoice-settings/terms/{terms}', [InvoiceSettingsController::class, 'updateTerms'])->name('invoice-settings.terms.update');
+            Route::post('invoice-settings/terms/{terms}/default', [InvoiceSettingsController::class, 'setDefaultTerms'])->name('invoice-settings.terms.default');
+            Route::delete('invoice-settings/terms/{terms}', [InvoiceSettingsController::class, 'destroyTerms'])->name('invoice-settings.terms.destroy');
         });
 
         // Integrations

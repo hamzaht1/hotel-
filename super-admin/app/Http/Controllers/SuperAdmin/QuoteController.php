@@ -219,10 +219,27 @@ class QuoteController extends Controller
         $template = $quote->pdf_template ?: 'default';
         $view = view()->exists("quotes.{$template}") ? "quotes.{$template}" : 'quotes.default';
 
-        $pdf = Pdf::loadView($view, ['quote' => $quote]);
+        $pdf = Pdf::loadView($view, [
+            'quote' => $quote,
+            'settings' => \App\Models\InvoiceSetting::current(),
+            'banks' => \App\Models\BankAccount::orderByDesc('is_default')->get(),
+            'defaultTerms' => \App\Models\TermsTemplate::where('is_default', true)->first(),
+            'logoUrl' => $this->absoluteLogoUrl(),
+        ]);
         $pdf->setPaper('A4');
 
         return $pdf->download("quote-{$quote->quote_number}.pdf");
+    }
+
+    private function absoluteLogoUrl(): ?string
+    {
+        $path = \App\Models\SiteSetting::get('site_logo');
+        if (!$path) return null;
+        try {
+            return \Storage::disk('public')->url($path);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function destroy(Quote $quote)

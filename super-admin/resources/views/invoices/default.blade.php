@@ -29,6 +29,12 @@
         'addon' => 'Add-on',
     ];
     $currency = $rtl ? 'ر.س' : 'SAR';
+
+    $s = $settings ?? null;
+    $companyName = $s ? ($rtl ? ($s->company_name_ar ?: $s->company_name_en) : ($s->company_name_en ?: $s->company_name_ar)) : null;
+    $companyAddress = $s ? ($rtl ? ($s->address_ar ?: $s->address_en) : ($s->address_en ?: $s->address_ar)) : null;
+    $defaultBank = ($banks ?? collect())->first();
+    $termsBody = $defaultTerms ? ($rtl ? ($defaultTerms->content_ar ?: $defaultTerms->content_en) : ($defaultTerms->content_en ?: $defaultTerms->content_ar)) : null;
 @endphp
 <!DOCTYPE html>
 <html dir="{{ $dir }}" lang="{{ $lang }}">
@@ -54,23 +60,42 @@
     .totals .value { text-align: {{ $rtl ? 'left' : 'right' }}; }
     .totals .grand-total { font-size: 16px; font-weight: bold; color: #01004C; border-top: 2px solid #01004C; }
     .notes { margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 6px; font-size: 11px; }
+    .bank-info { margin-top: 18px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; }
+    .bank-info .title { font-weight: bold; color: #01004C; margin-bottom: 6px; }
+    .terms { margin-top: 18px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; white-space: pre-wrap; }
+    .terms .title { font-weight: bold; color: #01004C; margin-bottom: 6px; }
+    .company-info { font-size: 10px; color: #666; margin-top: 6px; line-height: 1.5; }
     .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }
     .status-badge { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 10px; font-weight: bold; }
     .status-draft { background: #e0e0e0; color: #555; }
     .status-sent { background: #fef3c7; color: #92400e; }
     .status-paid { background: #d1fae5; color: #065f46; }
     .status-overdue { background: #fee2e2; color: #991b1b; }
+    .logo { max-height: 60px; max-width: 160px; }
 </style>
 </head>
 <body>
 
 <table style="width:100%; margin-bottom: 30px; border-bottom: 3px solid #01004C; padding-bottom: 20px;">
     <tr>
-        <td style="width:50%;">
-            <div class="brand">{{ $invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah') }}</div>
+        <td style="width:60%;">
+            @if((!$s || $s->pdf_show_logo) && !empty($logoUrl))
+                <img src="{{ $logoUrl }}" alt="Logo" class="logo" />
+            @endif
+            <div class="brand">{{ $companyName ?: ($invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah')) }}</div>
             <div class="brand-sub">{{ $L('Hotel Automation Platform', 'منصة أتمتة الفنادق') }}</div>
+            @if($s && $s->pdf_show_company_info)
+                <div class="company-info">
+                    @if($companyAddress){{ $companyAddress }}<br>@endif
+                    @if($s->phone){{ $L('Tel:', 'هاتف:') }} {{ $s->phone }}@endif
+                    @if($s->email) · {{ $s->email }}@endif
+                    @if($s->website) · {{ $s->website }}@endif
+                    @if($s && $s->pdf_show_cr && $s->cr)<br>{{ $L('CR:', 'س.ت:') }} {{ $s->cr }}@endif
+                    @if($s && $s->pdf_show_vat && $s->vat) · {{ $L('VAT:', 'ر.ض:') }} {{ $s->vat }}@endif
+                </div>
+            @endif
         </td>
-        <td style="width:50%; text-align: {{ $rtl ? 'left' : 'right' }};">
+        <td style="width:40%; text-align: {{ $rtl ? 'left' : 'right' }};">
             <div class="invoice-title">{{ $L('Invoice', 'فاتورة') }}</div>
             <div class="invoice-number">#{{ $invoice->invoice_number }}</div>
             <div style="margin-top: 4px;">
@@ -80,6 +105,7 @@
     </tr>
 </table>
 
+@if(!$s || $s->pdf_show_customer_info)
 <table class="meta-table">
     <tr>
         <td class="label">{{ $L('Customer:', 'العميل:') }}</td>
@@ -100,6 +126,7 @@
         <td>{{ $invoice->payment_method ?? '—' }}</td>
     </tr>
 </table>
+@endif
 
 <table class="items-table">
     <thead>
@@ -108,6 +135,9 @@
             <th>{{ $L('Description', 'الوصف') }}</th>
             <th style="text-align: center;">{{ $L('Qty', 'الكمية') }}</th>
             <th style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ $L('Unit price', 'سعر الوحدة') }}</th>
+            @if(!$s || $s->pdf_show_discount_column)
+                <th style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ $L('Discount', 'الخصم') }}</th>
+            @endif
             <th style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ $L('Total', 'الإجمالي') }}</th>
         </tr>
     </thead>
@@ -118,6 +148,9 @@
             <td>{{ $itemDesc($item) }}</td>
             <td style="text-align: center;">{{ $item->quantity }}</td>
             <td style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ number_format($item->unit_price, 2) }} {{ $currency }}</td>
+            @if(!$s || $s->pdf_show_discount_column)
+                <td style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ number_format($item->discount ?? 0, 2) }} {{ $currency }}</td>
+            @endif
             <td style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ number_format($item->total, 2) }} {{ $currency }}</td>
         </tr>
         @endforeach
@@ -135,30 +168,53 @@
         <td class="value">-{{ number_format($invoice->discount, 2) }} {{ $currency }}</td>
     </tr>
     @endif
+    @if(!$s || $s->pdf_show_vat)
     <tr>
         <td class="label">{{ $L('VAT', 'ض. القيمة المضافة') }} ({{ $invoice->tax_rate }}%):</td>
         <td class="value">{{ number_format($invoice->tax_amount, 2) }} {{ $currency }}</td>
     </tr>
+    @endif
     <tr>
         <td class="label grand-total">{{ $L('Grand total:', 'الإجمالي الكلي:') }}</td>
         <td class="value grand-total">{{ number_format($invoice->total, 2) }} {{ $currency }}</td>
     </tr>
 </table>
 
+@if($s && $s->pdf_show_bank_info && $defaultBank)
+<div class="bank-info">
+    <div class="title">{{ $L('Bank details', 'البيانات البنكية') }}</div>
+    {{ $rtl ? ($defaultBank->bank_name_ar ?: $defaultBank->bank_name_en) : ($defaultBank->bank_name_en ?: $defaultBank->bank_name_ar) }}
+    @if($defaultBank->account_holder) · {{ $defaultBank->account_holder }}@endif
+    <br>
+    @if($defaultBank->iban){{ $L('IBAN:', 'الآيبان:') }} {{ $defaultBank->iban }}@endif
+    @if($defaultBank->account_number) · {{ $L('Acc:', 'حساب:') }} {{ $defaultBank->account_number }}@endif
+    @if($defaultBank->swift) · SWIFT: {{ $defaultBank->swift }}@endif
+</div>
+@endif
+
 @php
     $noteBody = $rtl
         ? ($invoice->notes_ar ?: $invoice->notes_en)
         : ($invoice->notes_en ?: $invoice->notes_ar);
 @endphp
-@if($noteBody)
+@if((!$s || $s->pdf_show_notes) && $noteBody)
 <div class="notes">
     <p><strong>{{ $L('Notes:', 'ملاحظات:') }}</strong> {{ $noteBody }}</p>
 </div>
 @endif
 
-<div class="footer">
-    <p>{{ $L('Diyafah Platform · Invoice', 'منصة ضيافة · فاتورة') }} {{ $invoice->invoice_number }}</p>
+@if((!$s || $s->pdf_show_terms) && $termsBody)
+<div class="terms">
+    <div class="title">{{ $L('Terms & conditions', 'الشروط والأحكام') }}</div>
+    {{ $termsBody }}
 </div>
+@endif
+
+@if(!$s || $s->pdf_show_footer)
+<div class="footer">
+    <p>{{ $s && $s->footer_line ? $s->footer_line : $L('Diyafah Platform · Invoice', 'منصة ضيافة · فاتورة') . ' ' . $invoice->invoice_number }}</p>
+</div>
+@endif
 
 </body>
 </html>

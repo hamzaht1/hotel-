@@ -234,10 +234,27 @@ class InvoiceController extends Controller
 
         $view = view()->exists("invoices.{$template}") ? "invoices.{$template}" : 'invoices.default';
 
-        $pdf = Pdf::loadView($view, ['invoice' => $invoice]);
+        $pdf = Pdf::loadView($view, [
+            'invoice' => $invoice,
+            'settings' => \App\Models\InvoiceSetting::current(),
+            'banks' => \App\Models\BankAccount::orderByDesc('is_default')->get(),
+            'defaultTerms' => \App\Models\TermsTemplate::where('is_default', true)->first(),
+            'logoUrl' => $this->absoluteLogoUrl(),
+        ]);
         $pdf->setPaper('A4');
 
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
+    }
+
+    private function absoluteLogoUrl(): ?string
+    {
+        $path = SiteSetting::get('site_logo');
+        if (!$path) return null;
+        try {
+            return \Storage::disk('public')->url($path);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function destroy(Invoice $invoice)
