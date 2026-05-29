@@ -6,6 +6,7 @@ import {
     BedDouble,
     Crown,
     Users,
+    Wand2,
     Wifi,
     Tv,
     Wine,
@@ -19,6 +20,9 @@ import {
     Upload,
     X,
     Star,
+    Plus,
+    GripVertical,
+    Trash2,
     Image as ImageIcon,
     ChevronRight,
     ChevronLeft,
@@ -31,11 +35,20 @@ export interface ExistingImage {
     path: string;
 }
 
+export interface AmenityItem {
+    key: string;
+    label_ar: string;
+    label_en: string;
+    icon: string | null;
+}
+
 export interface RoomInitial {
     id?: number;
     name_ar?: string;
     name_en?: string;
     type?: string;
+    custom_type_ar?: string | null;
+    custom_type_en?: string | null;
     capacity?: number | string | null;
     price?: string | number;
     description_ar?: string | null;
@@ -43,7 +56,7 @@ export interface RoomInitial {
     short_description_ar?: string | null;
     short_description_en?: string | null;
     internal_notes?: string | null;
-    amenities?: string[] | null;
+    amenities?: AmenityItem[] | null;
     is_featured?: boolean;
     is_active?: boolean;
     booking_channel?: 'whatsapp' | 'email' | null;
@@ -52,6 +65,7 @@ export interface RoomInitial {
     whatsapp_message_ar?: string | null;
     whatsapp_message_en?: string | null;
     featured_image?: string | null;
+    text_color?: string | null;
     images?: ExistingImage[];
 }
 
@@ -67,19 +81,20 @@ const ROOM_TYPES = [
     { key: 'deluxe', icon: BedDouble },
     { key: 'suite', icon: Crown },
     { key: 'family', icon: Users },
+    { key: 'custom', icon: Wand2 },
 ] as const;
 
-const AMENITIES: { key: string; icon: LucideIcon }[] = [
-    { key: 'wifi', icon: Wifi },
-    { key: 'tv', icon: Tv },
-    { key: 'air_conditioning', icon: Snowflake },
-    { key: 'minibar', icon: Wine },
-    { key: 'safe', icon: Lock },
-    { key: 'balcony', icon: Blinds },
-    { key: 'sea_view', icon: Waves },
-    { key: 'room_service', icon: ConciergeBell },
-    { key: 'jacuzzi', icon: Bath },
-    { key: 'kitchen', icon: UtensilsCrossed },
+const PRESET_AMENITIES: { key: string; label_ar: string; label_en: string; icon: string; lucide: LucideIcon }[] = [
+    { key: 'wifi',             label_ar: 'واي فاي',         label_en: 'WiFi',             icon: '📶', lucide: Wifi },
+    { key: 'tv',               label_ar: 'تلفاز',           label_en: 'TV',               icon: '📺', lucide: Tv },
+    { key: 'air_conditioning', label_ar: 'تكييف',           label_en: 'Air Conditioning', icon: '❄️', lucide: Snowflake },
+    { key: 'minibar',          label_ar: 'ميني بار',         label_en: 'Mini Bar',         icon: '🍷', lucide: Wine },
+    { key: 'safe',             label_ar: 'خزنة',            label_en: 'Safe',             icon: '🔐', lucide: Lock },
+    { key: 'balcony',          label_ar: 'شرفة',            label_en: 'Balcony',          icon: '🪟', lucide: Blinds },
+    { key: 'sea_view',         label_ar: 'إطلالة بحرية',     label_en: 'Sea View',         icon: '🌊', lucide: Waves },
+    { key: 'room_service',     label_ar: 'خدمة الغرف',      label_en: 'Room Service',     icon: '🛎️', lucide: ConciergeBell },
+    { key: 'jacuzzi',          label_ar: 'جاكوزي',          label_en: 'Jacuzzi',          icon: '🛁', lucide: Bath },
+    { key: 'kitchen',          label_ar: 'مطبخ',            label_en: 'Kitchen',          icon: '🍴', lucide: UtensilsCrossed },
 ];
 
 type FormData = {
@@ -87,6 +102,8 @@ type FormData = {
     name_ar: string;
     name_en: string;
     type: string;
+    custom_type_ar: string;
+    custom_type_en: string;
     capacity: string;
     price: string;
     booking_channel: 'whatsapp' | 'email';
@@ -94,6 +111,7 @@ type FormData = {
     booking_email: string;
     whatsapp_message_ar: string;
     whatsapp_message_en: string;
+    text_color: string;
     is_featured: boolean;
     is_active: boolean;
     short_description_ar: string;
@@ -101,7 +119,7 @@ type FormData = {
     description_ar: string;
     description_en: string;
     internal_notes: string;
-    amenities: string[];
+    amenities: AmenityItem[];
     featured_image: File | null;
     images: File[];
     delete_images: number[];
@@ -117,6 +135,8 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         name_ar: initial.name_ar ?? '',
         name_en: initial.name_en ?? '',
         type: initial.type ?? 'standard',
+        custom_type_ar: initial.custom_type_ar ?? '',
+        custom_type_en: initial.custom_type_en ?? '',
         capacity: initial.capacity != null ? String(initial.capacity) : '2',
         price: initial.price != null ? String(initial.price) : '',
         booking_channel: (initial.booking_channel ?? 'whatsapp') as 'whatsapp' | 'email',
@@ -124,6 +144,7 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         booking_email: initial.booking_email ?? '',
         whatsapp_message_ar: initial.whatsapp_message_ar ?? '',
         whatsapp_message_en: initial.whatsapp_message_en ?? '',
+        text_color: initial.text_color ?? '',
         is_featured: initial.is_featured ?? false,
         is_active: initial.is_active ?? true,
         short_description_ar: initial.short_description_ar ?? '',
@@ -136,6 +157,7 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         images: [],
         delete_images: [],
     });
+    const [customAmenity, setCustomAmenity] = useState({ label_ar: '', label_en: '', icon: '✨' });
 
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [featuredPreview, setFeaturedPreview] = useState<string | null>(storageUrl(initial.featured_image ?? null));
@@ -151,8 +173,33 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         [t],
     );
 
-    function toggleAmenity(key: string) {
-        setData('amenities', data.amenities.includes(key) ? data.amenities.filter((a) => a !== key) : [...data.amenities, key]);
+    const isAmenitySelected = (key: string) => data.amenities.some((a) => a.key === key);
+
+    function togglePresetAmenity(preset: { key: string; label_ar: string; label_en: string; icon: string }) {
+        setData(
+            'amenities',
+            isAmenitySelected(preset.key)
+                ? data.amenities.filter((a) => a.key !== preset.key)
+                : [...data.amenities, { key: preset.key, label_ar: preset.label_ar, label_en: preset.label_en, icon: preset.icon }],
+        );
+    }
+
+    function addCustomAmenity() {
+        if (!customAmenity.label_ar.trim() || !customAmenity.label_en.trim()) return;
+        setData('amenities', [...data.amenities, { key: `custom_${Date.now()}`, ...customAmenity }]);
+        setCustomAmenity({ label_ar: '', label_en: '', icon: '✨' });
+    }
+
+    function removeAmenity(key: string) {
+        setData('amenities', data.amenities.filter((a) => a.key !== key));
+    }
+
+    function moveAmenity(from: number, to: number) {
+        if (to < 0 || to >= data.amenities.length) return;
+        const next = [...data.amenities];
+        const [item] = next.splice(from, 1);
+        next.splice(to, 0, item);
+        setData('amenities', next);
     }
 
     function handleFeaturedImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -217,7 +264,18 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
             <form onSubmit={submit} className="mt-6 space-y-6">
                 {step === 1 && <StepBasic data={data} setData={setData} errors={errors} />}
                 {step === 2 && <StepDescription data={data} setData={setData} errors={errors} />}
-                {step === 3 && <StepAmenities data={data} onToggle={toggleAmenity} />}
+                {step === 3 && (
+                    <StepAmenities
+                        data={data}
+                        isSelected={isAmenitySelected}
+                        onToggle={togglePresetAmenity}
+                        customAmenity={customAmenity}
+                        setCustomAmenity={setCustomAmenity}
+                        onAddCustom={addCustomAmenity}
+                        onRemove={removeAmenity}
+                        onMove={moveAmenity}
+                    />
+                )}
                 {step === 4 && (
                     <StepImages
                         existingImages={existingImages}
@@ -328,7 +386,7 @@ function StepBasic({
         <div className="space-y-6">
             <div className="vuexy-card p-6">
                 <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('type')}</h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                     {ROOM_TYPES.map(({ key, icon: Icon }) => {
                         const active = data.type === key;
                         return (
@@ -341,11 +399,35 @@ function StepBasic({
                                 }`}
                             >
                                 <Icon className="h-6 w-6" />
-                                <span>{t(key)}</span>
+                                <span>{t(key === 'custom' ? 'custom' : key)}</span>
                             </button>
                         );
                     })}
                 </div>
+
+                {data.type === 'custom' && (
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <Field label={t('custom_type_ar')} error={errors.custom_type_ar}>
+                            <input
+                                type="text"
+                                value={data.custom_type_ar}
+                                onChange={(e) => setData('custom_type_ar', e.target.value)}
+                                placeholder="مثال: جناح بنتهاوس"
+                                className="vuexy-input"
+                                dir="rtl"
+                            />
+                        </Field>
+                        <Field label={t('custom_type_en')} error={errors.custom_type_en}>
+                            <input
+                                type="text"
+                                value={data.custom_type_en}
+                                onChange={(e) => setData('custom_type_en', e.target.value)}
+                                placeholder="e.g. Penthouse Suite"
+                                className="vuexy-input"
+                            />
+                        </Field>
+                    </div>
+                )}
             </div>
 
             <div className="vuexy-card p-6">
@@ -465,6 +547,8 @@ function StepBasic({
                 </div>
             </div>
 
+            <ColorPickerCard value={data.text_color} onChange={(v) => setData('text_color', v)} />
+
             <div className="vuexy-card flex items-start justify-between gap-4 p-6">
                 <div className="flex items-start gap-3">
                     <Star className={`mt-0.5 h-5 w-5 ${data.is_featured ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
@@ -485,6 +569,47 @@ function StepBasic({
                 />
                 {t('active_visible')}
             </label>
+        </div>
+    );
+}
+
+function ColorPickerCard({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const { t } = useT();
+    const safeValue = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#7367f0';
+
+    return (
+        <div className="vuexy-card flex flex-wrap items-center justify-between gap-4 p-6">
+            <div>
+                <p className="text-sm font-medium">{t('text_color')}</p>
+                <p className="text-xs text-muted-foreground">{t('text_color_hint')}</p>
+            </div>
+            <div className="flex items-center gap-2">
+                <input
+                    type="color"
+                    value={safeValue}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="h-10 w-12 cursor-pointer rounded-md border bg-transparent p-1"
+                    aria-label={t('text_color')}
+                />
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder="#7367f0"
+                    className="vuexy-input w-28"
+                    dir="ltr"
+                    maxLength={7}
+                />
+                {value && (
+                    <button
+                        type="button"
+                        onClick={() => onChange('')}
+                        className="rounded-md border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                    >
+                        {t('clear')}
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
@@ -557,28 +682,153 @@ function StepDescription({
     );
 }
 
-function StepAmenities({ data, onToggle }: { data: FormData; onToggle: (key: string) => void }) {
-    const { t } = useT();
+function StepAmenities({
+    data,
+    isSelected,
+    onToggle,
+    customAmenity,
+    setCustomAmenity,
+    onAddCustom,
+    onRemove,
+    onMove,
+}: {
+    data: FormData;
+    isSelected: (key: string) => boolean;
+    onToggle: (preset: { key: string; label_ar: string; label_en: string; icon: string }) => void;
+    customAmenity: { label_ar: string; label_en: string; icon: string };
+    setCustomAmenity: (v: { label_ar: string; label_en: string; icon: string }) => void;
+    onAddCustom: () => void;
+    onRemove: (key: string) => void;
+    onMove: (from: number, to: number) => void;
+}) {
+    const { t, isArabic } = useT();
+    const emojis = ['✨', '⭐', '🛏️', '💆', '🍽️', '🏛️', '🌊', '🏊', '🚿', '🌴', '🎁', '☕', '🍷', '🚗', '🐾'];
+    const [showEmojis, setShowEmojis] = useState(false);
+
     return (
-        <div className="vuexy-card p-6">
-            <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('amenities')}</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {AMENITIES.map(({ key, icon: Icon }) => {
-                    const active = data.amenities.includes(key);
-                    return (
+        <div className="space-y-6">
+            <div className="vuexy-card p-6">
+                <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('available_features')}</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {PRESET_AMENITIES.map((preset) => {
+                        const active = isSelected(preset.key);
+                        return (
+                            <button
+                                key={preset.key}
+                                type="button"
+                                onClick={() => onToggle(preset)}
+                                className={`flex items-center justify-between gap-2 rounded-lg border p-3 text-sm transition ${
+                                    active ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary/20' : 'hover:bg-muted'
+                                }`}
+                            >
+                                <span>{isArabic ? preset.label_ar : preset.label_en}</span>
+                                <span className="text-lg">{preset.icon}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <div className="vuexy-card p-6">
+                <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('add_custom_feature')}</h2>
+                <div className="flex flex-wrap items-end gap-2">
+                    <div className="relative">
                         <button
-                            key={key}
                             type="button"
-                            onClick={() => onToggle(key)}
-                            className={`flex items-center gap-2 rounded-lg border p-3 text-sm transition ${
-                                active ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary/20' : 'hover:bg-muted'
-                            }`}
+                            onClick={() => setShowEmojis(!showEmojis)}
+                            className="vuexy-input flex h-10 w-14 items-center justify-center text-lg"
+                            aria-label="Choose icon"
                         >
-                            <Icon className="h-5 w-5 shrink-0" />
-                            <span>{t(key)}</span>
+                            {customAmenity.icon}
                         </button>
-                    );
-                })}
+                        {showEmojis && (
+                            <div className="absolute z-10 mt-1 grid w-56 grid-cols-5 gap-1 rounded-lg border bg-popover p-2 shadow-md">
+                                {emojis.map((e) => (
+                                    <button
+                                        key={e}
+                                        type="button"
+                                        onClick={() => {
+                                            setCustomAmenity({ ...customAmenity, icon: e });
+                                            setShowEmojis(false);
+                                        }}
+                                        className="rounded p-1 text-lg hover:bg-muted"
+                                    >
+                                        {e}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <input
+                        type="text"
+                        value={customAmenity.label_ar}
+                        onChange={(e) => setCustomAmenity({ ...customAmenity, label_ar: e.target.value })}
+                        placeholder={t('name_in_arabic')}
+                        className="vuexy-input flex-1"
+                        dir="rtl"
+                    />
+                    <input
+                        type="text"
+                        value={customAmenity.label_en}
+                        onChange={(e) => setCustomAmenity({ ...customAmenity, label_en: e.target.value })}
+                        placeholder={t('name_in_english')}
+                        className="vuexy-input flex-1"
+                    />
+                    <button
+                        type="button"
+                        onClick={onAddCustom}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                        <Plus className="h-4 w-4" />
+                        {t('add')}
+                    </button>
+                </div>
+            </div>
+
+            <div className="vuexy-card p-6">
+                <h2 className="mb-4 text-sm font-semibold text-muted-foreground">
+                    {t('selected_features')} ({data.amenities.length}) — {t('drag_to_reorder')}
+                </h2>
+                {data.amenities.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">{t('no_features_yet')}</p>
+                ) : (
+                    <div className="space-y-2">
+                        {data.amenities.map((item, idx) => (
+                            <div key={item.key} className="flex items-center gap-2 rounded-md border p-2">
+                                <div className="flex flex-col gap-0.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => onMove(idx, idx - 1)}
+                                        disabled={idx === 0}
+                                        className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                                        aria-label="Move up"
+                                    >
+                                        <GripVertical className="h-3 w-3 rotate-90" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => onMove(idx, idx + 1)}
+                                        disabled={idx === data.amenities.length - 1}
+                                        className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                                        aria-label="Move down"
+                                    >
+                                        <GripVertical className="h-3 w-3 -rotate-90" />
+                                    </button>
+                                </div>
+                                <span className="text-lg">{item.icon}</span>
+                                <span className="flex-1 text-sm">{isArabic ? item.label_ar : item.label_en}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(item.key)}
+                                    className="text-red-500 hover:text-red-700"
+                                    aria-label="Remove"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

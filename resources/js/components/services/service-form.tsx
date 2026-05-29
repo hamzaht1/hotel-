@@ -63,6 +63,7 @@ export interface ServiceInitial {
     description_en?: string | null;
     internal_notes?: string | null;
     featured_image?: string | null;
+    text_color?: string | null;
     features?: FeatureItem[];
     images?: ExistingImage[];
 }
@@ -108,6 +109,7 @@ type FormData = {
     booking_email: string;
     whatsapp_message_ar: string;
     whatsapp_message_en: string;
+    text_color: string;
     is_featured: boolean;
     is_active: boolean;
     short_description_ar: string;
@@ -141,6 +143,7 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
         booking_email: initial.booking_email ?? '',
         whatsapp_message_ar: initial.whatsapp_message_ar ?? '',
         whatsapp_message_en: initial.whatsapp_message_en ?? '',
+        text_color: initial.text_color ?? '',
         is_featured: initial.is_featured ?? false,
         is_active: initial.is_active ?? true,
         short_description_ar: initial.short_description_ar ?? '',
@@ -592,6 +595,8 @@ function StepBasic({
                 </div>
             </div>
 
+            <ColorPickerCard value={data.text_color} onChange={(v) => setData('text_color', v)} />
+
             <div className="vuexy-card flex items-start justify-between gap-4 p-6">
                 <div className="flex items-start gap-3">
                     <Star className={`mt-0.5 h-5 w-5 ${data.is_featured ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
@@ -612,6 +617,50 @@ function StepBasic({
                 />
                 {t('active_visible')}
             </label>
+        </div>
+    );
+}
+
+// Reusable color picker card — bound to an optional hex text_color value.
+// Renders the native color input + a hex text field + a clear button so the
+// admin can reset back to the template default.
+function ColorPickerCard({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const { t } = useT();
+    const safeValue = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#7367f0';
+
+    return (
+        <div className="vuexy-card flex flex-wrap items-center justify-between gap-4 p-6">
+            <div>
+                <p className="text-sm font-medium">{t('text_color')}</p>
+                <p className="text-xs text-muted-foreground">{t('text_color_hint')}</p>
+            </div>
+            <div className="flex items-center gap-2">
+                <input
+                    type="color"
+                    value={safeValue}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="h-10 w-12 cursor-pointer rounded-md border bg-transparent p-1"
+                    aria-label={t('text_color')}
+                />
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder="#7367f0"
+                    className="vuexy-input w-28"
+                    dir="ltr"
+                    maxLength={7}
+                />
+                {value && (
+                    <button
+                        type="button"
+                        onClick={() => onChange('')}
+                        className="rounded-md border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                    >
+                        {t('clear')}
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

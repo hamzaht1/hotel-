@@ -313,6 +313,12 @@ const translations: Record<string, Record<string, string>> = {
     'total_capacity': { ar: 'إجمالي السعة', en: 'Total Capacity' },
     'featured': { ar: 'مميزة', en: 'Featured' },
     'save_room': { ar: 'حفظ الغرفة', en: 'Save Room' },
+    'custom': { ar: 'مخصص', en: 'Custom' },
+    'custom_type_ar': { ar: 'نوع مخصص (عربي)', en: 'Custom Type (Arabic)' },
+    'custom_type_en': { ar: 'نوع مخصص (إنجليزي)', en: 'Custom Type (English)' },
+    'text_color': { ar: 'لون النص', en: 'Text Color' },
+    'text_color_hint': { ar: 'لون اسم البطاقة على الموقع', en: 'Color of the card name on the website' },
+    'clear': { ar: 'مسح', en: 'Clear' },
 };
 
 export function useT() {

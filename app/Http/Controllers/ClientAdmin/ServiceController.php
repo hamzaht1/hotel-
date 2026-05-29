@@ -184,6 +184,7 @@ class ServiceController extends Controller
             'duration' => 'nullable|string|max:100',
             'video_url' => 'nullable|url|max:500',
             'featured_image' => 'nullable|file|image|max:4096',
+            'text_color' => 'nullable|string|max:7',
             'images' => 'nullable|array|max:6',
             'images.*' => 'file|image|max:4096',
             'is_active' => 'boolean',

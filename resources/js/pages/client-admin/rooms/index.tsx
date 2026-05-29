@@ -10,11 +10,14 @@ interface Room {
     name_ar: string;
     name_en: string;
     type: string;
+    custom_type_ar?: string | null;
+    custom_type_en?: string | null;
     price: string;
     capacity: number;
     is_active: boolean;
     is_featured: boolean;
     featured_image: string | null;
+    text_color?: string | null;
     images: { id: number; path: string }[];
 }
 
@@ -116,14 +119,20 @@ export default function RoomsIndex({ rooms, filters, stats }: Props) {
                             </div>
                             <div className="p-4">
                                 <div className="mb-1 flex items-center justify-between">
-                                    <h3 className="font-semibold">{room.name_ar}</h3>
+                                    <h3 className="font-semibold" style={room.text_color ? { color: room.text_color } : undefined}>
+                                        {room.name_ar}
+                                    </h3>
                                     <span className={`rounded-full px-2 py-0.5 text-xs ${room.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
                                         {room.is_active ? t('active') : t('inactive')}
                                     </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground">{room.name_en}</p>
                                 <div className="mt-2 flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">{roomTypeLabels[room.type] || room.type}</span>
+                                    <span className="text-muted-foreground">
+                                        {room.type === 'custom'
+                                            ? (isArabic ? (room.custom_type_ar || t('custom')) : (room.custom_type_en || t('custom')))
+                                            : (roomTypeLabels[room.type] || room.type)}
+                                    </span>
                                     <span className="font-semibold">{room.price} ر.س</span>
                                 </div>
                                 <div className="mt-1 text-xs text-muted-foreground">{t('capacity')}: {room.capacity} {t('guests')}</div>

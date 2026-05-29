@@ -26,6 +26,7 @@ class Service extends Model
         'room_type',
         'duration',
         'featured_image',
+        'text_color',
         'video_url',
         'required_fields',
         'accepts_bookings',

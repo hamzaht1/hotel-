@@ -16,6 +16,8 @@ class Room extends Model
         'name_ar',
         'name_en',
         'type',
+        'custom_type_ar',
+        'custom_type_en',
         'description_ar',
         'description_en',
         'short_description_ar',
@@ -23,8 +25,8 @@ class Room extends Model
         'internal_notes',
         'price',
         'capacity',
-        'amenities',
         'featured_image',
+        'text_color',
         'is_active',
         'is_featured',
         'booking_channel',
@@ -38,7 +40,6 @@ class Room extends Model
     protected function casts(): array
     {
         return [
-            'amenities' => 'array',
             'price' => 'decimal:2',
             'is_active' => 'boolean',
             'is_featured' => 'boolean',
@@ -48,6 +49,11 @@ class Room extends Model
     public function images(): HasMany
     {
         return $this->hasMany(RoomImage::class)->orderBy('sort_order');
+    }
+
+    public function amenities(): HasMany
+    {
+        return $this->hasMany(RoomAmenity::class)->orderBy('sort_order');
     }
 
     public function getNameAttribute(): string
