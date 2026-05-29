@@ -319,6 +319,26 @@ const translations: Record<string, Record<string, string>> = {
     'text_color': { ar: 'لون النص', en: 'Text Color' },
     'text_color_hint': { ar: 'لون اسم البطاقة على الموقع', en: 'Color of the card name on the website' },
     'clear': { ar: 'مسح', en: 'Clear' },
+
+    // === SERVICES (billing + durations + party size + time window) ===
+    'billing_method': { ar: 'طريقة الاحتساب', en: 'Billing method' },
+    'billing_method_label': { ar: 'نوع الخدمة (طريقة الاحتساب)', en: 'Service type (billing method)' },
+    'billing_method_hint': { ar: 'حدد كيف تُقدَّم هذه الخدمة', en: 'Define how this service is offered' },
+    'bill_once': { ar: 'مرة واحدة', en: 'Once' },
+    'bill_per_night': { ar: 'بالليلة', en: 'Per night' },
+    'bill_per_hour': { ar: 'بالساعة', en: 'Per hour' },
+    'bill_per_minute': { ar: 'بالدقيقة', en: 'Per minute' },
+    'bill_time_window': { ar: 'من وقت إلى وقت', en: 'Time window' },
+    'time_window_section': { ar: 'تحديد الوقت', en: 'Time window' },
+    'from_time': { ar: 'من', en: 'From' },
+    'to_time': { ar: 'إلى', en: 'To' },
+    'hours_count': { ar: 'عدد الساعات', en: 'Number of hours' },
+    'duration_hours_label': { ar: 'المدة (ساعات)', en: 'Duration (hours)' },
+    'duration_minutes_label': { ar: 'المدة (دقائق)', en: 'Duration (minutes)' },
+    'party_size': { ar: 'عدد الأشخاص', en: 'Party size' },
+    'massage_type': { ar: 'نوع المساج', en: 'Massage type' },
+    'hall_type': { ar: 'نوع القاعة', en: 'Hall type' },
+    'restaurant_category_label': { ar: 'التصنيف', en: 'Category' },
 };
 
 export function useT() {

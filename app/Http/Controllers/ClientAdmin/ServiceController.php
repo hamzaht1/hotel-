@@ -179,8 +179,14 @@ class ServiceController extends Controller
             'description_en' => 'nullable|string',
             'internal_notes' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'billing_method' => 'nullable|in:once,per_night,per_hour,per_minute,time_window',
+            'duration_hours' => 'nullable|integer|min:0|max:999',
+            'duration_minutes' => 'nullable|integer|min:0|max:59',
+            'time_window_from' => 'nullable|regex:/^\d{2}:\d{2}$/',
+            'time_window_to' => 'nullable|regex:/^\d{2}:\d{2}$/',
+            'party_size' => 'nullable|integer|min:1|max:9999',
             'capacity' => 'nullable|integer|min:1|max:999',
-            'room_type' => 'nullable|string|max:50',
+            'room_type' => 'nullable|string|max:100',
             'duration' => 'nullable|string|max:100',
             'video_url' => 'nullable|url|max:500',
             'featured_image' => 'nullable|file|image|max:4096',
@@ -210,6 +216,7 @@ class ServiceController extends Controller
                 'is_active' => $validated['is_active'] ?? true,
                 'is_featured' => $validated['is_featured'] ?? false,
                 'booking_channel' => $validated['booking_channel'] ?? 'whatsapp',
+                'billing_method' => $validated['billing_method'] ?? 'once',
             ])
             ->toArray();
     }

@@ -16,6 +16,12 @@ import {
     Image as ImageIcon,
     ChevronRight,
     ChevronLeft,
+    CalendarDays,
+    Check,
+    Moon,
+    Clock,
+    Timer,
+    type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -47,7 +53,13 @@ export interface ServiceInitial {
     service_type?: string;
     room_type?: string | null;
     capacity?: number | string | null;
+    party_size?: number | string | null;
     price?: string | number;
+    billing_method?: string | null;
+    duration_hours?: number | string | null;
+    duration_minutes?: number | string | null;
+    time_window_from?: string | null;
+    time_window_to?: string | null;
     duration?: string | null;
     video_url?: string | null;
     booking_channel?: 'whatsapp' | 'email' | null;
@@ -84,6 +96,16 @@ const SERVICE_TYPES = [
     { key: 'custom', icon: Wand2, labelKey: 'type_custom' },
 ] as const;
 
+// Billing methods for custom services. Each method maps the chosen pricing
+// model to the conditional sub-fields the form should reveal underneath.
+const BILLING_METHODS: { key: string; labelKey: string; icon: LucideIcon }[] = [
+    { key: 'time_window', labelKey: 'bill_time_window', icon: CalendarDays },
+    { key: 'once', labelKey: 'bill_once', icon: Check },
+    { key: 'per_night', labelKey: 'bill_per_night', icon: Moon },
+    { key: 'per_hour', labelKey: 'bill_per_hour', icon: Clock },
+    { key: 'per_minute', labelKey: 'bill_per_minute', icon: Timer },
+];
+
 const PRESET_FEATURES: FeatureItem[] = [
     { key: 'wifi', label_ar: 'واي فاي', label_en: 'WiFi', icon: '📶' },
     { key: 'tv', label_ar: 'تلفاز', label_en: 'TV', icon: '📺' },
@@ -101,7 +123,13 @@ type FormData = {
     service_type: string;
     room_type: string;
     capacity: string;
+    party_size: string;
     price: string;
+    billing_method: string;
+    duration_hours: string;
+    duration_minutes: string;
+    time_window_from: string;
+    time_window_to: string;
     duration: string;
     video_url: string;
     booking_channel: 'whatsapp' | 'email';
@@ -135,7 +163,13 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
         service_type: initial.service_type ?? 'rooms',
         room_type: initial.room_type ?? '',
         capacity: initial.capacity != null ? String(initial.capacity) : '2',
+        party_size: initial.party_size != null ? String(initial.party_size) : '',
         price: initial.price != null ? String(initial.price) : '',
+        billing_method: initial.billing_method ?? 'once',
+        duration_hours: initial.duration_hours != null ? String(initial.duration_hours) : '',
+        duration_minutes: initial.duration_minutes != null ? String(initial.duration_minutes) : '',
+        time_window_from: initial.time_window_from ?? '',
+        time_window_to: initial.time_window_to ?? '',
         duration: initial.duration ?? '',
         video_url: initial.video_url ?? '',
         booking_channel: (initial.booking_channel ?? 'whatsapp') as 'whatsapp' | 'email',
@@ -227,7 +261,6 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
         post(submitUrl, { forceFormData: true });
     }
 
-    const showRoomFields = data.service_type === 'rooms' || data.service_type === 'hall';
     const existingImages = initial.images ?? [];
 
     return (
@@ -269,7 +302,6 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
                         setData={setData}
                         errors={errors}
                         categories={categories}
-                        showRoomFields={showRoomFields}
                     />
                 )}
                 {step === 2 && <StepDescription data={data} setData={setData} errors={errors} />}
@@ -388,13 +420,11 @@ function StepBasic({
     setData,
     errors,
     categories,
-    showRoomFields,
 }: {
     data: FormData;
     setData: <K extends keyof FormData>(key: K, value: FormData[K]) => void;
     errors: Partial<Record<keyof FormData, string>>;
     categories: CategoryOption[];
-    showRoomFields: boolean;
 }) {
     const { t, isArabic } = useT();
 
@@ -463,7 +493,8 @@ function StepBasic({
                         </select>
                     </Field>
 
-                    {showRoomFields && (
+                    {/* Sub-type field: label and shape change with service_type. */}
+                    {data.service_type === 'rooms' && (
                         <Field label={t('room_type')} error={errors.room_type}>
                             <select
                                 value={data.room_type}
@@ -478,16 +509,64 @@ function StepBasic({
                             </select>
                         </Field>
                     )}
+                    {data.service_type === 'spa' && (
+                        <Field label={t('massage_type')} error={errors.room_type}>
+                            <input
+                                type="text"
+                                value={data.room_type}
+                                onChange={(e) => setData('room_type', e.target.value)}
+                                placeholder={isArabic ? 'مثال: تايلندي' : 'e.g. Thai, Swedish'}
+                                className="vuexy-input"
+                            />
+                        </Field>
+                    )}
+                    {data.service_type === 'hall' && (
+                        <Field label={t('hall_type')} error={errors.room_type}>
+                            <input
+                                type="text"
+                                value={data.room_type}
+                                onChange={(e) => setData('room_type', e.target.value)}
+                                placeholder={isArabic ? 'مثال: اجتماعات' : 'e.g. Meeting, Conference'}
+                                className="vuexy-input"
+                            />
+                        </Field>
+                    )}
+                    {data.service_type === 'restaurant' && (
+                        <Field label={t('restaurant_category_label')} error={errors.room_type}>
+                            <input
+                                type="text"
+                                value={data.room_type}
+                                onChange={(e) => setData('room_type', e.target.value)}
+                                placeholder={isArabic ? 'مثال: فطور' : 'e.g. Breakfast, Buffet'}
+                                className="vuexy-input"
+                            />
+                        </Field>
+                    )}
 
-                    <Field label={t('capacity')} error={errors.capacity}>
-                        <input
-                            type="number"
-                            value={data.capacity}
-                            onChange={(e) => setData('capacity', e.target.value)}
-                            className="vuexy-input"
-                            min="1"
-                        />
-                    </Field>
+                    {(data.service_type === 'rooms' || data.service_type === 'hall') && (
+                        <Field label={t('capacity')} error={errors.capacity}>
+                            <input
+                                type="number"
+                                value={data.capacity}
+                                onChange={(e) => setData('capacity', e.target.value)}
+                                className="vuexy-input"
+                                min="1"
+                            />
+                        </Field>
+                    )}
+
+                    {data.service_type === 'restaurant' && (
+                        <Field label={t('party_size')} error={errors.party_size}>
+                            <input
+                                type="number"
+                                value={data.party_size}
+                                onChange={(e) => setData('party_size', e.target.value)}
+                                className="vuexy-input"
+                                min="1"
+                                placeholder="4"
+                            />
+                        </Field>
+                    )}
 
                     <Field label={data.service_type === 'rooms' ? t('price_per_night') : t('price_sar')} error={errors.price}>
                         <div className="relative">
@@ -507,15 +586,44 @@ function StepBasic({
                         </div>
                     </Field>
 
-                    <Field label={t('duration')} error={errors.duration}>
-                        <input
-                            type="text"
-                            value={data.duration}
-                            onChange={(e) => setData('duration', e.target.value)}
-                            placeholder="30 min, 1 hour..."
-                            className="vuexy-input"
-                        />
-                    </Field>
+                    {data.service_type === 'spa' && (
+                        <>
+                            <Field label={t('duration_hours_label')} error={errors.duration_hours}>
+                                <input
+                                    type="number"
+                                    value={data.duration_hours}
+                                    onChange={(e) => setData('duration_hours', e.target.value)}
+                                    className="vuexy-input"
+                                    min="0"
+                                    placeholder="1"
+                                />
+                            </Field>
+                            <Field label={t('duration_minutes_label')} error={errors.duration_minutes}>
+                                <input
+                                    type="number"
+                                    value={data.duration_minutes}
+                                    onChange={(e) => setData('duration_minutes', e.target.value)}
+                                    className="vuexy-input"
+                                    min="0"
+                                    max="59"
+                                    placeholder="30"
+                                />
+                            </Field>
+                        </>
+                    )}
+
+                    {data.service_type === 'hall' && (
+                        <Field label={t('hours_count')} error={errors.duration_hours}>
+                            <input
+                                type="number"
+                                value={data.duration_hours}
+                                onChange={(e) => setData('duration_hours', e.target.value)}
+                                className="vuexy-input"
+                                min="0"
+                                placeholder="2"
+                            />
+                        </Field>
+                    )}
 
                     <Field label={t('video_url')} error={errors.video_url}>
                         <input
@@ -528,6 +636,21 @@ function StepBasic({
                     </Field>
                 </div>
             </div>
+
+            {data.service_type === 'custom' && (
+                <BillingMethodCard
+                    method={data.billing_method}
+                    hours={data.duration_hours}
+                    minutes={data.duration_minutes}
+                    from={data.time_window_from}
+                    to={data.time_window_to}
+                    onMethodChange={(v) => setData('billing_method', v)}
+                    onHoursChange={(v) => setData('duration_hours', v)}
+                    onMinutesChange={(v) => setData('duration_minutes', v)}
+                    onFromChange={(v) => setData('time_window_from', v)}
+                    onToChange={(v) => setData('time_window_to', v)}
+                />
+            )}
 
             <div className="vuexy-card p-6">
                 <h2 className="mb-4 text-base font-semibold">{t('booking_data')}</h2>
@@ -987,6 +1110,109 @@ function Field({ label, error, children }: { label: string; error?: string; chil
             <label className="mb-1.5 block text-sm font-medium">{label}</label>
             {children}
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+// Picker for the "custom" service type. Renders the five billing options
+// and reveals the matching conditional fields underneath.
+function BillingMethodCard({
+    method,
+    hours,
+    minutes,
+    from,
+    to,
+    onMethodChange,
+    onHoursChange,
+    onMinutesChange,
+    onFromChange,
+    onToChange,
+}: {
+    method: string;
+    hours: string;
+    minutes: string;
+    from: string;
+    to: string;
+    onMethodChange: (v: string) => void;
+    onHoursChange: (v: string) => void;
+    onMinutesChange: (v: string) => void;
+    onFromChange: (v: string) => void;
+    onToChange: (v: string) => void;
+}) {
+    const { t } = useT();
+    return (
+        <div className="vuexy-card space-y-4 p-6">
+            <div>
+                <h2 className="text-base font-semibold">{t('billing_method_label')}</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t('billing_method_hint')}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                {BILLING_METHODS.map(({ key, labelKey, icon: Icon }) => {
+                    const active = method === key;
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            onClick={() => onMethodChange(key)}
+                            className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-3 text-xs transition ${
+                                active ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20' : 'hover:bg-muted'
+                            }`}
+                        >
+                            <Icon className="h-5 w-5" />
+                            <span className="text-center">{t(labelKey)}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {method === 'per_hour' && (
+                <Field label={t('hours_count')}>
+                    <input
+                        type="number"
+                        value={hours}
+                        onChange={(e) => onHoursChange(e.target.value)}
+                        className="vuexy-input"
+                        min="0"
+                        placeholder="1"
+                    />
+                </Field>
+            )}
+
+            {method === 'per_minute' && (
+                <Field label={t('duration_minutes_label')}>
+                    <input
+                        type="number"
+                        value={minutes}
+                        onChange={(e) => onMinutesChange(e.target.value)}
+                        className="vuexy-input"
+                        min="0"
+                        placeholder="30"
+                    />
+                </Field>
+            )}
+
+            {method === 'time_window' && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={t('from_time')}>
+                        <input
+                            type="time"
+                            value={from}
+                            onChange={(e) => onFromChange(e.target.value)}
+                            className="vuexy-input"
+                            dir="ltr"
+                        />
+                    </Field>
+                    <Field label={t('to_time')}>
+                        <input
+                            type="time"
+                            value={to}
+                            onChange={(e) => onToChange(e.target.value)}
+                            className="vuexy-input"
+                            dir="ltr"
+                        />
+                    </Field>
+                </div>
+            )}
         </div>
     );
 }
