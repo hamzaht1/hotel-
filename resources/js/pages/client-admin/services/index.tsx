@@ -4,6 +4,7 @@ import { useStorageUrl } from '@/lib/storage';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Service {
     id: number;
@@ -41,6 +42,22 @@ export default function ServicesIndex({ services, categories, filters }: Props) 
     const { t } = useT();
     const storageUrl = useStorageUrl();
     const flash = (usePage().props as any).flash;
+    const [search, setSearch] = useState(filters.search ?? '');
+
+    // Debounced live filtering: refetch the list ~300ms after the user
+    // stops typing, keyed off the search term so the URL reflects state.
+    useEffect(() => {
+        const current = filters.search ?? '';
+        if (search === current) return;
+        const id = setTimeout(() => {
+            router.get(
+                '/client-admin/services',
+                { ...filters, search: search || undefined },
+                { preserveState: true, preserveScroll: true, replace: true },
+            );
+        }, 300);
+        return () => clearTimeout(id);
+    }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('client_admin'), href: '/client-admin' },
@@ -76,25 +93,13 @@ export default function ServicesIndex({ services, categories, filters }: Props) 
 
                 {/* Filters */}
                 <div className="flex flex-col gap-3 sm:flex-row">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            const fd = new FormData(e.currentTarget);
-                            router.get('/client-admin/services', {
-                                search: fd.get('search') as string,
-                                category_id: filters.category_id,
-                            }, { preserveState: true });
-                        }}
-                        className="flex-1"
-                    >
-                        <input
-                            name="search"
-                            type="text"
-                            placeholder={t('search_services') || 'Search services...'}
-                            defaultValue={filters.search || ''}
-                            className="vuexy-input w-full"
-                        />
-                    </form>
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder={t('search_services') || 'Search services...'}
+                        className="vuexy-input flex-1"
+                    />
                     <select
                         value={filters.category_id || ''}
                         onChange={(e) => router.get('/client-admin/services', { ...filters, category_id: e.target.value || undefined }, { preserveState: true })}

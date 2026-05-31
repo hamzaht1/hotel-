@@ -2,11 +2,6 @@ import { useT } from '@/hooks/use-translations';
 import { useStorageUrl } from '@/lib/storage';
 import { router, useForm } from '@inertiajs/react';
 import {
-    Bed,
-    Sparkles,
-    Building2,
-    UtensilsCrossed,
-    Wand2,
     Upload,
     X,
     Star,
@@ -88,14 +83,6 @@ interface Props {
     submitUrl: string;
     cancelUrl: string;
 }
-
-const SERVICE_TYPES = [
-    { key: 'rooms', icon: Bed, labelKey: 'type_rooms' },
-    { key: 'spa', icon: Sparkles, labelKey: 'type_spa' },
-    { key: 'hall', icon: Building2, labelKey: 'type_hall' },
-    { key: 'restaurant', icon: UtensilsCrossed, labelKey: 'type_restaurant' },
-    { key: 'custom', icon: Wand2, labelKey: 'type_custom' },
-] as const;
 
 // Billing methods for custom services. Each method maps the chosen pricing
 // model to the conditional sub-fields the form should reveal underneath.
@@ -461,30 +448,6 @@ function StepBasic({
     return (
         <div className="space-y-6">
             <div className="vuexy-card p-6">
-                <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('service_type')}</h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    {SERVICE_TYPES.map(({ key, icon: Icon, labelKey }) => {
-                        const active = data.service_type === key;
-                        return (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => setData('service_type', key)}
-                                className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-4 text-sm transition ${
-                                    active
-                                        ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
-                                        : 'hover:bg-muted'
-                                }`}
-                            >
-                                <Icon className="h-6 w-6" />
-                                <span>{t(labelKey)}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className="vuexy-card p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field label={t('name_ar')} error={errors.name_ar}>
                         <input
@@ -511,7 +474,16 @@ function StepBasic({
                     <Field label={t('category')} error={errors.category_id}>
                         <select
                             value={data.category_id}
-                            onChange={(e) => setData('category_id', e.target.value)}
+                            onChange={(e) => {
+                                const newId = e.target.value;
+                                setData('category_id', newId);
+                                // The chosen category's type drives the
+                                // conditional sub-fields below (and the
+                                // billing picker for "custom").
+                                const cat = categories.find((c) => String(c.id) === newId);
+                                const derivedType = cat?.type ?? 'custom';
+                                setData('service_type', derivedType);
+                            }}
                             className="vuexy-input"
                         >
                             <option value="">{t('select_category')}</option>
