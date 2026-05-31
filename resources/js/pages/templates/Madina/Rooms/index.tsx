@@ -15,6 +15,42 @@ import BookingModal, { BookingType, BookingData } from '@/components/templates/B
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import {
+    FaWifi,
+    FaTv,
+    FaSnowflake,
+    FaWineGlass,
+    FaLock,
+    FaWindowMaximize,
+    FaWater,
+    FaBellConcierge,
+    FaBath,
+    FaUtensils,
+} from 'react-icons/fa6'
+import type { IconType } from 'react-icons'
+
+// Maps a saved amenity key (the ones set by the admin in the wizard) to a
+// themed FontAwesome icon. Custom amenities (key starts with `custom_`)
+// have no entry here and fall back to the emoji the admin picked.
+const AMENITY_FA_ICONS: Record<string, IconType> = {
+    wifi: FaWifi,
+    tv: FaTv,
+    air_conditioning: FaSnowflake,
+    minibar: FaWineGlass,
+    safe: FaLock,
+    balcony: FaWindowMaximize,
+    sea_view: FaWater,
+    room_service: FaBellConcierge,
+    jacuzzi: FaBath,
+    kitchen: FaUtensils,
+}
+
+interface RoomCardAmenity {
+    key: string
+    labelAr: string
+    labelEn: string
+    icon: string | null
+}
 
 // Bilingual room interface
 interface BilingualRoom {
@@ -161,24 +197,32 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
   // Use backend rooms if available, otherwise use static data
   const roomsSource = useMemo(() => {
     if (backendRooms && backendRooms.length > 0) {
-      return backendRooms.map((room, index) => ({
-        id: room.id,
-        name: isArabic ? room.name_ar : room.name_en,
-        description: isArabic ? (room.description_ar || '') : (room.description_en || ''),
-        price: Number(room.price) || 0,
-        originalPrice: undefined,
-        currency: isArabic ? 'ريال' : 'SAR',
-        features: isArabic
-          ? (room.amenities || []).slice(0, 3).map((a: string) => a)
-          : (room.amenities || []).slice(0, 3).map((a: string) => a),
-        bedType: isArabic ? 'سرير مزدوج' : 'Double Bed',
-        amenities: room.amenities || [],
-        maxGuests: room.capacity || 2,
-        size: 30,
-        image: storageUrl(room.featured_image) ?? storageUrl(room.images?.[0]?.path) ?? bilingualRoomsData[index % bilingualRoomsData.length]?.image,
-        popularTag: undefined,
-        isAvailable: true,
-      }));
+      return backendRooms.map((room, index) => {
+        // Amenities now come from the normalized room_amenities relation
+        // as an ordered list of objects, not the legacy string[] JSON.
+        const amenityList: RoomCardAmenity[] = (room.amenities || []).map((a: any) => ({
+          key: a.key,
+          labelAr: a.label_ar,
+          labelEn: a.label_en,
+          icon: a.icon,
+        }));
+        return {
+          id: room.id,
+          name: isArabic ? room.name_ar : room.name_en,
+          description: isArabic ? (room.description_ar || '') : (room.description_en || ''),
+          price: Number(room.price) || 0,
+          originalPrice: undefined,
+          currency: isArabic ? 'ريال' : 'SAR',
+          features: amenityList.slice(0, 3).map((a) => (isArabic ? a.labelAr : a.labelEn)),
+          bedType: isArabic ? 'سرير مزدوج' : 'Double Bed',
+          amenities: amenityList,
+          maxGuests: room.capacity || 2,
+          size: 30,
+          image: storageUrl(room.featured_image) ?? storageUrl(room.images?.[0]?.path) ?? bilingualRoomsData[index % bilingualRoomsData.length]?.image,
+          popularTag: undefined,
+          isAvailable: true,
+        };
+      });
     }
     // Fallback to static data
     return bilingualRoomsData.map(room => ({
@@ -190,7 +234,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
       currency: isArabic ? room.currency : room.currencyEn,
       features: isArabic ? room.featuresAr : room.featuresEn,
       bedType: isArabic ? room.bedTypeAr : room.bedTypeEn,
-      amenities: isArabic ? room.amenitiesAr : room.amenitiesEn,
+      amenities: [] as RoomCardAmenity[],
       maxGuests: room.maxGuests,
       size: room.size,
       image: room.image,
@@ -343,59 +387,60 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                   />
                 </div>
 
-                {/* Features with icons - horizontal row */}
+                {/* Features with icons - horizontal row.
+                    When the admin configured amenities for this room, we
+                    render those (FontAwesome for known keys, emoji for
+                    custom ones); otherwise fall back to the generic set. */}
                 <div className="grid grid-cols-3 gap-3 mb-4 flex-shrink-0">
-                {[
-                  { 
-                    icon: parkIcon, 
-                    labelAr: 'مواقف السيارات', 
-                    labelEn: 'Parking' 
-                  },
-                  { 
-                    icon: mealIcon, 
-                    labelAr: '3 وجبات', 
-                    labelEn: '3 Meals' 
-                  },
-                  { 
-                    icon: peopleIcon, 
-                    labelAr: `${room.maxGuests} أشخاص`, 
-                    labelEn: `${room.maxGuests} Guests` 
-                  },
-                  { 
-                    icon: amenitiesIcon, 
-                    labelAr: `${(room.amenities?.length ?? 4)} مرافق`, 
-                    labelEn: `${(room.amenities?.length ?? 4)} Amenities` 
-                  },
-                  { 
-                    icon: wifiIcon, 
-                    labelAr: 'واي فاي', 
-                    labelEn: 'Wi-Fi' 
-                  },
-                  { 
-                    icon: wheelchairIcon, 
-                    labelAr: 'الاحتياجات الخاصة', 
-                    labelEn: 'Accessibility' 
-                  },
-                ].map((feature, index) => {
+                {(room.amenities && room.amenities.length > 0
+                  ? room.amenities.slice(0, 6).map((a) => ({
+                      faKey: a.key,
+                      labelAr: a.labelAr,
+                      labelEn: a.labelEn,
+                      emoji: a.icon,
+                      svg: null as string | null,
+                    }))
+                  : [
+                      { faKey: null, labelAr: 'مواقف السيارات', labelEn: 'Parking', emoji: null, svg: parkIcon },
+                      { faKey: null, labelAr: '3 وجبات', labelEn: '3 Meals', emoji: null, svg: mealIcon },
+                      { faKey: null, labelAr: `${room.maxGuests} أشخاص`, labelEn: `${room.maxGuests} Guests`, emoji: null, svg: peopleIcon },
+                      { faKey: null, labelAr: '4 مرافق', labelEn: '4 Amenities', emoji: null, svg: amenitiesIcon },
+                      { faKey: 'wifi', labelAr: 'واي فاي', labelEn: 'Wi-Fi', emoji: null, svg: wifiIcon },
+                      { faKey: null, labelAr: 'الاحتياجات الخاصة', labelEn: 'Accessibility', emoji: null, svg: wheelchairIcon },
+                    ]
+                ).map((feature, index) => {
                   const label = isArabic ? feature.labelAr : feature.labelEn;
+                  const Fa = feature.faKey ? AMENITY_FA_ICONS[feature.faKey] : undefined;
                   return (
                     <div key={index} className="flex flex-col items-center text-center">
-                      <div 
-                        className="w-6 h-6 mb-1"
-                        aria-label={label}
-                        style={{
-                          maskImage: `url(${feature.icon})`,
-                          WebkitMaskImage: `url(${feature.icon})`,
-                          maskSize: 'contain',
-                          WebkitMaskSize: 'contain',
-                          maskRepeat: 'no-repeat',
-                          WebkitMaskRepeat: 'no-repeat',
-                          maskPosition: 'center',
-                          WebkitMaskPosition: 'center',
-                          backgroundColor: 'var(--madina-identity-icon-color, var(--madina-primary))',
-                          opacity: 1
-                        }}
-                      />
+                      {Fa ? (
+                        <Fa
+                          className="w-6 h-6 mb-1"
+                          style={{ color: 'var(--madina-identity-icon-color, var(--madina-primary))' }}
+                          aria-label={label}
+                        />
+                      ) : feature.emoji ? (
+                        <span className="mb-1 inline-flex h-6 w-6 items-center justify-center text-lg" aria-label={label}>
+                          {feature.emoji}
+                        </span>
+                      ) : feature.svg ? (
+                        <div
+                          className="w-6 h-6 mb-1"
+                          aria-label={label}
+                          style={{
+                            maskImage: `url(${feature.svg})`,
+                            WebkitMaskImage: `url(${feature.svg})`,
+                            maskSize: 'contain',
+                            WebkitMaskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            WebkitMaskPosition: 'center',
+                            backgroundColor: 'var(--madina-identity-icon-color, var(--madina-primary))',
+                            opacity: 1,
+                          }}
+                        />
+                      ) : null}
                       <span className="text-xs madina-text-body">{label}</span>
                     </div>
                   );
