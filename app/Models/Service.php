@@ -35,7 +35,6 @@ class Service extends Model
         'duration',
         'featured_image',
         'text_color',
-        'video_url',
         'required_fields',
         'accepts_bookings',
         'booking_channel',

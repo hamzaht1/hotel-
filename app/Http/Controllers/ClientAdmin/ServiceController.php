@@ -190,7 +190,6 @@ class ServiceController extends Controller
             'custom_subtype_ar' => 'nullable|string|max:100',
             'custom_subtype_en' => 'nullable|string|max:100',
             'duration' => 'nullable|string|max:100',
-            'video_url' => 'nullable|url|max:500',
             'featured_image' => 'nullable|file|image|max:4096',
             'text_color' => 'nullable|string|max:7',
             'images' => 'nullable|array|max:6',

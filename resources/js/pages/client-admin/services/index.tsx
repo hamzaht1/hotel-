@@ -16,7 +16,6 @@ interface Service {
     category_id: number | null;
     category: { id: number; name_ar: string; name_en: string } | null;
     featured_image: string | null;
-    video_url: string | null;
     is_active: boolean;
     sort_order: number;
     created_at: string;

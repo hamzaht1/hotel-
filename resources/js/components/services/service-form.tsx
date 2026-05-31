@@ -63,7 +63,6 @@ export interface ServiceInitial {
     time_window_from?: string | null;
     time_window_to?: string | null;
     duration?: string | null;
-    video_url?: string | null;
     booking_channel?: 'whatsapp' | 'email' | null;
     whatsapp_number?: string | null;
     booking_email?: string | null;
@@ -162,7 +161,6 @@ type FormData = {
     time_window_from: string;
     time_window_to: string;
     duration: string;
-    video_url: string;
     booking_channel: 'whatsapp' | 'email';
     whatsapp_number: string;
     booking_email: string;
@@ -204,7 +202,6 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
         time_window_from: initial.time_window_from ?? '',
         time_window_to: initial.time_window_to ?? '',
         duration: initial.duration ?? '',
-        video_url: initial.video_url ?? '',
         booking_channel: (initial.booking_channel ?? 'whatsapp') as 'whatsapp' | 'email',
         whatsapp_number: initial.whatsapp_number ?? '',
         booking_email: initial.booking_email ?? '',
@@ -690,15 +687,6 @@ function StepBasic({
                         </Field>
                     )}
 
-                    <Field label={t('video_url')} error={errors.video_url}>
-                        <input
-                            type="url"
-                            value={data.video_url}
-                            onChange={(e) => setData('video_url', e.target.value)}
-                            placeholder="https://"
-                            className="vuexy-input"
-                        />
-                    </Field>
                 </div>
             </div>
 

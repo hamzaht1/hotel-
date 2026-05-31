@@ -240,7 +240,6 @@ const translations: Record<string, Record<string, string>> = {
     'service_details': { ar: 'تفاصيل الخدمة', en: 'Service Details' },
     'service_wizard_intro': { ar: 'املأ بيانات الخدمة عبر الخطوات التالية', en: 'Fill in the service data through the following steps' },
     'select_category': { ar: 'اختر التصنيف', en: 'Select category' },
-    'video_url': { ar: 'رابط الفيديو', en: 'Video URL' },
     'duration': { ar: 'المدة', en: 'Duration' },
 
     // Wizard steps
