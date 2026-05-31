@@ -22,6 +22,7 @@ use App\Http\Controllers\ClientAdmin\ServiceController;
 use App\Http\Controllers\ClientAdmin\StaffController;
 use App\Http\Controllers\ClientAdmin\RoleController;
 use App\Http\Controllers\ClientAdmin\IntegrationController;
+use App\Http\Controllers\ClientAdmin\AccountController;
 use App\Http\Controllers\ClientAdmin\RenewalController;
 use App\Http\Controllers\ClientAdmin\ReviewController as ClientReviewController;
 use App\Http\Controllers\ClientAdmin\DomainController;
@@ -224,6 +225,9 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         // Hotel Settings
         Route::get('hotel-settings', [HotelSettingController::class, 'edit'])->name('hotel-settings.edit');
         Route::put('hotel-settings', [HotelSettingController::class, 'update'])->name('hotel-settings.update');
+
+        // Unified Establishment Account page (tabs: data / renewal / invoices)
+        Route::get('account', [AccountController::class, 'index'])->name('account.index');
 
         // System Settings (tenant-level branding/identity, mirrors super-admin/site-settings)
         Route::get('system-settings', [SystemSettingController::class, 'edit'])->name('system-settings.edit');

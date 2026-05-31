@@ -70,11 +70,10 @@ export function AppSidebar() {
         { item: { title: isArabic ? 'آراء العملاء' : 'Customer Reviews', href: '/client-admin/reviews', icon: Star }, permission: 'reviews.view' },
     ], can);
 
-    // 🏢 حساب المنشأة — establishment data + subscription/invoices (single occurrence)
+    // 🏢 حساب المنشأة — single tabbed page that bundles establishment data,
+    // subscription renewal and invoices
     const accountGroup = buildGroup([
-        { item: { title: isArabic ? 'بيانات المنشأة' : 'Establishment Data', href: '/client-admin/hotel-settings', icon: Building2 }, permission: 'hotel_settings.view' },
-        { item: { title: isArabic ? 'تجديد الاشتراك' : 'Renewal', href: '/client-admin/renewal', icon: RefreshCw } },
-        { item: { title: isArabic ? 'الفواتير' : 'Invoices', href: '/client-admin/invoices', icon: FileText } },
+        { item: { title: isArabic ? 'حساب المنشأة' : 'Establishment Account', href: '/client-admin/account', icon: Building2 }, permission: 'hotel_settings.view' },
     ], can);
 
     // 💬 الرسائل والدعم
