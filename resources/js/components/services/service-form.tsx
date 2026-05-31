@@ -12,13 +12,21 @@ import {
     Image as ImageIcon,
     ChevronRight,
     ChevronLeft,
-    CalendarDays,
-    Check,
-    Moon,
-    Clock,
-    Timer,
-    type LucideIcon,
 } from 'lucide-react';
+import {
+    FaCalendarDays,
+    FaCheck,
+    FaMoon,
+    FaClock,
+    FaStopwatch,
+    FaWifi,
+    FaTv,
+    FaSnowflake,
+    FaWineGlass,
+    FaLock,
+    FaWindowMaximize,
+} from 'react-icons/fa6';
+import type { IconType } from 'react-icons';
 import { useMemo, useState } from 'react';
 
 export interface CategoryOption {
@@ -87,13 +95,24 @@ interface Props {
 
 // Billing methods for custom services. Each method maps the chosen pricing
 // model to the conditional sub-fields the form should reveal underneath.
-const BILLING_METHODS: { key: string; labelKey: string; icon: LucideIcon }[] = [
-    { key: 'time_window', labelKey: 'bill_time_window', icon: CalendarDays },
-    { key: 'once', labelKey: 'bill_once', icon: Check },
-    { key: 'per_night', labelKey: 'bill_per_night', icon: Moon },
-    { key: 'per_hour', labelKey: 'bill_per_hour', icon: Clock },
-    { key: 'per_minute', labelKey: 'bill_per_minute', icon: Timer },
+const BILLING_METHODS: { key: string; labelKey: string; icon: IconType }[] = [
+    { key: 'time_window', labelKey: 'bill_time_window', icon: FaCalendarDays },
+    { key: 'once', labelKey: 'bill_once', icon: FaCheck },
+    { key: 'per_night', labelKey: 'bill_per_night', icon: FaMoon },
+    { key: 'per_hour', labelKey: 'bill_per_hour', icon: FaClock },
+    { key: 'per_minute', labelKey: 'bill_per_minute', icon: FaStopwatch },
 ];
+
+// FontAwesome icon per preset feature key. Custom features (admin-added)
+// keep their emoji; unknown keys also fall back to the emoji or "+".
+const FEATURE_FA_ICONS: Record<string, IconType> = {
+    wifi: FaWifi,
+    tv: FaTv,
+    ac: FaSnowflake,
+    minibar: FaWineGlass,
+    safe: FaLock,
+    balcony: FaWindowMaximize,
+};
 
 // Preset sub-type option keys per service type. Each list ends with the
 // special "custom" key that, when picked, lets the admin type a free
@@ -909,6 +928,7 @@ function StepFeatures({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {PRESET_FEATURES.map((feat) => {
                         const active = isSelected(feat.key);
+                        const Fa = FEATURE_FA_ICONS[feat.key];
                         return (
                             <button
                                 key={feat.key}
@@ -921,7 +941,7 @@ function StepFeatures({
                                 }`}
                             >
                                 <span>{isArabic ? feat.label_ar : feat.label_en}</span>
-                                <span className="text-lg">{feat.icon}</span>
+                                {Fa ? <Fa className="h-4 w-4" /> : <span className="text-lg">{feat.icon}</span>}
                             </button>
                         );
                     })}
@@ -992,7 +1012,9 @@ function StepFeatures({
                     <p className="py-6 text-center text-sm text-muted-foreground">{t('no_features_yet')}</p>
                 ) : (
                     <div className="space-y-2">
-                        {data.features.map((feat, idx) => (
+                        {data.features.map((feat, idx) => {
+                            const Fa = FEATURE_FA_ICONS[feat.key];
+                            return (
                             <div key={feat.key} className="flex items-center gap-2 rounded-md border p-2">
                                 <div className="flex flex-col gap-0.5">
                                     <button
@@ -1014,7 +1036,7 @@ function StepFeatures({
                                         <GripVertical className="h-3 w-3 -rotate-90" />
                                     </button>
                                 </div>
-                                <span className="text-lg">{feat.icon}</span>
+                                {Fa ? <Fa className="h-4 w-4" /> : <span className="text-lg">{feat.icon}</span>}
                                 <span className="flex-1 text-sm">{isArabic ? feat.label_ar : feat.label_en}</span>
                                 <button
                                     type="button"
@@ -1025,7 +1047,8 @@ function StepFeatures({
                                     <Trash2 className="h-4 w-4" />
                                 </button>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

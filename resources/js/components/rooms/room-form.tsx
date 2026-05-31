@@ -3,21 +3,6 @@ import { useStorageUrl } from '@/lib/storage';
 import { useForm } from '@inertiajs/react';
 import RichTextarea from '@/components/forms/rich-textarea';
 import {
-    Bed,
-    BedDouble,
-    Crown,
-    Users,
-    Wand2,
-    Wifi,
-    Tv,
-    Wine,
-    Lock,
-    Snowflake,
-    Blinds,
-    Waves,
-    ConciergeBell,
-    Bath,
-    UtensilsCrossed,
     Upload,
     X,
     Star,
@@ -27,8 +12,25 @@ import {
     Image as ImageIcon,
     ChevronRight,
     ChevronLeft,
-    type LucideIcon,
 } from 'lucide-react';
+import {
+    FaBed,
+    FaBedPulse,
+    FaCrown,
+    FaUsers,
+    FaWandMagicSparkles,
+    FaWifi,
+    FaTv,
+    FaWineGlass,
+    FaLock,
+    FaSnowflake,
+    FaWindowMaximize,
+    FaWater,
+    FaBellConcierge,
+    FaBath,
+    FaUtensils,
+} from 'react-icons/fa6';
+import type { IconType } from 'react-icons';
 import { useMemo, useState } from 'react';
 
 export interface ExistingImage {
@@ -77,26 +79,32 @@ interface Props {
     cancelUrl: string;
 }
 
-const ROOM_TYPES = [
-    { key: 'standard', icon: Bed },
-    { key: 'deluxe', icon: BedDouble },
-    { key: 'suite', icon: Crown },
-    { key: 'family', icon: Users },
-    { key: 'custom', icon: Wand2 },
-] as const;
-
-const PRESET_AMENITIES: { key: string; label_ar: string; label_en: string; icon: string; lucide: LucideIcon }[] = [
-    { key: 'wifi',             label_ar: 'واي فاي',         label_en: 'WiFi',             icon: '📶', lucide: Wifi },
-    { key: 'tv',               label_ar: 'تلفاز',           label_en: 'TV',               icon: '📺', lucide: Tv },
-    { key: 'air_conditioning', label_ar: 'تكييف',           label_en: 'Air Conditioning', icon: '❄️', lucide: Snowflake },
-    { key: 'minibar',          label_ar: 'ميني بار',         label_en: 'Mini Bar',         icon: '🍷', lucide: Wine },
-    { key: 'safe',             label_ar: 'خزنة',            label_en: 'Safe',             icon: '🔐', lucide: Lock },
-    { key: 'balcony',          label_ar: 'شرفة',            label_en: 'Balcony',          icon: '🪟', lucide: Blinds },
-    { key: 'sea_view',         label_ar: 'إطلالة بحرية',     label_en: 'Sea View',         icon: '🌊', lucide: Waves },
-    { key: 'room_service',     label_ar: 'خدمة الغرف',      label_en: 'Room Service',     icon: '🛎️', lucide: ConciergeBell },
-    { key: 'jacuzzi',          label_ar: 'جاكوزي',          label_en: 'Jacuzzi',          icon: '🛁', lucide: Bath },
-    { key: 'kitchen',          label_ar: 'مطبخ',            label_en: 'Kitchen',          icon: '🍴', lucide: UtensilsCrossed },
+const ROOM_TYPES: { key: string; icon: IconType }[] = [
+    { key: 'standard', icon: FaBed },
+    { key: 'deluxe', icon: FaBedPulse },
+    { key: 'suite', icon: FaCrown },
+    { key: 'family', icon: FaUsers },
+    { key: 'custom', icon: FaWandMagicSparkles },
 ];
+
+const PRESET_AMENITIES: { key: string; label_ar: string; label_en: string; icon: string; fa: IconType }[] = [
+    { key: 'wifi',             label_ar: 'واي فاي',         label_en: 'WiFi',             icon: '📶', fa: FaWifi },
+    { key: 'tv',               label_ar: 'تلفاز',           label_en: 'TV',               icon: '📺', fa: FaTv },
+    { key: 'air_conditioning', label_ar: 'تكييف',           label_en: 'Air Conditioning', icon: '❄️', fa: FaSnowflake },
+    { key: 'minibar',          label_ar: 'ميني بار',         label_en: 'Mini Bar',         icon: '🍷', fa: FaWineGlass },
+    { key: 'safe',             label_ar: 'خزنة',            label_en: 'Safe',             icon: '🔐', fa: FaLock },
+    { key: 'balcony',          label_ar: 'شرفة',            label_en: 'Balcony',          icon: '🪟', fa: FaWindowMaximize },
+    { key: 'sea_view',         label_ar: 'إطلالة بحرية',     label_en: 'Sea View',         icon: '🌊', fa: FaWater },
+    { key: 'room_service',     label_ar: 'خدمة الغرف',      label_en: 'Room Service',     icon: '🛎️', fa: FaBellConcierge },
+    { key: 'jacuzzi',          label_ar: 'جاكوزي',          label_en: 'Jacuzzi',          icon: '🛁', fa: FaBath },
+    { key: 'kitchen',          label_ar: 'مطبخ',            label_en: 'Kitchen',          icon: '🍴', fa: FaUtensils },
+];
+
+// Lookup of FA icon by amenity key — used to render selected items
+// (which only carry the key) without re-deriving from PRESET_AMENITIES.
+const AMENITY_FA_ICONS: Record<string, IconType> = Object.fromEntries(
+    PRESET_AMENITIES.map((a) => [a.key, a.fa]),
+);
 
 type FormData = {
     _method?: string;
@@ -708,6 +716,7 @@ function StepAmenities({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {PRESET_AMENITIES.map((preset) => {
                         const active = isSelected(preset.key);
+                        const Fa = preset.fa;
                         return (
                             <button
                                 key={preset.key}
@@ -718,7 +727,7 @@ function StepAmenities({
                                 }`}
                             >
                                 <span>{isArabic ? preset.label_ar : preset.label_en}</span>
-                                <span className="text-lg">{preset.icon}</span>
+                                <Fa className="h-4 w-4" />
                             </button>
                         );
                     })}
@@ -789,7 +798,9 @@ function StepAmenities({
                     <p className="py-6 text-center text-sm text-muted-foreground">{t('no_features_yet')}</p>
                 ) : (
                     <div className="space-y-2">
-                        {data.amenities.map((item, idx) => (
+                        {data.amenities.map((item, idx) => {
+                            const Fa = AMENITY_FA_ICONS[item.key];
+                            return (
                             <div key={item.key} className="flex items-center gap-2 rounded-md border p-2">
                                 <div className="flex flex-col gap-0.5">
                                     <button
@@ -811,7 +822,7 @@ function StepAmenities({
                                         <GripVertical className="h-3 w-3 -rotate-90" />
                                     </button>
                                 </div>
-                                <span className="text-lg">{item.icon}</span>
+                                {Fa ? <Fa className="h-4 w-4" /> : <span className="text-lg">{item.icon}</span>}
                                 <span className="flex-1 text-sm">{isArabic ? item.label_ar : item.label_en}</span>
                                 <button
                                     type="button"
@@ -822,7 +833,8 @@ function StepAmenities({
                                     <Trash2 className="h-4 w-4" />
                                 </button>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
