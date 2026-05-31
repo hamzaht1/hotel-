@@ -1,6 +1,7 @@
 import { useT } from '@/hooks/use-translations';
 import { useStorageUrl } from '@/lib/storage';
 import { router, useForm } from '@inertiajs/react';
+import RichTextarea from '@/components/forms/rich-textarea';
 import {
     Upload,
     X,
@@ -828,20 +829,18 @@ function StepDescription({
         <div className="vuexy-card space-y-4 p-6">
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t('short_desc_ar')} error={errors.short_description_ar}>
-                    <textarea
+                    <RichTextarea
                         value={data.short_description_ar}
-                        onChange={(e) => setData('short_description_ar', e.target.value)}
-                        className="vuexy-input"
+                        onChange={(v) => setData('short_description_ar', v)}
                         rows={2}
                         dir="rtl"
                         maxLength={500}
                     />
                 </Field>
                 <Field label={t('short_desc_en')} error={errors.short_description_en}>
-                    <textarea
+                    <RichTextarea
                         value={data.short_description_en}
-                        onChange={(e) => setData('short_description_en', e.target.value)}
-                        className="vuexy-input"
+                        onChange={(v) => setData('short_description_en', v)}
                         rows={2}
                         maxLength={500}
                     />
@@ -849,32 +848,29 @@ function StepDescription({
             </div>
 
             <Field label={t('long_desc_ar')} error={errors.description_ar}>
-                <textarea
+                <RichTextarea
                     value={data.description_ar}
-                    onChange={(e) => setData('description_ar', e.target.value)}
+                    onChange={(v) => setData('description_ar', v)}
                     placeholder={t('long_desc_hint_ar')}
-                    className="vuexy-input"
                     rows={5}
                     dir="rtl"
                 />
             </Field>
 
             <Field label={t('long_desc_en')} error={errors.description_en}>
-                <textarea
+                <RichTextarea
                     value={data.description_en}
-                    onChange={(e) => setData('description_en', e.target.value)}
+                    onChange={(v) => setData('description_en', v)}
                     placeholder={t('long_desc_hint_en')}
-                    className="vuexy-input"
                     rows={5}
                 />
             </Field>
 
             <Field label={t('internal_notes')} error={errors.internal_notes}>
-                <textarea
+                <RichTextarea
                     value={data.internal_notes}
-                    onChange={(e) => setData('internal_notes', e.target.value)}
+                    onChange={(v) => setData('internal_notes', v)}
                     placeholder={t('internal_notes_hint')}
-                    className="vuexy-input"
                     rows={2}
                 />
             </Field>
