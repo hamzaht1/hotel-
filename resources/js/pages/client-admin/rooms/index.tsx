@@ -87,9 +87,6 @@ export default function RoomsIndex({ rooms, filters, stats }: Props) {
 
                 {/* Filters */}
                 <div className="flex flex-col gap-3 sm:flex-row">
-                    <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); router.get('/client-admin/rooms', { search: fd.get('search') as string, type: filters.type }, { preserveState: true }); }} className="flex-1">
-                        <input name="search" type="text" placeholder={t('search_rooms')} defaultValue={filters.search || ''} className="vuexy-input w-full" />
-                    </form>
                     <select
                         value={filters.type || ''}
                         onChange={(e) => router.get('/client-admin/rooms', { ...filters, type: e.target.value || undefined }, { preserveState: true })}
