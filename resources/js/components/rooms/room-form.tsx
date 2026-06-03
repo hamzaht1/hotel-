@@ -14,11 +14,6 @@ import {
     ChevronLeft,
 } from 'lucide-react';
 import {
-    FaBed,
-    FaBedPulse,
-    FaCrown,
-    FaUsers,
-    FaWandMagicSparkles,
     FaWifi,
     FaTv,
     FaWineGlass,
@@ -49,9 +44,6 @@ export interface RoomInitial {
     id?: number;
     name_ar?: string;
     name_en?: string;
-    type?: string;
-    custom_type_ar?: string | null;
-    custom_type_en?: string | null;
     capacity?: number | string | null;
     price?: string | number;
     description_ar?: string | null;
@@ -79,14 +71,6 @@ interface Props {
     cancelUrl: string;
 }
 
-const ROOM_TYPES: { key: string; icon: IconType }[] = [
-    { key: 'standard', icon: FaBed },
-    { key: 'deluxe', icon: FaBedPulse },
-    { key: 'suite', icon: FaCrown },
-    { key: 'family', icon: FaUsers },
-    { key: 'custom', icon: FaWandMagicSparkles },
-];
-
 const PRESET_AMENITIES: { key: string; label_ar: string; label_en: string; icon: string; fa: IconType }[] = [
     { key: 'wifi',             label_ar: 'واي فاي',         label_en: 'WiFi',             icon: '📶', fa: FaWifi },
     { key: 'tv',               label_ar: 'تلفاز',           label_en: 'TV',               icon: '📺', fa: FaTv },
@@ -110,9 +94,6 @@ type FormData = {
     _method?: string;
     name_ar: string;
     name_en: string;
-    type: string;
-    custom_type_ar: string;
-    custom_type_en: string;
     capacity: string;
     price: string;
     booking_channel: 'whatsapp' | 'email';
@@ -143,9 +124,6 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         ...(mode === 'edit' ? { _method: 'PUT' } : {}),
         name_ar: initial.name_ar ?? '',
         name_en: initial.name_en ?? '',
-        type: initial.type ?? 'standard',
-        custom_type_ar: initial.custom_type_ar ?? '',
-        custom_type_en: initial.custom_type_en ?? '',
         capacity: initial.capacity != null ? String(initial.capacity) : '2',
         price: initial.price != null ? String(initial.price) : '',
         booking_channel: (initial.booking_channel ?? 'whatsapp') as 'whatsapp' | 'email',
@@ -393,52 +371,6 @@ function StepBasic({
 
     return (
         <div className="space-y-6">
-            <div className="vuexy-card p-6">
-                <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('type')}</h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    {ROOM_TYPES.map(({ key, icon: Icon }) => {
-                        const active = data.type === key;
-                        return (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => setData('type', key)}
-                                className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-4 text-sm transition ${
-                                    active ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20' : 'hover:bg-muted'
-                                }`}
-                            >
-                                <Icon className="h-6 w-6" />
-                                <span>{t(key === 'custom' ? 'custom' : key)}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {data.type === 'custom' && (
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                        <Field label={t('custom_type_ar')} error={errors.custom_type_ar}>
-                            <input
-                                type="text"
-                                value={data.custom_type_ar}
-                                onChange={(e) => setData('custom_type_ar', e.target.value)}
-                                placeholder="مثال: جناح بنتهاوس"
-                                className="vuexy-input"
-                                dir="rtl"
-                            />
-                        </Field>
-                        <Field label={t('custom_type_en')} error={errors.custom_type_en}>
-                            <input
-                                type="text"
-                                value={data.custom_type_en}
-                                onChange={(e) => setData('custom_type_en', e.target.value)}
-                                placeholder="e.g. Penthouse Suite"
-                                className="vuexy-input"
-                            />
-                        </Field>
-                    </div>
-                )}
-            </div>
-
             <div className="vuexy-card p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field label={t('name_ar')} error={errors.name_ar}>

@@ -15,7 +15,6 @@ class RoomController extends Controller
     public function index(Request $request)
     {
         $rooms = Room::query()
-            ->when($request->type, fn ($q, $t) => $q->where('type', $t))
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name_ar', 'like', "%{$s}%")->orWhere('name_en', 'like', "%{$s}%");
             }))
@@ -26,7 +25,7 @@ class RoomController extends Controller
 
         return Inertia::render('client-admin/rooms/index', [
             'rooms' => $rooms,
-            'filters' => $request->only(['type', 'search']),
+            'filters' => $request->only(['search']),
             'stats' => [
                 'total' => Room::count(),
                 'featured' => Room::where('is_featured', true)->count(),
@@ -146,9 +145,6 @@ class RoomController extends Controller
         return $request->validate(array_merge([
             'name_ar' => 'required|string|max:255',
             'name_en' => 'required|string|max:255',
-            'type' => 'required|in:standard,deluxe,suite,family,custom',
-            'custom_type_ar' => 'nullable|string|max:100',
-            'custom_type_en' => 'nullable|string|max:100',
             'description_ar' => 'nullable|string',
             'description_en' => 'nullable|string',
             'short_description_ar' => 'nullable|string|max:500',

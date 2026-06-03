@@ -25,6 +25,11 @@ import {
     FaWineGlass,
     FaLock,
     FaWindowMaximize,
+    FaBed,
+    FaSpa,
+    FaBuilding,
+    FaUtensils,
+    FaWandMagicSparkles,
 } from 'react-icons/fa6';
 import type { IconType } from 'react-icons';
 import { useMemo, useState } from 'react';
@@ -92,6 +97,17 @@ interface Props {
     submitUrl: string;
     cancelUrl: string;
 }
+
+// The five top-level service types. Picking one drives the conditional
+// sub-fields below (subtype select, capacity / party_size, and the billing
+// picker for "custom").
+const SERVICE_TYPES: { key: string; icon: IconType; labelKey: string }[] = [
+    { key: 'rooms', icon: FaBed, labelKey: 'type_rooms' },
+    { key: 'spa', icon: FaSpa, labelKey: 'type_spa' },
+    { key: 'hall', icon: FaBuilding, labelKey: 'type_hall' },
+    { key: 'restaurant', icon: FaUtensils, labelKey: 'type_restaurant' },
+    { key: 'custom', icon: FaWandMagicSparkles, labelKey: 'type_custom' },
+];
 
 // Billing methods for custom services. Each method maps the chosen pricing
 // model to the conditional sub-fields the form should reveal underneath.
@@ -467,6 +483,30 @@ function StepBasic({
 
     return (
         <div className="space-y-6">
+            <div className="vuexy-card p-6">
+                <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('service_type')}</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                    {SERVICE_TYPES.map(({ key, icon: Icon, labelKey }) => {
+                        const active = data.service_type === key;
+                        return (
+                            <button
+                                key={key}
+                                type="button"
+                                onClick={() => setData('service_type', key)}
+                                className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-4 text-sm transition ${
+                                    active
+                                        ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
+                                        : 'hover:bg-muted'
+                                }`}
+                            >
+                                <Icon className="h-6 w-6" />
+                                <span>{t(labelKey)}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
             <div className="vuexy-card p-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field label={t('name_ar')} error={errors.name_ar}>

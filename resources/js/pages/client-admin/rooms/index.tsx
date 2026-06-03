@@ -9,9 +9,6 @@ interface Room {
     id: number;
     name_ar: string;
     name_en: string;
-    type: string;
-    custom_type_ar?: string | null;
-    custom_type_en?: string | null;
     price: string;
     capacity: number;
     is_active: boolean;
@@ -34,13 +31,11 @@ interface Props {
         links: { url: string | null; label: string; active: boolean }[];
         last_page: number;
     };
-    filters: { type?: string; search?: string };
+    filters: { search?: string };
     stats: Stats;
 }
 
-const roomTypes = ['standard', 'deluxe', 'suite', 'family'];
-
-export default function RoomsIndex({ rooms, filters, stats }: Props) {
+export default function RoomsIndex({ rooms, stats }: Props) {
     const { t, isArabic } = useT();
     const storageUrl = useStorageUrl();
 
@@ -48,13 +43,6 @@ export default function RoomsIndex({ rooms, filters, stats }: Props) {
         { title: t('client_admin'), href: '/client-admin' },
         { title: t('rooms'), href: '/client-admin/rooms' },
     ];
-
-    const roomTypeLabels: Record<string, string> = {
-        standard: t('standard'),
-        deluxe: t('deluxe'),
-        suite: t('suite'),
-        family: t('family'),
-    };
 
     function handleDelete(id: number) {
         if (confirm('Are you sure you want to delete this room?')) {
@@ -85,18 +73,6 @@ export default function RoomsIndex({ rooms, filters, stats }: Props) {
                     <StatCard icon={Users} label={t('total_capacity')} value={stats.total_capacity} />
                 </div>
 
-                {/* Filters */}
-                <div className="flex flex-col gap-3 sm:flex-row">
-                    <select
-                        value={filters.type || ''}
-                        onChange={(e) => router.get('/client-admin/rooms', { ...filters, type: e.target.value || undefined }, { preserveState: true })}
-                        className="vuexy-input"
-                    >
-                        <option value="">{t('all_types')}</option>
-                        {roomTypes.map((tp) => <option key={tp} value={tp}>{roomTypeLabels[tp]}</option>)}
-                    </select>
-                </div>
-
                 {/* Room Cards Grid */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {rooms.data.map((room) => (
@@ -124,12 +100,7 @@ export default function RoomsIndex({ rooms, filters, stats }: Props) {
                                     </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground">{room.name_en}</p>
-                                <div className="mt-2 flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">
-                                        {room.type === 'custom'
-                                            ? (isArabic ? (room.custom_type_ar || t('custom')) : (room.custom_type_en || t('custom')))
-                                            : (roomTypeLabels[room.type] || room.type)}
-                                    </span>
+                                <div className="mt-2 flex items-center justify-end text-sm">
                                     <span className="font-semibold">{room.price} ر.س</span>
                                 </div>
                                 <div className="mt-1 text-xs text-muted-foreground">{t('capacity')}: {room.capacity} {t('guests')}</div>
