@@ -23,6 +23,10 @@ class HotelSettingController extends Controller
         $validated = $request->validate([
             'hotel_name_ar' => 'required|string|max:255',
             'hotel_name_en' => 'required|string|max:255',
+            'first_name' => 'nullable|string|max:100',
+            'last_name' => 'nullable|string|max:100',
+            'city' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
             'description_ar' => 'nullable|string',
             'description_en' => 'nullable|string',
             'star_rating' => 'required|integer|min:1|max:5',

@@ -144,12 +144,20 @@ class SetupController extends Controller
             'username' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8',
+            'first_name' => 'required|string|max:100',
+            'last_name' => 'required|string|max:100',
+            'city' => 'required|string|max:100',
+            'phone' => 'required|string|max:30',
         ]);
 
         $setup = session('setup', []);
         $setup['username'] = $data['username'];
         $setup['email'] = $data['email'];
         $setup['password'] = $data['password'];
+        $setup['first_name'] = $data['first_name'];
+        $setup['last_name'] = $data['last_name'];
+        $setup['city'] = $data['city'];
+        $setup['phone'] = $data['phone'];
 
         // Generate OTP
         $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -536,6 +544,10 @@ class SetupController extends Controller
         $tenant->hotelSettings()->create([
             'hotel_name_ar' => $setup['org_name_ar'] ?? '',
             'hotel_name_en' => $setup['org_name_en'] ?? '',
+            'first_name' => $setup['first_name'] ?? null,
+            'last_name' => $setup['last_name'] ?? null,
+            'city' => $setup['city'] ?? null,
+            'phone' => $setup['phone'] ?? null,
             'description_ar' => '',
             'description_en' => '',
             'star_rating' => 5,

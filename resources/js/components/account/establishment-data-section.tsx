@@ -5,6 +5,10 @@ import { Save } from 'lucide-react';
 export interface HotelSettings {
     hotel_name_ar: string;
     hotel_name_en: string;
+    first_name: string | null;
+    last_name: string | null;
+    city: string | null;
+    phone: string | null;
     description_ar: string | null;
     description_en: string | null;
     star_rating: number;
@@ -29,6 +33,10 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
         _method: 'PUT',
         hotel_name_ar: settings.hotel_name_ar || '',
         hotel_name_en: settings.hotel_name_en || '',
+        first_name: settings.first_name || '',
+        last_name: settings.last_name || '',
+        city: settings.city || '',
+        phone: settings.phone || '',
         description_ar: settings.description_ar || '',
         description_en: settings.description_en || '',
         star_rating: String(settings.star_rating || 5),
@@ -89,6 +97,26 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
                                 <option value="EUR">EUR - Euro</option>
                                 <option value="AED">AED - UAE Dirham</option>
                             </select>
+                        </Field>
+                    </div>
+                </Section>
+
+                <Section title={t('responsible_person')}>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label={t('first_name')} error={errors.first_name}>
+                            <input type="text" value={data.first_name} onChange={(e) => setData('first_name', e.target.value)} className="vuexy-input" />
+                        </Field>
+                        <Field label={t('last_name')} error={errors.last_name}>
+                            <input type="text" value={data.last_name} onChange={(e) => setData('last_name', e.target.value)} className="vuexy-input" />
+                        </Field>
+                        <Field label={t('city')} error={errors.city}>
+                            <input type="text" value={data.city} onChange={(e) => setData('city', e.target.value)} className="vuexy-input" />
+                        </Field>
+                        <Field label={t('mobile')} error={errors.phone}>
+                            <div className="flex overflow-hidden rounded-md border" dir="ltr">
+                                <span className="flex select-none items-center bg-muted px-3 text-sm font-medium text-muted-foreground">+966</span>
+                                <input type="tel" value={data.phone} onChange={(e) => setData('phone', e.target.value)} className="vuexy-input flex-1 rounded-none border-0" inputMode="tel" />
+                            </div>
                         </Field>
                     </div>
                 </Section>

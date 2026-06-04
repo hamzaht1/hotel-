@@ -14,6 +14,10 @@ export default function Account({ setup }: Props) {
   const { __ } = useLang()
   const serverErrors = usePage().props.errors as Record<string, string>;
 
+  const [firstName, setFirstName] = useState(setup?.first_name || "");
+  const [lastName, setLastName] = useState(setup?.last_name || "");
+  const [city, setCity] = useState(setup?.city || "");
+  const [phone, setPhone] = useState(setup?.phone || "");
   const [username, setUsername] = useState(setup?.username || "");
   const [email, setEmail] = useState(setup?.email || "");
   const [password, setPassword] = useState("");
@@ -22,10 +26,15 @@ export default function Account({ setup }: Props) {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!username.trim()) e.username = __("messages.setup.account_information.required_field");
-    if (!email.trim()) e.email = __("messages.setup.account_information.required_field");
+    const required = __("messages.setup.account_information.required_field");
+    if (!firstName.trim()) e.first_name = required;
+    if (!lastName.trim()) e.last_name = required;
+    if (!city.trim()) e.city = required;
+    if (!phone.trim()) e.phone = required;
+    if (!username.trim()) e.username = required;
+    if (!email.trim()) e.email = required;
     else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = __("messages.setup.account_information.invalid_email");
-    if (!password) e.password = __("messages.setup.account_information.required_field");
+    if (!password) e.password = required;
     else if (password.length < 8) e.password = "كلمة المرور يجب أن تكون 8 أحرف على الأقل";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -43,6 +52,10 @@ export default function Account({ setup }: Props) {
       username,
       email,
       password,
+      first_name: firstName,
+      last_name: lastName,
+      city,
+      phone,
     }, {
       onFinish: () => setProcessing(false),
     });
@@ -60,6 +73,46 @@ export default function Account({ setup }: Props) {
               </h1>
             </AnimatedHeading>
             <div className="grid gap-5">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <FormInput
+                  id="first_name"
+                  label={__("messages.setup.account.first_name_label")}
+                  placeholder={__("messages.setup.account.first_name_placeholder")}
+                  value={firstName}
+                  onChange={setFirstName}
+                  required
+                  error={errors.first_name ?? null}
+                />
+                <FormInput
+                  id="last_name"
+                  label={__("messages.setup.account.last_name_label")}
+                  placeholder={__("messages.setup.account.last_name_placeholder")}
+                  value={lastName}
+                  onChange={setLastName}
+                  required
+                  error={errors.last_name ?? null}
+                />
+              </div>
+              <FormInput
+                id="city"
+                label={__("messages.setup.account.city_label")}
+                placeholder={__("messages.setup.account.city_placeholder")}
+                value={city}
+                onChange={setCity}
+                required
+                error={errors.city ?? null}
+              />
+              <FormInput
+                id="phone"
+                label={__("messages.setup.account.phone_label")}
+                placeholder={__("messages.setup.account.phone_placeholder")}
+                value={phone}
+                onChange={setPhone}
+                required
+                error={errors.phone ?? serverErrors?.phone ?? null}
+                inputMode="tel"
+                prefix="+966"
+              />
               <FormInput
                 id="username"
                 label={__("messages.setup.account_information.username_label")}

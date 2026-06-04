@@ -41,6 +41,11 @@ const translations: Record<string, Record<string, string>> = {
     'upload': { ar: 'رفع', en: 'Upload' },
     'view_site': { ar: 'عرض الموقع', en: 'View Site' },
     'add': { ar: 'إضافة', en: 'Add' },
+    'first_name': { ar: 'الاسم الأول', en: 'First Name' },
+    'last_name': { ar: 'الاسم الأخير', en: 'Last Name' },
+    'city': { ar: 'المدينة', en: 'City' },
+    'mobile': { ar: 'رقم الجوال', en: 'Mobile Number' },
+    'responsible_person': { ar: 'بيانات المسؤول', en: 'Responsible Person' },
 
     // === CLIENT DASHBOARD ===
     'template': { ar: 'القالب', en: 'Template' },
