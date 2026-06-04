@@ -1,6 +1,7 @@
 import { useT } from '@/hooks/use-translations';
 import { useForm, usePage } from '@inertiajs/react';
-import { Save } from 'lucide-react';
+import { Save, Building2, UserRound, Clock3, CheckCircle2, AlertCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export interface HotelSettings {
     hotel_name_ar: string;
@@ -29,6 +30,9 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
     const { t } = useT();
     const flash = (usePage().props as any).flash as { success?: string } | undefined;
 
+    // primary_color / secondary_color are no longer edited here (the Branding
+    // section was removed) but stay in the payload so saving the form keeps the
+    // tenant's existing template colors untouched.
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
         hotel_name_ar: settings.hotel_name_ar || '',
@@ -57,21 +61,26 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
         <div className="mx-auto max-w-3xl">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 {flash?.success && (
-                    <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+                    <div className="flex items-center gap-2 rounded-xl border border-green-300 bg-green-50 p-3.5 text-sm font-medium text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
                         {flash.success}
                     </div>
                 )}
                 {Object.keys(errors).length > 0 && (
-                    <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-                        <p className="font-medium">{t('form_has_errors') || 'Please fix the following:'}</p>
-                        <ul className="mt-1 list-inside list-disc">
+                    <div className="rounded-xl border border-red-300 bg-red-50 p-3.5 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                        <p className="flex items-center gap-2 font-medium">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            {t('form_has_errors') || 'Please fix the following:'}
+                        </p>
+                        <ul className="mt-1.5 list-inside list-disc ps-1">
                             {Object.entries(errors).map(([field, msg]) => (
                                 <li key={field}>{msg as string}</li>
                             ))}
                         </ul>
                     </div>
                 )}
-                <Section title={t('hotel_identity')}>
+
+                <Section icon={Building2} title={t('hotel_identity')} description={t('hotel_identity_desc')}>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label={t('hotel_name_ar')} error={errors.hotel_name_ar}>
                             <input type="text" value={data.hotel_name_ar} onChange={(e) => setData('hotel_name_ar', e.target.value)} className="vuexy-input" required dir="rtl" />
@@ -101,7 +110,7 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
                     </div>
                 </Section>
 
-                <Section title={t('responsible_person')}>
+                <Section icon={UserRound} title={t('responsible_person')} description={t('responsible_person_desc')}>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label={t('first_name')} error={errors.first_name}>
                             <input type="text" value={data.first_name} onChange={(e) => setData('first_name', e.target.value)} className="vuexy-input" />
@@ -113,15 +122,15 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
                             <input type="text" value={data.city} onChange={(e) => setData('city', e.target.value)} className="vuexy-input" />
                         </Field>
                         <Field label={t('mobile')} error={errors.phone}>
-                            <div className="flex overflow-hidden rounded-md border" dir="ltr">
+                            <div className="flex overflow-hidden rounded-md border focus-within:ring-2 focus-within:ring-primary/30" dir="ltr">
                                 <span className="flex select-none items-center bg-muted px-3 text-sm font-medium text-muted-foreground">+966</span>
-                                <input type="tel" value={data.phone} onChange={(e) => setData('phone', e.target.value)} className="vuexy-input flex-1 rounded-none border-0" inputMode="tel" />
+                                <input type="tel" value={data.phone} onChange={(e) => setData('phone', e.target.value)} className="vuexy-input flex-1 rounded-none border-0 focus:ring-0" inputMode="tel" />
                             </div>
                         </Field>
                     </div>
                 </Section>
 
-                <Section title={t('operations')}>
+                <Section icon={Clock3} title={t('operations')} description={t('operations_desc')}>
                     <div className="grid gap-4 sm:grid-cols-3">
                         <Field label={t('timezone')} error={errors.timezone}>
                             <select value={data.timezone} onChange={(e) => setData('timezone', e.target.value)} className="vuexy-input">
@@ -140,37 +149,12 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
                     </div>
                 </Section>
 
-                <Section title={t('branding')}>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label={t('primary_light')} error={undefined}>
-                            <div className="flex items-center gap-2">
-                                <input type="color" value={data.primary_color.light} onChange={(e) => setData('primary_color', { ...data.primary_color, light: e.target.value })} className="h-10 w-10 cursor-pointer rounded border" />
-                                <input type="text" value={data.primary_color.light} onChange={(e) => setData('primary_color', { ...data.primary_color, light: e.target.value })} className="vuexy-input flex-1" />
-                            </div>
-                        </Field>
-                        <Field label={t('secondary_light')} error={undefined}>
-                            <div className="flex items-center gap-2">
-                                <input type="color" value={data.secondary_color.light} onChange={(e) => setData('secondary_color', { ...data.secondary_color, light: e.target.value })} className="h-10 w-10 cursor-pointer rounded border" />
-                                <input type="text" value={data.secondary_color.light} onChange={(e) => setData('secondary_color', { ...data.secondary_color, light: e.target.value })} className="vuexy-input flex-1" />
-                            </div>
-                        </Field>
-                        <Field label={t('primary_dark')} error={undefined}>
-                            <div className="flex items-center gap-2">
-                                <input type="color" value={data.primary_color.dark} onChange={(e) => setData('primary_color', { ...data.primary_color, dark: e.target.value })} className="h-10 w-10 cursor-pointer rounded border" />
-                                <input type="text" value={data.primary_color.dark} onChange={(e) => setData('primary_color', { ...data.primary_color, dark: e.target.value })} className="vuexy-input flex-1" />
-                            </div>
-                        </Field>
-                        <Field label={t('secondary_dark')} error={undefined}>
-                            <div className="flex items-center gap-2">
-                                <input type="color" value={data.secondary_color.dark} onChange={(e) => setData('secondary_color', { ...data.secondary_color, dark: e.target.value })} className="h-10 w-10 cursor-pointer rounded border" />
-                                <input type="text" value={data.secondary_color.dark} onChange={(e) => setData('secondary_color', { ...data.secondary_color, dark: e.target.value })} className="vuexy-input flex-1" />
-                            </div>
-                        </Field>
-                    </div>
-                </Section>
-
-                <div className="flex justify-end">
-                    <button type="submit" disabled={processing} className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                <div className="flex justify-end border-t pt-4">
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
+                    >
                         <Save className="h-4 w-4" />
                         {processing ? t('saving') : t('save_settings')}
                     </button>
@@ -180,11 +164,29 @@ export default function EstablishmentDataSection({ settings }: { settings: Hotel
     );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+    icon: Icon,
+    title,
+    description,
+    children,
+}: {
+    icon: LucideIcon;
+    title: string;
+    description?: string;
+    children: React.ReactNode;
+}) {
     return (
-        <div className="vuexy-card p-6">
-            <h2 className="mb-4 text-lg font-semibold">{title}</h2>
-            {children}
+        <div className="vuexy-card overflow-hidden">
+            <div className="flex items-start gap-3 border-b bg-muted/30 p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                    <h2 className="text-base font-semibold">{title}</h2>
+                    {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+                </div>
+            </div>
+            <div className="p-5 sm:p-6">{children}</div>
         </div>
     );
 }

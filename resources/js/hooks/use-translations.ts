@@ -169,6 +169,9 @@ const translations: Record<string, Record<string, string>> = {
 
     // === HOTEL SETTINGS ===
     'hotel_identity': { ar: 'هوية الفندق', en: 'Hotel Identity' },
+    'hotel_identity_desc': { ar: 'الاسم والوصف والتصنيف والعملة', en: 'Name, description, rating and currency' },
+    'responsible_person_desc': { ar: 'بيانات الشخص المسؤول عن الحساب', en: 'Details of the account contact person' },
+    'operations_desc': { ar: 'المنطقة الزمنية وأوقات الوصول والمغادرة', en: 'Timezone and check-in / check-out times' },
     'hotel_name_ar': { ar: 'اسم الفندق (عربي)', en: 'Hotel Name (Arabic)' },
     'hotel_name_en': { ar: 'اسم الفندق (إنجليزي)', en: 'Hotel Name (English)' },
     'star_rating': { ar: 'التصنيف بالنجوم', en: 'Star Rating' },

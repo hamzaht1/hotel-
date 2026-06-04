@@ -70,11 +70,24 @@ export default function AccountIndex({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isArabic ? 'حساب المنشأة' : 'Establishment Account'} />
-            <div className="flex flex-col gap-6 p-6">
-                <h1 className="text-2xl font-bold">{isArabic ? 'حساب المنشأة' : 'Establishment Account'}</h1>
+            <div className="flex flex-col gap-6 p-4 sm:p-6">
+                {/* Page header */}
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Building2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold">{isArabic ? 'حساب المنشأة' : 'Establishment Account'}</h1>
+                        <p className="text-sm text-muted-foreground">
+                            {isArabic
+                                ? 'إدارة بيانات المنشأة والاشتراك والفواتير في مكان واحد'
+                                : 'Manage your establishment data, subscription and invoices in one place'}
+                        </p>
+                    </div>
+                </div>
 
                 {/* Tabs */}
-                <div className="vuexy-card flex flex-wrap items-center gap-1 p-2">
+                <div className="vuexy-card flex flex-wrap items-center gap-1 p-1.5">
                     {tabs.map(({ key, label, icon: Icon }) => {
                         const active = activeTab === key;
                         return (
@@ -82,9 +95,9 @@ export default function AccountIndex({
                                 key={key}
                                 type="button"
                                 onClick={() => selectTab(key)}
-                                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition sm:flex-none ${
                                     active
-                                        ? 'bg-primary text-primary-foreground'
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
                                         : 'text-muted-foreground hover:bg-muted'
                                 }`}
                             >
