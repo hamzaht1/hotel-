@@ -2,6 +2,7 @@ import { useT } from '@/hooks/use-translations';
 import { useStorageUrl } from '@/lib/storage';
 import { router, useForm } from '@inertiajs/react';
 import RichTextarea from '@/components/forms/rich-textarea';
+import RichTextEditor from '@/components/forms/rich-text-editor';
 import {
     Upload,
     X,
@@ -19,12 +20,6 @@ import {
     FaMoon,
     FaClock,
     FaStopwatch,
-    FaWifi,
-    FaTv,
-    FaSnowflake,
-    FaWineGlass,
-    FaLock,
-    FaWindowMaximize,
     FaBed,
     FaSpa,
     FaBuilding,
@@ -32,6 +27,7 @@ import {
     FaWandMagicSparkles,
 } from 'react-icons/fa6';
 import type { IconType } from 'react-icons';
+import { SERVICE_FEATURE_ICONS, SERVICE_FEATURE_ICON_OPTIONS } from '@/lib/service-feature-icons';
 import { useMemo, useState } from 'react';
 
 export interface CategoryOption {
@@ -119,16 +115,9 @@ const BILLING_METHODS: { key: string; labelKey: string; icon: IconType }[] = [
     { key: 'per_minute', labelKey: 'bill_per_minute', icon: FaStopwatch },
 ];
 
-// FontAwesome icon per preset feature key. Custom features (admin-added)
-// keep their emoji; unknown keys also fall back to the emoji or "+".
-const FEATURE_FA_ICONS: Record<string, IconType> = {
-    wifi: FaWifi,
-    tv: FaTv,
-    ac: FaSnowflake,
-    minibar: FaWineGlass,
-    safe: FaLock,
-    balcony: FaWindowMaximize,
-};
+// Shared icon catalogue — identical to what the Madina Services template
+// renders, so the wizard preview matches the public site exactly.
+const FEATURE_FA_ICONS = SERVICE_FEATURE_ICONS;
 
 // Preset sub-type option keys per service type. Each list ends with the
 // special "custom" key that, when picked, lets the admin type a free
@@ -246,7 +235,7 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [featuredPreview, setFeaturedPreview] = useState<string | null>(storageUrl(initial.featured_image ?? null));
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    const [customFeature, setCustomFeature] = useState({ label_ar: '', label_en: '', icon: '✨' });
+    const [customFeature, setCustomFeature] = useState({ label_ar: '', label_en: '', icon: 'wifi' });
 
     const steps = useMemo(
         () => [
@@ -907,21 +896,19 @@ function StepDescription({
             </div>
 
             <Field label={t('long_desc_ar')} error={errors.description_ar}>
-                <RichTextarea
+                <RichTextEditor
                     value={data.description_ar}
                     onChange={(v) => setData('description_ar', v)}
                     placeholder={t('long_desc_hint_ar')}
-                    rows={5}
                     dir="rtl"
                 />
             </Field>
 
             <Field label={t('long_desc_en')} error={errors.description_en}>
-                <RichTextarea
+                <RichTextEditor
                     value={data.description_en}
                     onChange={(v) => setData('description_en', v)}
                     placeholder={t('long_desc_hint_en')}
-                    rows={5}
                 />
             </Field>
 
@@ -958,8 +945,6 @@ function StepFeatures({
     onMove: (from: number, to: number) => void;
 }) {
     const { t, isArabic } = useT();
-    const emojis = ['✨', '⭐', '🛏️', '💆', '🍽️', '🏛️', '🌊', '🏊', '🚿', '🌴', '🎁', '☕', '🍷', '🚗', '🐾'];
-    const [showEmojis, setShowEmojis] = useState(false);
 
     return (
         <div className="space-y-6">
@@ -990,57 +975,55 @@ function StepFeatures({
 
             <div className="vuexy-card p-6">
                 <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('add_custom_feature')}</h2>
-                <div className="flex flex-wrap items-end gap-2">
-                    <div className="relative">
+                <div className="space-y-3">
+                    <div>
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">{t('choose_icon')}</p>
+                        <div className="grid grid-cols-6 gap-2 sm:grid-cols-10">
+                            {SERVICE_FEATURE_ICON_OPTIONS.map((opt) => {
+                                const Icon = opt.Icon;
+                                const active = customFeature.icon === opt.key;
+                                return (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        title={isArabic ? opt.label_ar : opt.label_en}
+                                        onClick={() => setCustomFeature({ ...customFeature, icon: opt.key })}
+                                        className={`flex h-10 w-full items-center justify-center rounded-md border transition ${
+                                            active ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20' : 'hover:bg-muted'
+                                        }`}
+                                        aria-label={isArabic ? opt.label_ar : opt.label_en}
+                                    >
+                                        <Icon className="h-4 w-4" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                        <input
+                            type="text"
+                            value={customFeature.label_ar}
+                            onChange={(e) => setCustomFeature({ ...customFeature, label_ar: e.target.value })}
+                            placeholder={t('name_in_arabic')}
+                            className="vuexy-input flex-1"
+                            dir="rtl"
+                        />
+                        <input
+                            type="text"
+                            value={customFeature.label_en}
+                            onChange={(e) => setCustomFeature({ ...customFeature, label_en: e.target.value })}
+                            placeholder={t('name_in_english')}
+                            className="vuexy-input flex-1"
+                        />
                         <button
                             type="button"
-                            onClick={() => setShowEmojis(!showEmojis)}
-                            className="vuexy-input flex h-10 w-14 items-center justify-center text-lg"
-                            aria-label="Choose icon"
+                            onClick={onAddCustom}
+                            className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                         >
-                            {customFeature.icon}
+                            <Plus className="h-4 w-4" />
+                            {t('add')}
                         </button>
-                        {showEmojis && (
-                            <div className="absolute z-10 mt-1 grid w-56 grid-cols-5 gap-1 rounded-lg border bg-popover p-2 shadow-md">
-                                {emojis.map((e) => (
-                                    <button
-                                        key={e}
-                                        type="button"
-                                        onClick={() => {
-                                            setCustomFeature({ ...customFeature, icon: e });
-                                            setShowEmojis(false);
-                                        }}
-                                        className="rounded p-1 text-lg hover:bg-muted"
-                                    >
-                                        {e}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
-                    <input
-                        type="text"
-                        value={customFeature.label_ar}
-                        onChange={(e) => setCustomFeature({ ...customFeature, label_ar: e.target.value })}
-                        placeholder={t('name_in_arabic')}
-                        className="vuexy-input flex-1"
-                        dir="rtl"
-                    />
-                    <input
-                        type="text"
-                        value={customFeature.label_en}
-                        onChange={(e) => setCustomFeature({ ...customFeature, label_en: e.target.value })}
-                        placeholder={t('name_in_english')}
-                        className="vuexy-input flex-1"
-                    />
-                    <button
-                        type="button"
-                        onClick={onAddCustom}
-                        className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                    >
-                        <Plus className="h-4 w-4" />
-                        {t('add')}
-                    </button>
                 </div>
             </div>
 
@@ -1053,7 +1036,7 @@ function StepFeatures({
                 ) : (
                     <div className="space-y-2">
                         {data.features.map((feat, idx) => {
-                            const Fa = FEATURE_FA_ICONS[feat.key];
+                            const Fa = FEATURE_FA_ICONS[feat.key] ?? FEATURE_FA_ICONS[feat.icon ?? ''];
                             return (
                             <div key={feat.key} className="flex items-center gap-2 rounded-md border p-2">
                                 <div className="flex flex-col gap-0.5">

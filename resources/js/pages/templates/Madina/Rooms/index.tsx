@@ -15,35 +15,12 @@ import BookingModal, { BookingType, BookingData } from '@/components/templates/B
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
-import {
-    FaWifi,
-    FaTv,
-    FaSnowflake,
-    FaWineGlass,
-    FaLock,
-    FaWindowMaximize,
-    FaWater,
-    FaBellConcierge,
-    FaBath,
-    FaUtensils,
-} from 'react-icons/fa6'
-import type { IconType } from 'react-icons'
+import { ROOM_AMENITY_ICONS } from '@/lib/room-amenity-icons'
 
-// Maps a saved amenity key (the ones set by the admin in the wizard) to a
-// themed FontAwesome icon. Custom amenities (key starts with `custom_`)
-// have no entry here and fall back to the emoji the admin picked.
-const AMENITY_FA_ICONS: Record<string, IconType> = {
-    wifi: FaWifi,
-    tv: FaTv,
-    air_conditioning: FaSnowflake,
-    minibar: FaWineGlass,
-    safe: FaLock,
-    balcony: FaWindowMaximize,
-    sea_view: FaWater,
-    room_service: FaBellConcierge,
-    jacuzzi: FaBath,
-    kitchen: FaUtensils,
-}
+// Shared icon catalogue (same source the admin wizard picks from). A saved
+// amenity key resolves to the exact icon the tenant chose; unknown keys fall
+// back to the stored icon key, then to the emoji.
+const AMENITY_FA_ICONS = ROOM_AMENITY_ICONS
 
 interface RoomCardAmenity {
     key: string
@@ -393,8 +370,11 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                     custom ones); otherwise fall back to the generic set. */}
                 <div className="grid grid-cols-3 gap-3 mb-4 flex-shrink-0">
                 {(room.amenities && room.amenities.length > 0
-                  ? room.amenities.slice(0, 6).map((a) => ({
-                      faKey: a.key,
+                  ? room.amenities.slice(0, 3).map((a) => ({
+                      // Resolve a themed icon from the amenity key first, then
+                      // from the stored icon value (custom amenities save an
+                      // icon key); fall back to the emoji for legacy rows.
+                      faKey: AMENITY_FA_ICONS[a.key] ? a.key : (a.icon && AMENITY_FA_ICONS[a.icon] ? a.icon : null),
                       labelAr: a.labelAr,
                       labelEn: a.labelEn,
                       emoji: a.icon,
@@ -476,9 +456,10 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                       />
                     </div>
                   </div>
-                  <p className="madina-text-body text-sm md:text-base leading-relaxed">
-                    {room.description}
-                  </p>
+                  <div
+                    className="rte-content madina-text-body text-sm md:text-base leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: room.description || '' }}
+                  />
                 </div>
 
                 {/* Book button */}

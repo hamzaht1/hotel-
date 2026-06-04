@@ -262,6 +262,18 @@
   color: var(--muted-foreground);
 }
 
+/* Rich-text editor content — restores the list markers, headings and
+   alignment that Tailwind's preflight strips, shared by the admin editor and
+   the public render so authored descriptions look identical in both. */
+.rte-content { line-height: 1.7; }
+.rte-content:empty::before { content: attr(data-placeholder); color: var(--muted-foreground); pointer-events: none; }
+.rte-content h2 { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; }
+.rte-content p { margin: 0.25rem 0; }
+.rte-content ul { list-style: disc; padding-inline-start: 1.5rem; margin: 0.5rem 0; }
+.rte-content ol { list-style: decimal; padding-inline-start: 1.5rem; margin: 0.5rem 0; }
+.rte-content li { margin: 0.15rem 0; }
+.rte-content a { color: var(--vuexy-primary, #7367f0); text-decoration: underline; }
+
 .vuexy-badge {
   display: inline-flex;
   align-items: center;

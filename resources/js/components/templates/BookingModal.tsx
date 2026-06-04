@@ -309,7 +309,9 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
                     </span>
                   )}
                 </div>
-                {service.description && <div>{service.description}</div>}
+                {service.description && (
+                  <div className="rte-content" dangerouslySetInnerHTML={{ __html: service.description }} />
+                )}
               </>
             ) : (
               <>

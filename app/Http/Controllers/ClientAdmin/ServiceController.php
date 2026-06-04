@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceFeature;
 use App\Models\ServiceImage;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -205,13 +206,13 @@ class ServiceController extends Controller
             'features.*.key' => 'required|string|max:100',
             'features.*.label_ar' => 'required|string|max:255',
             'features.*.label_en' => 'required|string|max:255',
-            'features.*.icon' => 'nullable|string|max:10',
+            'features.*.icon' => 'nullable|string|max:50',
         ]);
     }
 
     private function extractServiceData(array $validated): array
     {
-        return collect($validated)
+        $data = collect($validated)
             ->except(['features', 'images', 'featured_image'])
             ->merge([
                 'is_active' => $validated['is_active'] ?? true,
@@ -220,6 +221,16 @@ class ServiceController extends Controller
                 'billing_method' => $validated['billing_method'] ?? 'once',
             ])
             ->toArray();
+
+        // Long descriptions accept rich text from the wizard editor — sanitize
+        // the HTML before it is stored and later rendered on the public site.
+        foreach (['description_ar', 'description_en'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = HtmlSanitizer::clean($data[$field]);
+            }
+        }
+
+        return $data;
     }
 
     private function persistFeatures(Service $service, array $features): void

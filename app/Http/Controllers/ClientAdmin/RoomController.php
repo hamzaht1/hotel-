@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Room;
 use App\Models\RoomAmenity;
 use App\Models\RoomImage;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -167,13 +168,13 @@ class RoomController extends Controller
             'amenities.*.key' => 'required|string|max:100',
             'amenities.*.label_ar' => 'required|string|max:255',
             'amenities.*.label_en' => 'required|string|max:255',
-            'amenities.*.icon' => 'nullable|string|max:10',
+            'amenities.*.icon' => 'nullable|string|max:50',
         ], $extra));
     }
 
     private function extractRoomData(array $validated): array
     {
-        return collect($validated)
+        $data = collect($validated)
             ->except(['amenities', 'images', 'featured_image', 'delete_images'])
             ->merge([
                 'is_active' => $validated['is_active'] ?? false,
@@ -181,6 +182,16 @@ class RoomController extends Controller
                 'booking_channel' => $validated['booking_channel'] ?? 'whatsapp',
             ])
             ->toArray();
+
+        // Long descriptions accept rich text from the wizard editor — sanitize
+        // the HTML before it is stored and later rendered on the public site.
+        foreach (['description_ar', 'description_en'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = HtmlSanitizer::clean($data[$field]);
+            }
+        }
+
+        return $data;
     }
 
     private function persistAmenities(Room $room, array $items): void

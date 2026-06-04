@@ -2,6 +2,7 @@ import { useT } from '@/hooks/use-translations';
 import { useStorageUrl } from '@/lib/storage';
 import { useForm } from '@inertiajs/react';
 import RichTextarea from '@/components/forms/rich-textarea';
+import RichTextEditor from '@/components/forms/rich-text-editor';
 import {
     Upload,
     X,
@@ -13,19 +14,7 @@ import {
     ChevronRight,
     ChevronLeft,
 } from 'lucide-react';
-import {
-    FaWifi,
-    FaTv,
-    FaWineGlass,
-    FaLock,
-    FaSnowflake,
-    FaWindowMaximize,
-    FaWater,
-    FaBellConcierge,
-    FaBath,
-    FaUtensils,
-} from 'react-icons/fa6';
-import type { IconType } from 'react-icons';
+import { ROOM_AMENITY_ICONS, ROOM_AMENITY_ICON_OPTIONS } from '@/lib/room-amenity-icons';
 import { useMemo, useState } from 'react';
 
 export interface ExistingImage {
@@ -71,24 +60,24 @@ interface Props {
     cancelUrl: string;
 }
 
-const PRESET_AMENITIES: { key: string; label_ar: string; label_en: string; icon: string; fa: IconType }[] = [
-    { key: 'wifi',             label_ar: 'واي فاي',         label_en: 'WiFi',             icon: '📶', fa: FaWifi },
-    { key: 'tv',               label_ar: 'تلفاز',           label_en: 'TV',               icon: '📺', fa: FaTv },
-    { key: 'air_conditioning', label_ar: 'تكييف',           label_en: 'Air Conditioning', icon: '❄️', fa: FaSnowflake },
-    { key: 'minibar',          label_ar: 'ميني بار',         label_en: 'Mini Bar',         icon: '🍷', fa: FaWineGlass },
-    { key: 'safe',             label_ar: 'خزنة',            label_en: 'Safe',             icon: '🔐', fa: FaLock },
-    { key: 'balcony',          label_ar: 'شرفة',            label_en: 'Balcony',          icon: '🪟', fa: FaWindowMaximize },
-    { key: 'sea_view',         label_ar: 'إطلالة بحرية',     label_en: 'Sea View',         icon: '🌊', fa: FaWater },
-    { key: 'room_service',     label_ar: 'خدمة الغرف',      label_en: 'Room Service',     icon: '🛎️', fa: FaBellConcierge },
-    { key: 'jacuzzi',          label_ar: 'جاكوزي',          label_en: 'Jacuzzi',          icon: '🛁', fa: FaBath },
-    { key: 'kitchen',          label_ar: 'مطبخ',            label_en: 'Kitchen',          icon: '🍴', fa: FaUtensils },
+// The preset toggles shown under "Available Features". Icons are rendered from
+// the shared ROOM_AMENITY_ICONS catalogue (same source the public site uses).
+const PRESET_AMENITIES: { key: string; label_ar: string; label_en: string }[] = [
+    { key: 'wifi',             label_ar: 'واي فاي',         label_en: 'WiFi' },
+    { key: 'tv',               label_ar: 'تلفاز',           label_en: 'TV' },
+    { key: 'air_conditioning', label_ar: 'تكييف',           label_en: 'Air Conditioning' },
+    { key: 'minibar',          label_ar: 'ميني بار',         label_en: 'Mini Bar' },
+    { key: 'safe',             label_ar: 'خزنة',            label_en: 'Safe' },
+    { key: 'balcony',          label_ar: 'شرفة',            label_en: 'Balcony' },
+    { key: 'sea_view',         label_ar: 'إطلالة بحرية',     label_en: 'Sea View' },
+    { key: 'room_service',     label_ar: 'خدمة الغرف',      label_en: 'Room Service' },
+    { key: 'jacuzzi',          label_ar: 'جاكوزي',          label_en: 'Jacuzzi' },
+    { key: 'kitchen',          label_ar: 'مطبخ',            label_en: 'Kitchen' },
 ];
 
-// Lookup of FA icon by amenity key — used to render selected items
-// (which only carry the key) without re-deriving from PRESET_AMENITIES.
-const AMENITY_FA_ICONS: Record<string, IconType> = Object.fromEntries(
-    PRESET_AMENITIES.map((a) => [a.key, a.fa]),
-);
+// Lookup of icon by amenity key — used to render selected items (which only
+// carry the key). Shared with the public Madina Rooms template.
+const AMENITY_FA_ICONS = ROOM_AMENITY_ICONS;
 
 type FormData = {
     _method?: string;
@@ -144,7 +133,7 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         images: [],
         delete_images: [],
     });
-    const [customAmenity, setCustomAmenity] = useState({ label_ar: '', label_en: '', icon: '✨' });
+    const [customAmenity, setCustomAmenity] = useState({ label_ar: '', label_en: '', icon: 'wifi' });
 
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [featuredPreview, setFeaturedPreview] = useState<string | null>(storageUrl(initial.featured_image ?? null));
@@ -162,19 +151,19 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
 
     const isAmenitySelected = (key: string) => data.amenities.some((a) => a.key === key);
 
-    function togglePresetAmenity(preset: { key: string; label_ar: string; label_en: string; icon: string }) {
+    function togglePresetAmenity(preset: { key: string; label_ar: string; label_en: string }) {
         setData(
             'amenities',
             isAmenitySelected(preset.key)
                 ? data.amenities.filter((a) => a.key !== preset.key)
-                : [...data.amenities, { key: preset.key, label_ar: preset.label_ar, label_en: preset.label_en, icon: preset.icon }],
+                : [...data.amenities, { key: preset.key, label_ar: preset.label_ar, label_en: preset.label_en, icon: preset.key }],
         );
     }
 
     function addCustomAmenity() {
         if (!customAmenity.label_ar.trim() || !customAmenity.label_en.trim()) return;
         setData('amenities', [...data.amenities, { key: `custom_${Date.now()}`, ...customAmenity }]);
-        setCustomAmenity({ label_ar: '', label_en: '', icon: '✨' });
+        setCustomAmenity({ label_ar: '', label_en: '', icon: 'wifi' });
     }
 
     function removeAmenity(key: string) {
@@ -588,21 +577,19 @@ function StepDescription({
             </div>
 
             <Field label={t('long_desc_ar')} error={errors.description_ar}>
-                <RichTextarea
+                <RichTextEditor
                     value={data.description_ar}
                     onChange={(v) => setData('description_ar', v)}
                     placeholder={t('long_desc_hint_ar')}
-                    rows={5}
                     dir="rtl"
                 />
             </Field>
 
             <Field label={t('long_desc_en')} error={errors.description_en}>
-                <RichTextarea
+                <RichTextEditor
                     value={data.description_en}
                     onChange={(v) => setData('description_en', v)}
                     placeholder={t('long_desc_hint_en')}
-                    rows={5}
                 />
             </Field>
 
@@ -630,7 +617,7 @@ function StepAmenities({
 }: {
     data: FormData;
     isSelected: (key: string) => boolean;
-    onToggle: (preset: { key: string; label_ar: string; label_en: string; icon: string }) => void;
+    onToggle: (preset: { key: string; label_ar: string; label_en: string }) => void;
     customAmenity: { label_ar: string; label_en: string; icon: string };
     setCustomAmenity: (v: { label_ar: string; label_en: string; icon: string }) => void;
     onAddCustom: () => void;
@@ -638,8 +625,6 @@ function StepAmenities({
     onMove: (from: number, to: number) => void;
 }) {
     const { t, isArabic } = useT();
-    const emojis = ['✨', '⭐', '🛏️', '💆', '🍽️', '🏛️', '🌊', '🏊', '🚿', '🌴', '🎁', '☕', '🍷', '🚗', '🐾'];
-    const [showEmojis, setShowEmojis] = useState(false);
 
     return (
         <div className="space-y-6">
@@ -648,7 +633,7 @@ function StepAmenities({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {PRESET_AMENITIES.map((preset) => {
                         const active = isSelected(preset.key);
-                        const Fa = preset.fa;
+                        const Fa = AMENITY_FA_ICONS[preset.key];
                         return (
                             <button
                                 key={preset.key}
@@ -668,57 +653,55 @@ function StepAmenities({
 
             <div className="vuexy-card p-6">
                 <h2 className="mb-4 text-sm font-semibold text-muted-foreground">{t('add_custom_feature')}</h2>
-                <div className="flex flex-wrap items-end gap-2">
-                    <div className="relative">
+                <div className="space-y-3">
+                    <div>
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">{t('choose_icon')}</p>
+                        <div className="grid grid-cols-6 gap-2 sm:grid-cols-10">
+                            {ROOM_AMENITY_ICON_OPTIONS.map((opt) => {
+                                const Icon = opt.Icon;
+                                const active = customAmenity.icon === opt.key;
+                                return (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        title={isArabic ? opt.label_ar : opt.label_en}
+                                        onClick={() => setCustomAmenity({ ...customAmenity, icon: opt.key })}
+                                        className={`flex h-10 w-full items-center justify-center rounded-md border transition ${
+                                            active ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20' : 'hover:bg-muted'
+                                        }`}
+                                        aria-label={isArabic ? opt.label_ar : opt.label_en}
+                                    >
+                                        <Icon className="h-4 w-4" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                        <input
+                            type="text"
+                            value={customAmenity.label_ar}
+                            onChange={(e) => setCustomAmenity({ ...customAmenity, label_ar: e.target.value })}
+                            placeholder={t('name_in_arabic')}
+                            className="vuexy-input flex-1"
+                            dir="rtl"
+                        />
+                        <input
+                            type="text"
+                            value={customAmenity.label_en}
+                            onChange={(e) => setCustomAmenity({ ...customAmenity, label_en: e.target.value })}
+                            placeholder={t('name_in_english')}
+                            className="vuexy-input flex-1"
+                        />
                         <button
                             type="button"
-                            onClick={() => setShowEmojis(!showEmojis)}
-                            className="vuexy-input flex h-10 w-14 items-center justify-center text-lg"
-                            aria-label="Choose icon"
+                            onClick={onAddCustom}
+                            className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                         >
-                            {customAmenity.icon}
+                            <Plus className="h-4 w-4" />
+                            {t('add')}
                         </button>
-                        {showEmojis && (
-                            <div className="absolute z-10 mt-1 grid w-56 grid-cols-5 gap-1 rounded-lg border bg-popover p-2 shadow-md">
-                                {emojis.map((e) => (
-                                    <button
-                                        key={e}
-                                        type="button"
-                                        onClick={() => {
-                                            setCustomAmenity({ ...customAmenity, icon: e });
-                                            setShowEmojis(false);
-                                        }}
-                                        className="rounded p-1 text-lg hover:bg-muted"
-                                    >
-                                        {e}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
-                    <input
-                        type="text"
-                        value={customAmenity.label_ar}
-                        onChange={(e) => setCustomAmenity({ ...customAmenity, label_ar: e.target.value })}
-                        placeholder={t('name_in_arabic')}
-                        className="vuexy-input flex-1"
-                        dir="rtl"
-                    />
-                    <input
-                        type="text"
-                        value={customAmenity.label_en}
-                        onChange={(e) => setCustomAmenity({ ...customAmenity, label_en: e.target.value })}
-                        placeholder={t('name_in_english')}
-                        className="vuexy-input flex-1"
-                    />
-                    <button
-                        type="button"
-                        onClick={onAddCustom}
-                        className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                    >
-                        <Plus className="h-4 w-4" />
-                        {t('add')}
-                    </button>
                 </div>
             </div>
 
@@ -731,7 +714,7 @@ function StepAmenities({
                 ) : (
                     <div className="space-y-2">
                         {data.amenities.map((item, idx) => {
-                            const Fa = AMENITY_FA_ICONS[item.key];
+                            const Fa = AMENITY_FA_ICONS[item.key] ?? AMENITY_FA_ICONS[item.icon ?? ''];
                             return (
                             <div key={item.key} className="flex items-center gap-2 rounded-md border p-2">
                                 <div className="flex flex-col gap-0.5">

@@ -41,6 +41,7 @@ const translations: Record<string, Record<string, string>> = {
     'upload': { ar: 'رفع', en: 'Upload' },
     'view_site': { ar: 'عرض الموقع', en: 'View Site' },
     'add': { ar: 'إضافة', en: 'Add' },
+    'choose_icon': { ar: 'اختر أيقونة', en: 'Choose an icon' },
     'first_name': { ar: 'الاسم الأول', en: 'First Name' },
     'last_name': { ar: 'الاسم الأخير', en: 'Last Name' },
     'city': { ar: 'المدينة', en: 'City' },

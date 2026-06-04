@@ -14,7 +14,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Autoplay } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
-import { Wifi, Tv, Snowflake, Wine, Lock, Blinds, type LucideIcon } from 'lucide-react'
+import { SERVICE_FEATURE_ICONS } from '@/lib/service-feature-icons'
 import BookingModal, { BookingData, BookingType, BookingService } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
@@ -40,16 +40,10 @@ import rightLine from '../images/rooms/white-right-icon.svg'
 import leftArrow from '../images/left-arrow.png'
 import rightArrow from '../images/right-arrow.png'
 
-// Maps a wizard preset feature key to a themed lucide icon. Custom features
-// (key starts with `custom_`) fall back to the emoji the admin picked.
-const FEATURE_ICON_MAP: Record<string, LucideIcon> = {
-  wifi: Wifi,
-  tv: Tv,
-  ac: Snowflake,
-  minibar: Wine,
-  safe: Lock,
-  balcony: Blinds,
-}
+// Shared icon catalogue (same source the admin wizard picks from), so a saved
+// feature key renders the exact icon the tenant chose. Custom features with an
+// unknown key fall back to their stored icon key, then to the emoji.
+const FEATURE_ICON_MAP = SERVICE_FEATURE_ICONS
 
 // A feature as rendered on a card: it may resolve to a lucide icon (via
 // lucideKey), an emoji, or a legacy masked SVG url (mock duration/category).
@@ -340,7 +334,11 @@ export default function ServicesSection({ services: backendServices }: ServicesS
           features.push({ iconUrl: clockIcon, labelAr: s.duration, labelEn: s.duration })
         }
         for (const f of s.features ?? []) {
-          features.push({ lucideKey: f.key, emoji: f.icon, labelAr: f.label_ar, labelEn: f.label_en })
+          // Resolve a themed icon from the feature key first, then from the
+          // stored icon value (custom features save an icon key); the emoji
+          // stays as a fallback for legacy rows.
+          const lucideKey = FEATURE_ICON_MAP[f.key] ? f.key : (f.icon && FEATURE_ICON_MAP[f.icon] ? f.icon : undefined)
+          features.push({ lucideKey, emoji: f.icon, labelAr: f.label_ar, labelEn: f.label_en })
         }
         return {
           id: s.id,
@@ -590,7 +588,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
 
                         {/* Icons */}
                         <div className="flex items-center gap-4 mb-4 flex-wrap md:flex-nowrap">
-                          {service.features.map((feature, index) => {
+                          {service.features.slice(0, 3).map((feature, index) => {
                             const label = isArabic ? feature.labelAr : feature.labelEn;
                             return (
                               <div
@@ -683,7 +681,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                       >
                         {/* Icons - transparent background with curve */}
                         <div className="flex items-center justify-center gap-4 mb-4 flex-wrap md:flex-nowrap">
-                          {service.features.map((feature, index) => {
+                          {service.features.slice(0, 3).map((feature, index) => {
                             const label = isArabic ? feature.labelAr : feature.labelEn;
                             return (
                               <div
