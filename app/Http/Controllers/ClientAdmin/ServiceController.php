@@ -168,14 +168,31 @@ class ServiceController extends Controller
         return back()->with('success', 'تم حفظ البيانات المطلوبة');
     }
 
+    /** Max visible characters allowed in the service short description. */
+    private const SHORT_DESCRIPTION_MAX = 120;
+
+    /**
+     * Closure rule enforcing the 120 visible-character cap on the short
+     * description regardless of the surrounding colour markup. Server-side
+     * guard for when the client-side limit is bypassed (e.g. JavaScript off).
+     */
+    private function shortDescriptionLimit(): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail) {
+            if (HtmlSanitizer::visibleLength($value) > self::SHORT_DESCRIPTION_MAX) {
+                $fail('الوصف المختصر يجب ألا يتجاوز ' . self::SHORT_DESCRIPTION_MAX . ' حرفاً.');
+            }
+        };
+    }
+
     private function validateService(Request $request): array
     {
         return $request->validate([
             'name_ar' => 'required|string|max:255',
             'name_en' => 'required|string|max:255',
             'category_id' => 'nullable|exists:service_categories,id',
-            'short_description_ar' => 'nullable|string|max:500',
-            'short_description_en' => 'nullable|string|max:500',
+            'short_description_ar' => ['nullable', 'string', 'max:5000', $this->shortDescriptionLimit()],
+            'short_description_en' => ['nullable', 'string', 'max:5000', $this->shortDescriptionLimit()],
             'description_ar' => 'nullable|string',
             'description_en' => 'nullable|string',
             'internal_notes' => 'nullable|string',
@@ -190,6 +207,23 @@ class ServiceController extends Controller
             'room_type' => 'nullable|string|max:100',
             'custom_subtype_ar' => 'nullable|string|max:100',
             'custom_subtype_en' => 'nullable|string|max:100',
+            // Food (restaurant) serving method + buffet window.
+            'food_serving_method' => 'nullable|in:meal,buffet',
+            'buffet_start_time' => ['nullable', 'required_if:food_serving_method,buffet', 'regex:/^\d{2}:\d{2}$/'],
+            'buffet_end_time' => [
+                'nullable',
+                'required_if:food_serving_method,buffet',
+                'regex:/^\d{2}:\d{2}$/',
+                function (string $attribute, $value, \Closure $fail) use ($request) {
+                    if ($request->input('food_serving_method') !== 'buffet') {
+                        return;
+                    }
+                    $start = $request->input('buffet_start_time');
+                    if ($start && $value && $value <= $start) {
+                        $fail('يجب أن يكون وقت النهاية أكبر من وقت البداية.');
+                    }
+                },
+            ],
             'duration' => 'nullable|string|max:100',
             'featured_image' => 'nullable|file|image|max:4096',
             'text_color' => 'nullable|string|max:7',
@@ -207,6 +241,11 @@ class ServiceController extends Controller
             'features.*.label_ar' => 'required|string|max:255',
             'features.*.label_en' => 'required|string|max:255',
             'features.*.icon' => 'nullable|string|max:50',
+        ], [
+            'buffet_start_time.required_if' => 'وقت بداية البوفيه مطلوب.',
+            'buffet_end_time.required_if' => 'وقت نهاية البوفيه مطلوب.',
+            'buffet_start_time.regex' => 'صيغة وقت البداية غير صحيحة.',
+            'buffet_end_time.regex' => 'صيغة وقت النهاية غير صحيحة.',
         ]);
     }
 
@@ -228,6 +267,22 @@ class ServiceController extends Controller
             if (array_key_exists($field, $data)) {
                 $data[$field] = HtmlSanitizer::clean($data[$field]);
             }
+        }
+
+        // Short descriptions are restricted to colour-only formatting: strip
+        // every other tag (bold/italic/lists/headings) so only text + colour
+        // is stored, matching the restricted editor.
+        foreach (['short_description_ar', 'short_description_en'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = HtmlSanitizer::cleanColorOnly($data[$field]);
+            }
+        }
+
+        // Buffet times only make sense for a buffet. For a single meal (or no
+        // food serving method at all) drop them so stale times never surface.
+        if (($data['food_serving_method'] ?? null) !== 'buffet') {
+            $data['buffet_start_time'] = null;
+            $data['buffet_end_time'] = null;
         }
 
         return $data;

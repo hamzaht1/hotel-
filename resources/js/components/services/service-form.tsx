@@ -3,6 +3,7 @@ import { useStorageUrl } from '@/lib/storage';
 import { router, useForm } from '@inertiajs/react';
 import RichTextarea from '@/components/forms/rich-textarea';
 import RichTextEditor from '@/components/forms/rich-text-editor';
+import ColorTextEditor from '@/components/forms/color-text-editor';
 import {
     Upload,
     X,
@@ -59,6 +60,9 @@ export interface ServiceInitial {
     room_type?: string | null;
     custom_subtype_ar?: string | null;
     custom_subtype_en?: string | null;
+    food_serving_method?: string | null;
+    buffet_start_time?: string | null;
+    buffet_end_time?: string | null;
     capacity?: number | string | null;
     party_size?: number | string | null;
     price?: string | number;
@@ -164,6 +168,9 @@ type FormData = {
     room_type: string;
     custom_subtype_ar: string;
     custom_subtype_en: string;
+    food_serving_method: string;
+    buffet_start_time: string;
+    buffet_end_time: string;
     capacity: string;
     party_size: string;
     price: string;
@@ -205,6 +212,9 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
         room_type: initial.room_type ?? '',
         custom_subtype_ar: initial.custom_subtype_ar ?? '',
         custom_subtype_en: initial.custom_subtype_en ?? '',
+        food_serving_method: initial.food_serving_method ?? '',
+        buffet_start_time: initial.buffet_start_time ?? '',
+        buffet_end_time: initial.buffet_end_time ?? '',
         capacity: initial.capacity != null ? String(initial.capacity) : '2',
         party_size: initial.party_size != null ? String(initial.party_size) : '',
         price: initial.price != null ? String(initial.price) : '',
@@ -470,6 +480,12 @@ function StepBasic({
 }) {
     const { t, isArabic } = useT();
 
+    // The food serving method belongs to "food" (restaurant) services. Derive
+    // the type from the selected category — robust on edit, where service_type
+    // would otherwise default — falling back to the explicitly picked type.
+    const effectiveServiceType = categories.find((c) => String(c.id) === data.category_id)?.type ?? data.service_type;
+    const isFood = effectiveServiceType === 'restaurant';
+
     return (
         <div className="space-y-6">
             <div className="vuexy-card p-6">
@@ -532,6 +548,14 @@ function StepBasic({
                                 const cat = categories.find((c) => String(c.id) === newId);
                                 const derivedType = cat?.type ?? 'custom';
                                 setData('service_type', derivedType);
+                                // Food serving method only applies to restaurant
+                                // (food) services — clear it (and the buffet
+                                // window) when switching to any other type.
+                                if (derivedType !== 'restaurant') {
+                                    setData('food_serving_method', '');
+                                    setData('buffet_start_time', '');
+                                    setData('buffet_end_time', '');
+                                }
                             }}
                             className="vuexy-input"
                         >
@@ -602,6 +626,70 @@ function StepBasic({
                                 ))}
                             </select>
                         </Field>
+                    )}
+
+                    {/* Food serving method (meal / buffet) — only for food
+                        (restaurant) services. Buffet reveals a serving window. */}
+                    {isFood && (
+                        <div className="sm:col-span-2">
+                            <Field label={isArabic ? 'طريقة تقديم الطعام' : 'Food serving method'} error={errors.food_serving_method}>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { key: 'meal', label_ar: 'وجبة', label_en: 'Meal' },
+                                        { key: 'buffet', label_ar: 'بوفيه', label_en: 'Buffet' },
+                                    ].map((o) => {
+                                        const active = data.food_serving_method === o.key;
+                                        return (
+                                            <button
+                                                key={o.key}
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('food_serving_method', o.key);
+                                                    // A single meal has no serving window — clear it.
+                                                    if (o.key !== 'buffet') {
+                                                        setData('buffet_start_time', '');
+                                                        setData('buffet_end_time', '');
+                                                    }
+                                                }}
+                                                className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                                                    active ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
+                                                }`}
+                                            >
+                                                {isArabic ? o.label_ar : o.label_en}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </Field>
+
+                            {data.food_serving_method === 'buffet' && (
+                                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                                    <Field label={isArabic ? 'وقت البداية' : 'Start time'} error={errors.buffet_start_time}>
+                                        <input
+                                            type="time"
+                                            value={data.buffet_start_time}
+                                            onChange={(e) => setData('buffet_start_time', e.target.value)}
+                                            className="vuexy-input"
+                                            required
+                                        />
+                                    </Field>
+                                    <Field label={isArabic ? 'وقت النهاية' : 'End time'} error={errors.buffet_end_time}>
+                                        <input
+                                            type="time"
+                                            value={data.buffet_end_time}
+                                            onChange={(e) => setData('buffet_end_time', e.target.value)}
+                                            className="vuexy-input"
+                                            required
+                                        />
+                                    </Field>
+                                    {data.buffet_start_time && data.buffet_end_time && data.buffet_end_time <= data.buffet_start_time && (
+                                        <p className="text-xs text-red-500 sm:col-span-2">
+                                            {isArabic ? 'يجب أن يكون وقت النهاية أكبر من وقت البداية' : 'End time must be later than start time'}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {data.room_type === 'custom' && data.service_type !== 'custom' && (
@@ -877,20 +965,18 @@ function StepDescription({
         <div className="vuexy-card space-y-4 p-6">
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t('short_desc_ar')} error={errors.short_description_ar}>
-                    <RichTextarea
+                    <ColorTextEditor
                         value={data.short_description_ar}
                         onChange={(v) => setData('short_description_ar', v)}
-                        rows={2}
                         dir="rtl"
-                        maxLength={500}
+                        maxLength={120}
                     />
                 </Field>
                 <Field label={t('short_desc_en')} error={errors.short_description_en}>
-                    <RichTextarea
+                    <ColorTextEditor
                         value={data.short_description_en}
                         onChange={(v) => setData('short_description_en', v)}
-                        rows={2}
-                        maxLength={500}
+                        maxLength={120}
                     />
                 </Field>
             </div>

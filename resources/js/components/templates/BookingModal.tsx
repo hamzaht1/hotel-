@@ -28,6 +28,10 @@ export interface BookingService {
   image?: string | null
   price?: string
   currency?: string
+  // Food (restaurant) serving method, surfaced prominently under the name.
+  foodServingMethod?: string | null
+  buffetStart?: string | null
+  buffetEnd?: string | null
 }
 
 interface BookingModalProps {
@@ -309,6 +313,23 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
                     </span>
                   )}
                 </div>
+                {(() => {
+                  // Food serving method, shown bold & prominent right under the
+                  // service name. Hidden entirely when there is no food data.
+                  const method = service.foodServingMethod
+                  if (method !== 'meal' && method !== 'buffet') return null
+                  let text: string
+                  if (method === 'buffet' && service.buffetStart && service.buffetEnd) {
+                    text = isArabic
+                      ? `بوفيه من ${formatTime(service.buffetStart, true)} إلى ${formatTime(service.buffetEnd, true)}`
+                      : `Buffet from ${formatTime(service.buffetStart, false)} to ${formatTime(service.buffetEnd, false)}`
+                  } else if (method === 'buffet') {
+                    text = isArabic ? 'بوفيه' : 'Buffet'
+                  } else {
+                    text = isArabic ? 'وجبة' : 'Meal'
+                  }
+                  return <p className="madina-text-primary text-base font-bold mt-0.5">{text}</p>
+                })()}
                 {service.description && (
                   <div className="rte-content" dangerouslySetInnerHTML={{ __html: service.description }} />
                 )}

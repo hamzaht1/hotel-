@@ -67,6 +67,9 @@ interface BilingualService {
   currencyEn: string;
   image?: string | null;
   features: CardFeature[];
+  foodServingMethod?: string | null;
+  buffetStart?: string | null;
+  buffetEnd?: string | null;
 }
 
 interface BackendService {
@@ -80,6 +83,9 @@ interface BackendService {
   featured_image?: string | null;
   category?: { name_ar: string; name_en: string } | null;
   features?: { key: string; label_ar: string; label_en: string; icon?: string | null }[];
+  food_serving_method?: string | null;
+  buffet_start_time?: string | null;
+  buffet_end_time?: string | null;
 }
 
 // Renders a card feature icon: themed lucide icon when the key is known,
@@ -351,6 +357,9 @@ export default function ServicesSection({ services: backendServices }: ServicesS
           currencyEn: 'SAR',
           image: storageUrl(s.featured_image),
           features,
+          foodServingMethod: s.food_serving_method ?? null,
+          buffetStart: s.buffet_start_time ?? null,
+          buffetEnd: s.buffet_end_time ?? null,
         }
       })
     }
@@ -370,6 +379,9 @@ export default function ServicesSection({ services: backendServices }: ServicesS
       currencyEn: service.currencyEn,
       image: service.image ?? null,
       features: service.features,
+      foodServingMethod: service.foodServingMethod ?? null,
+      buffetStart: service.buffetStart ?? null,
+      buffetEnd: service.buffetEnd ?? null,
     }));
   }, [isArabic, sourceData])
 
@@ -636,6 +648,9 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                                 image: service.image,
                                 price: String(service.price),
                                 currency: service.currency,
+                                foodServingMethod: service.foodServingMethod,
+                                buffetStart: service.buffetStart,
+                                buffetEnd: service.buffetEnd,
                               })
                               setModalOpen(true)
                             }}
@@ -744,6 +759,9 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                                 image: service.image,
                                 price: String(service.price),
                                 currency: service.currency,
+                                foodServingMethod: service.foodServingMethod,
+                                buffetStart: service.buffetStart,
+                                buffetEnd: service.buffetEnd,
                               })
                               setModalOpen(true)
                             }}
