@@ -4,6 +4,8 @@ namespace App\Http\Controllers\ClientAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\HotelSetting;
+use App\Services\OtpGuard;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -18,8 +20,12 @@ class HotelSettingController extends Controller
         ]);
     }
 
-    public function update(Request $request)
+    public function update(Request $request, OtpGuard $otp)
     {
+        // Editing establishment profile is a sensitive operation — requires a
+        // freshly verified OTP window.
+        $otp->assertPassed('profile_update');
+
         $validated = $request->validate([
             'hotel_name_ar' => 'required|string|max:255',
             'hotel_name_en' => 'required|string|max:255',
@@ -41,6 +47,13 @@ class HotelSettingController extends Controller
             'secondary_color.light' => 'nullable|string|regex:/^#[0-9A-Fa-f]{3,8}$/',
             'secondary_color.dark' => 'nullable|string|regex:/^#[0-9A-Fa-f]{3,8}$/',
             'meta_tags' => 'nullable|array',
+            // Compliance fields
+            'commercial_activity' => 'nullable|string|max:255',
+            'cr_number' => 'nullable|string|max:50',
+            'cr_expiry' => 'nullable|date',
+            'vat_number' => 'nullable|string|max:50',
+            'license_number' => 'nullable|string|max:50',
+            'license_expiry' => 'nullable|date',
         ]);
 
         $settings = HotelSetting::firstOrNew([]);
@@ -49,6 +62,10 @@ class HotelSettingController extends Controller
             $settings->tenant_id = app('current_tenant_id');
         }
         $settings->save();
+
+        ActivityLogger::log('profile.updated', 'Establishment profile updated', [
+            'fields' => array_keys($validated),
+        ], $settings);
 
         return back()->with('success', 'Hotel settings updated');
     }

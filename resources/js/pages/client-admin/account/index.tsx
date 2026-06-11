@@ -1,15 +1,20 @@
 import AppLayout from '@/layouts/app-layout';
-import EstablishmentDataSection, { type HotelSettings } from '@/components/account/establishment-data-section';
+import EstablishmentDataSection, { type HotelSettings, type EstablishmentDocument } from '@/components/account/establishment-data-section';
 import RenewalSection, { type RenewalProps } from '@/components/account/renewal-section';
 import InvoicesSection, { type PaginatedInvoices } from '@/components/account/invoices-section';
+import SubscriptionOverviewSection, { type SubscriptionInfo } from '@/components/account/subscription-overview-section';
+import DomainSection, { type DomainProps } from '@/components/account/domain-section';
 import { useT } from '@/hooks/use-translations';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { Building2, RefreshCw, FileText } from 'lucide-react';
+import { Building2, RefreshCw, FileText, LayoutDashboard, Globe } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
     settings: HotelSettings;
+    documents: EstablishmentDocument[];
+    subscription: SubscriptionInfo;
+    domain: DomainProps;
     invoices: PaginatedInvoices;
     tenant: RenewalProps['tenant'];
     renewals: RenewalProps['renewals'];
@@ -19,16 +24,20 @@ interface Props {
     paymentCallbackUrl: string;
 }
 
-type TabKey = 'establishment' | 'renewal' | 'invoices';
+type TabKey = 'overview' | 'profile' | 'renewal' | 'domain' | 'invoices';
+
+const TAB_KEYS: TabKey[] = ['overview', 'profile', 'renewal', 'domain', 'invoices'];
 
 /**
- * Unified Establishment Account page that gathers the three previously
- * separate screens (Establishment Data / Renewal / Invoices) into one
- * tabbed surface. Each tab body is rendered from the section component
- * that the original page also uses, so no behaviour is duplicated.
+ * Unified Establishment Account page gathering five surfaces into one tabbed
+ * screen: subscription overview, profile & compliance, renewal & checkout,
+ * subdomain/domain, and invoices.
  */
 export default function AccountIndex({
     settings,
+    documents,
+    subscription,
+    domain,
     invoices,
     tenant,
     renewals,
@@ -40,12 +49,10 @@ export default function AccountIndex({
     const { t } = useT();
     const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
 
-    // Read the initial tab from the URL hash so a bookmark like
-    // /client-admin/account#renewal lands on the right tab.
     const initialTab: TabKey = (() => {
-        if (typeof window === 'undefined') return 'establishment';
+        if (typeof window === 'undefined') return 'overview';
         const hash = window.location.hash.replace('#', '') as TabKey;
-        return ['establishment', 'renewal', 'invoices'].includes(hash) ? hash : 'establishment';
+        return TAB_KEYS.includes(hash) ? hash : 'overview';
     })();
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
 
@@ -62,8 +69,10 @@ export default function AccountIndex({
     ];
 
     const tabs: { key: TabKey; label: string; icon: typeof Building2 }[] = [
-        { key: 'establishment', label: t('hotel_settings'), icon: Building2 },
+        { key: 'overview', label: isArabic ? 'نظرة عامة' : 'Overview', icon: LayoutDashboard },
+        { key: 'profile', label: isArabic ? 'الملف والامتثال' : 'Profile & Compliance', icon: Building2 },
         { key: 'renewal', label: isArabic ? 'تجديد الاشتراك' : 'Renewal', icon: RefreshCw },
+        { key: 'domain', label: isArabic ? 'النطاق' : 'Domain', icon: Globe },
         { key: 'invoices', label: t('invoices', 'Invoices'), icon: FileText },
     ];
 
@@ -80,8 +89,8 @@ export default function AccountIndex({
                         <h1 className="text-2xl font-bold">{isArabic ? 'حساب المنشأة' : 'Establishment Account'}</h1>
                         <p className="text-sm text-muted-foreground">
                             {isArabic
-                                ? 'إدارة بيانات المنشأة والاشتراك والفواتير في مكان واحد'
-                                : 'Manage your establishment data, subscription and invoices in one place'}
+                                ? 'إدارة الاشتراك والبيانات والنطاق والفواتير في مكان واحد'
+                                : 'Manage your subscription, data, domain and invoices in one place'}
                         </p>
                     </div>
                 </div>
@@ -95,10 +104,8 @@ export default function AccountIndex({
                                 key={key}
                                 type="button"
                                 onClick={() => selectTab(key)}
-                                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition sm:flex-none ${
-                                    active
-                                        ? 'bg-primary text-primary-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:bg-muted'
+                                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition sm:flex-none ${
+                                    active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
                                 }`}
                             >
                                 <Icon className="h-4 w-4" />
@@ -109,7 +116,8 @@ export default function AccountIndex({
                 </div>
 
                 {/* Active tab body */}
-                {activeTab === 'establishment' && <EstablishmentDataSection settings={settings} />}
+                {activeTab === 'overview' && <SubscriptionOverviewSection subscription={subscription} />}
+                {activeTab === 'profile' && <EstablishmentDataSection settings={settings} documents={documents} />}
                 {activeTab === 'renewal' && (
                     <RenewalSection
                         tenant={tenant}
@@ -120,6 +128,7 @@ export default function AccountIndex({
                         paymentCallbackUrl={paymentCallbackUrl}
                     />
                 )}
+                {activeTab === 'domain' && <DomainSection domain={domain} />}
                 {activeTab === 'invoices' && <InvoicesSection invoices={invoices} />}
             </div>
         </AppLayout>

@@ -16,7 +16,7 @@ class InvoiceService
             ? "Renewal #{$renewal->id} via Moyasar (invoice {$renewal->payment_charge_id})"
             : "Renewal #{$renewal->id} via bank transfer";
 
-        return $this->createSubscriptionInvoice($tenant, $plan, $paymentMethod, $notes);
+        return $this->createSubscriptionInvoice($tenant, $plan, $paymentMethod, $notes, (float) $renewal->discount_amount);
     }
 
     public function createInitialInvoice(Tenant $tenant, Plan $plan, string $paymentMethod = 'bank_transfer'): Invoice
@@ -25,12 +25,14 @@ class InvoiceService
         return $this->createSubscriptionInvoice($tenant, $plan, $paymentMethod, $notes);
     }
 
-    private function createSubscriptionInvoice(Tenant $tenant, Plan $plan, string $paymentMethod, string $notes): Invoice
+    private function createSubscriptionInvoice(Tenant $tenant, Plan $plan, string $paymentMethod, string $notes, float $discount = 0.0): Invoice
     {
         $amount = (float) $plan->price;
+        $discount = max(0.0, min($discount, $amount));
+        $net = round($amount - $discount, 2);
         $taxRate = 15.00;
-        $taxAmount = round($amount * ($taxRate / 100), 2);
-        $total = round($amount + $taxAmount, 2);
+        $taxAmount = round($net * ($taxRate / 100), 2);
+        $total = round($net + $taxAmount, 2);
 
         return Invoice::create([
             'tenant_id' => $tenant->id,
@@ -40,7 +42,7 @@ class InvoiceService
             'amount' => $amount,
             'tax_rate' => $taxRate,
             'tax_amount' => $taxAmount,
-            'discount' => 0,
+            'discount' => $discount,
             'total' => $total,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->toDateString(),

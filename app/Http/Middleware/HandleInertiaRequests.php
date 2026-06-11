@@ -80,6 +80,9 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                // Surfaced only in debug to ease OTP testing (null in production).
+                'otp_debug' => fn () => $request->session()->get('otp_debug'),
+                'discount' => fn () => $request->session()->get('discount'),
             ],
         ];
     }

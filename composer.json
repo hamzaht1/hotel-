@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bacon/bacon-qr-code": "^3.1",
         "barryvdh/laravel-dompdf": "^3.1",
         "erag/laravel-lang-sync-inertia": "^1.4",
         "inertiajs/inertia-laravel": "^2.0",

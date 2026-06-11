@@ -32,6 +32,12 @@ class HotelSetting extends Model
         'primary_color',
         'secondary_color',
         'meta_tags',
+        'commercial_activity',
+        'cr_number',
+        'cr_expiry',
+        'vat_number',
+        'license_number',
+        'license_expiry',
     ];
 
     protected function casts(): array
@@ -40,6 +46,8 @@ class HotelSetting extends Model
             'primary_color' => 'array',
             'secondary_color' => 'array',
             'meta_tags' => 'array',
+            'cr_expiry' => 'date',
+            'license_expiry' => 'date',
         ];
     }
 

@@ -1,4 +1,4 @@
-import { useForm, usePage } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { useT } from '@/hooks/use-translations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,9 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Clock, CheckCircle, XCircle, AlertTriangle, CreditCard, Landmark, Building2, Copy, CheckCircle2 } from 'lucide-react';
+import { Upload, Clock, CheckCircle, XCircle, AlertTriangle, CreditCard, Landmark, Building2, Copy, CheckCircle2, Tag, Loader2 } from 'lucide-react';
 import { FormEventHandler, useMemo, useState } from 'react';
-import MoyasarForm from '@/components/MoyasarForm';
+
+interface AppliedDiscount {
+    code: string;
+    amount: number;
+    price: number;
+    net: number;
+    total_with_tax: number;
+}
 
 export interface Plan {
     name_ar: string;
@@ -63,7 +70,7 @@ type PaymentMode = 'moyasar' | 'bank_transfer';
  * Body of the Renewal screen. Extracted from `renewal/index.tsx` so it
  * can also live as a tab inside the unified Establishment Account page.
  */
-export default function RenewalSection({ tenant, renewals, canRenew, bankDetails, moyasarPublishableKey, paymentCallbackUrl }: RenewalProps) {
+export default function RenewalSection({ tenant, renewals, canRenew, bankDetails, moyasarPublishableKey }: RenewalProps) {
     useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
@@ -71,13 +78,64 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
     const [paymentMode, setPaymentMode] = useState<PaymentMode>('moyasar');
     const [copied, setCopied] = useState<string | null>(null);
 
+    // Discount code state (server-validated via /renewal/apply-discount).
+    const [discountInput, setDiscountInput] = useState('');
+    const [applied, setApplied] = useState<AppliedDiscount | null>(null);
+    const [discountLoading, setDiscountLoading] = useState(false);
+    const [discountError, setDiscountError] = useState<string | null>(null);
+    const [payLoading, setPayLoading] = useState(false);
+
     const { data, setData, post, processing, errors, reset } = useForm<{
         receipt: File | null;
         notes: string;
+        discount_code: string;
     }>({
         receipt: null,
         notes: '',
+        discount_code: '',
     });
+
+    const price = Number(tenant.plan?.price ?? 0);
+    const netAmount = applied ? applied.net : price;
+
+    function applyDiscount() {
+        if (!discountInput.trim()) return;
+        setDiscountLoading(true);
+        setDiscountError(null);
+        router.post(
+            '/client-admin/renewal/apply-discount',
+            { code: discountInput.trim() },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: (page) => {
+                    const d = (page.props as { flash?: { discount?: AppliedDiscount } }).flash?.discount;
+                    if (d) {
+                        setApplied(d);
+                        setData('discount_code', d.code);
+                    }
+                },
+                onError: (errs) => setDiscountError((errs.code as string) ?? (isArabic ? 'كود غير صالح' : 'Invalid code')),
+                onFinish: () => setDiscountLoading(false),
+            },
+        );
+    }
+
+    function clearDiscount() {
+        setApplied(null);
+        setDiscountInput('');
+        setData('discount_code', '');
+        setDiscountError(null);
+    }
+
+    function payOnline() {
+        setPayLoading(true);
+        router.post(
+            '/client-admin/renewal/payment',
+            { discount_code: applied?.code ?? '' },
+            { onFinish: () => setPayLoading(false) },
+        );
+    }
 
     const daysRemaining = useMemo(() => {
         if (!tenant.subscription_ends_at) return null;
@@ -292,6 +350,59 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                         <CardTitle>{isArabic ? 'طلب تجديد' : 'Submit Renewal Request'}</CardTitle>
                     </CardHeader>
                     <CardContent>
+                        {/* Discount code */}
+                        <div className="mb-6 rounded-xl border p-4">
+                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                                <Tag className="h-4 w-4 text-muted-foreground" />
+                                {isArabic ? 'كود الخصم' : 'Discount code'}
+                            </div>
+                            {applied ? (
+                                <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm dark:border-green-800 dark:bg-green-950">
+                                    <span className="font-medium text-green-700 dark:text-green-400">
+                                        {applied.code} · −{applied.amount.toLocaleString()} SAR
+                                    </span>
+                                    <button type="button" onClick={clearDiscount} className="text-xs text-muted-foreground hover:text-foreground">
+                                        {isArabic ? 'إزالة' : 'Remove'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={discountInput}
+                                        onChange={(e) => setDiscountInput(e.target.value.toUpperCase())}
+                                        placeholder={isArabic ? 'أدخل الكود' : 'Enter code'}
+                                        dir="ltr"
+                                    />
+                                    <Button type="button" variant="outline" onClick={applyDiscount} disabled={discountLoading || !discountInput.trim()}>
+                                        {discountLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isArabic ? 'تطبيق' : 'Apply')}
+                                    </Button>
+                                </div>
+                            )}
+                            {discountError && <p className="mt-2 text-sm text-red-500">{discountError}</p>}
+                        </div>
+
+                        {/* Checkout summary */}
+                        <div className="mb-6 space-y-1.5 rounded-xl border p-4 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">{isArabic ? 'سعر الباقة' : 'Plan price'}</span>
+                                <span>{price.toLocaleString()} SAR</span>
+                            </div>
+                            {applied && (
+                                <div className="flex justify-between text-green-600">
+                                    <span>{isArabic ? 'الخصم' : 'Discount'}</span>
+                                    <span>−{applied.amount.toLocaleString()} SAR</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">{isArabic ? 'ض. القيمة المضافة (15%)' : 'VAT (15%)'}</span>
+                                <span>{(netAmount * 0.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-1.5 text-base font-bold">
+                                <span>{isArabic ? 'الإجمالي' : 'Total'}</span>
+                                <span>{(netAmount * 1.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR</span>
+                            </div>
+                        </div>
+
                         <div className="mb-6 flex overflow-hidden rounded-xl border bg-muted/30">
                             <button
                                 type="button"
@@ -323,20 +434,9 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                             <div className="space-y-4 text-center">
                                 <p className="text-sm text-muted-foreground">
                                     {isArabic
-                                        ? 'ادفع بأمان عبر مدى أو فيزا أو ماستركارد أو Apple Pay. سيتم تجديد اشتراكك فوراً.'
-                                        : 'Pay securely via Mada, Visa, Mastercard or Apple Pay. Your subscription will be renewed instantly.'}
+                                        ? 'ادفع بأمان عبر مدى أو فيزا أو ماستركارد أو STC Pay. سيتم تجديد اشتراكك فوراً بعد الدفع.'
+                                        : 'Pay securely via Mada, Visa, Mastercard or STC Pay. Your subscription is renewed instantly after payment.'}
                                 </p>
-
-                                {tenant.plan?.price && (
-                                    <div className="rounded-xl border-2 border-dashed p-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            {isArabic ? 'المبلغ المطلوب' : 'Amount Due'}
-                                        </p>
-                                        <p className="text-2xl font-extrabold">
-                                            {Number(tenant.plan.price).toLocaleString()} SAR
-                                        </p>
-                                    </div>
-                                )}
 
                                 <div className="rounded-xl bg-green-50 border border-green-200 p-3 dark:bg-green-950 dark:border-green-800">
                                     <p className="text-sm text-green-700 font-medium dark:text-green-400">
@@ -346,19 +446,17 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                                     </p>
                                 </div>
 
-                                <div className="text-start">
-                                    <MoyasarForm
-                                        amount={Number(tenant.plan?.price ?? 0)}
-                                        description={`Diyafah Renewal — ${isArabic ? tenant.plan?.name_ar : tenant.plan?.name_en}`}
-                                        publishableKey={moyasarPublishableKey}
-                                        callbackUrl={paymentCallbackUrl}
-                                        methods={['creditcard', 'stcpay']}
-                                        metadata={{
-                                            type: 'renewal',
-                                            tenant_id: tenant.name,
-                                        }}
-                                    />
-                                </div>
+                                <Button type="button" onClick={payOnline} disabled={payLoading || !moyasarPublishableKey} className="w-full">
+                                    {payLoading ? <Loader2 className="h-4 w-4 me-2 animate-spin" /> : <CreditCard className="h-4 w-4 me-2" />}
+                                    {isArabic
+                                        ? `ادفع ${(netAmount * 1.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} ريال`
+                                        : `Pay ${(netAmount * 1.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR`}
+                                </Button>
+                                {!moyasarPublishableKey && (
+                                    <p className="text-xs text-amber-600">
+                                        {isArabic ? 'بوابة الدفع غير مُهيأة حالياً' : 'Payment gateway is not configured'}
+                                    </p>
+                                )}
                             </div>
                         )}
 

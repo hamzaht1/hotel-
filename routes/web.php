@@ -26,6 +26,8 @@ use App\Http\Controllers\ClientAdmin\AccountController;
 use App\Http\Controllers\ClientAdmin\RenewalController;
 use App\Http\Controllers\ClientAdmin\ReviewController as ClientReviewController;
 use App\Http\Controllers\ClientAdmin\DomainController;
+use App\Http\Controllers\ClientAdmin\OtpController;
+use App\Http\Controllers\ClientAdmin\DocumentController;
 use App\Http\Controllers\ReviewSubmissionController;
 
 // ─── Public Routes ──────────────────────────────────────────
@@ -226,8 +228,16 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::get('hotel-settings', [HotelSettingController::class, 'edit'])->name('hotel-settings.edit');
         Route::put('hotel-settings', [HotelSettingController::class, 'update'])->name('hotel-settings.update');
 
-        // Unified Establishment Account page (tabs: data / renewal / invoices)
+        // Unified Establishment Account page (tabs: overview / profile / renewal / domain / invoices)
         Route::get('account', [AccountController::class, 'index'])->name('account.index');
+
+        // OTP gate for sensitive account operations (profile / subdomain)
+        Route::post('account/otp/request', [OtpController::class, 'request'])->name('account.otp.request');
+        Route::post('account/otp/verify', [OtpController::class, 'verify'])->name('account.otp.verify');
+
+        // Establishment regulatory documents
+        Route::post('account/documents', [DocumentController::class, 'store'])->name('account.documents.store');
+        Route::delete('account/documents/{document}', [DocumentController::class, 'destroy'])->name('account.documents.destroy');
 
         // System Settings (tenant-level branding/identity, mirrors super-admin/site-settings)
         Route::get('system-settings', [SystemSettingController::class, 'edit'])->name('system-settings.edit');
@@ -279,6 +289,7 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::post('renewal', [RenewalController::class, 'store'])->name('renewal.store');
         Route::post('renewal/payment', [RenewalController::class, 'initiatePayment'])->name('renewal.payment.initiate');
         Route::get('renewal/payment-callback', [RenewalController::class, 'paymentCallback'])->name('renewal.payment.callback');
+        Route::post('renewal/apply-discount', [RenewalController::class, 'applyDiscount'])->name('renewal.apply-discount');
 
         // Reviews
         Route::get('reviews', [ClientReviewController::class, 'index'])->name('reviews.index');
@@ -296,10 +307,12 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::get('domain', [DomainController::class, 'show'])->name('domain.show');
         Route::post('domain', [DomainController::class, 'save'])->name('domain.save');
         Route::post('domain/verify', [DomainController::class, 'verify'])->name('domain.verify');
+        Route::post('domain/subdomain', [DomainController::class, 'updateSubdomain'])->name('domain.subdomain');
 
         // Invoices (read-only for client, + receipt upload + template picker)
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
+        Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
         Route::post('invoices/{invoice}/receipt', [InvoiceController::class, 'uploadReceipt'])->name('invoices.receipt');
         Route::post('invoices/{invoice}/template', [InvoiceController::class, 'updateTemplate'])->name('invoices.template');
 

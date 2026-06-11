@@ -102,6 +102,13 @@
         </div>
     @endif
 
+    @if(!empty($qr))
+    <div style="text-align: center; margin-top: 18px;">
+        <img src="{{ $qr }}" alt="ZATCA QR" style="width: 120px; height: 120px;" />
+        <div style="font-size: 9px; color: #777; margin-top: 4px;">{{ $L('Scan to verify (ZATCA)', 'امسح للتحقق (هيئة الزكاة والضريبة)') }}</div>
+    </div>
+    @endif
+
     <div class="footer">
         {{ $invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah') }} · {{ $L('Thank you for your business', 'شكراً لتعاملكم معنا') }}
     </div>

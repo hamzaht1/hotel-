@@ -182,6 +182,13 @@
     </tr>
 </table>
 
+@if(!empty($qr))
+<div style="clear: both; margin-top: 18px; text-align: center;">
+    <img src="{{ $qr }}" alt="ZATCA QR" style="width: 120px; height: 120px;" />
+    <div style="font-size: 9px; color: #999; margin-top: 4px;">{{ $L('Scan to verify (ZATCA)', 'امسح للتحقق (هيئة الزكاة والضريبة)') }}</div>
+</div>
+@endif
+
 @if($s && $s->pdf_show_bank_info && $defaultBank)
 <div class="bank-info">
     <div class="title">{{ $L('Bank details', 'البيانات البنكية') }}</div>

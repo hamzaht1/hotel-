@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { FileDown, CreditCard, Landmark } from 'lucide-react';
+import { FileDown, CreditCard, Landmark, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -97,7 +97,7 @@ export default function InvoicesSection({ invoices }: { invoices: PaginatedInvoi
                                 <th className="px-4 py-3 text-start font-medium">{t('issue_date', 'Issue Date')}</th>
                                 <th className="px-4 py-3 text-start font-medium">{t('due_date', 'Due Date')}</th>
                                 <th className="px-4 py-3 text-start font-medium">{t('payment_method', 'Payment')}</th>
-                                <th className="px-4 py-3 text-start font-medium">{t('pdf', 'PDF')}</th>
+                                <th className="px-4 py-3 text-start font-medium">{t('actions', 'Actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -111,11 +111,18 @@ export default function InvoicesSection({ invoices }: { invoices: PaginatedInvoi
                                     <td className="px-4 py-3 text-muted-foreground">{invoice.due_date}</td>
                                     <td className="px-4 py-3">{paymentMethodLabel(invoice.payment_method)}</td>
                                     <td className="px-4 py-3">
-                                        <Button variant="ghost" size="icon" asChild>
-                                            <a href={`/client-admin/invoices/${invoice.id}/pdf`} target="_blank" rel="noreferrer">
-                                                <FileDown className="h-4 w-4" />
-                                            </a>
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" asChild title={t('preview', 'Preview')}>
+                                                <a href={`/client-admin/invoices/${invoice.id}/preview`} target="_blank" rel="noreferrer">
+                                                    <Eye className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" asChild title={t('download', 'Download')}>
+                                                <a href={`/client-admin/invoices/${invoice.id}/pdf`} target="_blank" rel="noreferrer">
+                                                    <FileDown className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

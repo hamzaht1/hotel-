@@ -4,12 +4,18 @@ namespace App\Http\Controllers\ClientAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Services\OtpGuard;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class DomainController extends Controller
 {
+    /** Soft cap on how many times a tenant may change its subdomain. */
+    public const MAX_SUBDOMAIN_CHANGES = 3;
+
     public function show()
     {
         $tenant = Tenant::findOrFail(app('current_tenant_id'));
@@ -24,8 +30,10 @@ class DomainController extends Controller
                 'id', 'slug', 'subdomain', 'custom_domain',
                 'dns_verification_token', 'dns_verified',
                 'dns_verified_at', 'dns_last_checked_at',
+                'subdomain_changes_count', 'subdomain_last_changed_at', 'ssl_status',
             ]),
             'platformHost' => parse_url(config('app.url'), PHP_URL_HOST) ?? 'diyafah.com',
+            'maxSubdomainChanges' => self::MAX_SUBDOMAIN_CHANGES,
             'registrars' => [
                 ['name' => 'Namecheap', 'url' => 'https://www.namecheap.com'],
                 ['name' => 'GoDaddy', 'url' => 'https://www.godaddy.com'],
@@ -59,7 +67,10 @@ class DomainController extends Controller
             'custom_domain' => $domain,
             'dns_verified' => false,
             'dns_verified_at' => null,
+            'ssl_status' => $domain ? 'pending' : 'none',
         ]);
+
+        ActivityLogger::log('domain.saved', 'Custom domain updated', ['custom_domain' => $domain]);
 
         return back()->with('success', 'تم حفظ النطاق. يرجى إعداد سجلات DNS ثم التحقق.');
     }
@@ -78,6 +89,14 @@ class DomainController extends Controller
             'dns_verified' => $verified,
             'dns_verified_at' => $verified ? now() : null,
             'dns_last_checked_at' => now(),
+            // SSL is provisioned automatically once DNS points at the platform;
+            // we surface a heuristic status until real cert tracking lands.
+            'ssl_status' => $verified ? 'active' : 'pending',
+        ]);
+
+        ActivityLogger::log('domain.verified', $verified ? 'Domain DNS verified' : 'Domain DNS verification failed', [
+            'custom_domain' => $tenant->custom_domain,
+            'verified' => $verified,
         ]);
 
         if ($verified) {
@@ -85,6 +104,44 @@ class DomainController extends Controller
         }
 
         return back()->with('error', 'لم يتم العثور على سجل DNS المطلوب. تأكد من الإعداد وحاول مرة أخرى.');
+    }
+
+    /**
+     * Change the tenant's subdomain. Sensitive: requires a verified OTP window,
+     * enforces uniqueness, and tracks the number of changes.
+     */
+    public function updateSubdomain(Request $request, OtpGuard $otp)
+    {
+        $otp->assertPassed('subdomain_change');
+
+        $tenant = Tenant::findOrFail(app('current_tenant_id'));
+
+        if ($tenant->subdomain_changes_count >= self::MAX_SUBDOMAIN_CHANGES) {
+            return back()->withErrors(['subdomain' => 'لقد بلغت الحد الأقصى لعدد مرات تعديل النطاق الفرعي']);
+        }
+
+        $validated = $request->validate([
+            'subdomain' => [
+                'required', 'string', 'min:3', 'max:60', 'alpha_dash',
+                Rule::unique('tenants', 'subdomain')->ignore($tenant->id),
+            ],
+        ]);
+
+        $subdomain = strtolower($validated['subdomain']);
+        $old = $tenant->subdomain;
+
+        $tenant->update([
+            'subdomain' => $subdomain,
+            'subdomain_changes_count' => $tenant->subdomain_changes_count + 1,
+            'subdomain_last_changed_at' => now(),
+        ]);
+
+        ActivityLogger::log('subdomain.changed', "Subdomain changed from «{$old}» to «{$subdomain}»", [
+            'old' => $old,
+            'new' => $subdomain,
+        ]);
+
+        return back()->with('success', 'تم تحديث النطاق الفرعي بنجاح');
     }
 
     /**

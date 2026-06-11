@@ -13,6 +13,9 @@ class RenewalRequest extends Model
     protected $fillable = [
         'tenant_id',
         'plan_id',
+        'discount_code_id',
+        'base_amount',
+        'discount_amount',
         'status',
         'payment_method',
         'receipt_path',
@@ -29,6 +32,8 @@ class RenewalRequest extends Model
         return [
             'requested_at' => 'datetime',
             'processed_at' => 'datetime',
+            'base_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
         ];
     }
 

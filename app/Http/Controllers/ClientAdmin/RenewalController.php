@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\ClientAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DiscountCode;
 use App\Models\Plan;
 use App\Models\RenewalRequest;
 use App\Services\InvoiceService;
 use App\Services\MoyasarPaymentService;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class RenewalController extends Controller
@@ -69,6 +70,71 @@ class RenewalController extends Controller
     }
 
     /**
+     * Validate a discount code against the tenant's current plan and return the
+     * resulting discount so the checkout UI can preview the new total.
+     */
+    public function applyDiscount(Request $request)
+    {
+        $request->validate(['code' => 'required|string|max:50']);
+
+        $tenant = app('current_tenant');
+        $plan = $tenant->plan_id ? Plan::find($tenant->plan_id) : null;
+
+        if (!$plan) {
+            return back()->withErrors(['code' => 'لا يمكن تحديد الباقة الحالية']);
+        }
+
+        $resolved = $this->resolveDiscount($request->input('code'), $plan);
+
+        if ($resolved['error']) {
+            return back()->withErrors(['code' => $resolved['error']]);
+        }
+
+        $price = (float) $plan->price;
+        $net = round($price - $resolved['amount'], 2);
+
+        return back()->with([
+            'discount' => [
+                'code' => $resolved['model']->code,
+                'amount' => $resolved['amount'],
+                'price' => $price,
+                'net' => $net,
+                'total_with_tax' => round($net * 1.15, 2),
+            ],
+        ]);
+    }
+
+    /**
+     * Resolve a discount code for a plan.
+     *
+     * @return array{model: ?DiscountCode, amount: float, error: ?string}
+     */
+    private function resolveDiscount(?string $code, Plan $plan): array
+    {
+        if (!$code) {
+            return ['model' => null, 'amount' => 0.0, 'error' => null];
+        }
+
+        $model = DiscountCode::whereRaw('UPPER(code) = ?', [strtoupper(trim($code))])->first();
+
+        if (!$model || !$model->isValid()) {
+            return ['model' => null, 'amount' => 0.0, 'error' => 'كود الخصم غير صالح أو منتهي'];
+        }
+
+        if ($model->plan_id && $model->plan_id !== $plan->id) {
+            return ['model' => null, 'amount' => 0.0, 'error' => 'كود الخصم لا ينطبق على باقتك الحالية'];
+        }
+
+        $price = (float) $plan->price;
+        $amount = $model->type === 'percentage'
+            ? round($price * ((float) $model->value / 100), 2)
+            : (float) $model->value;
+        $amount = max(0.0, min($amount, $price));
+
+        return ['model' => $model, 'amount' => $amount, 'error' => null];
+    }
+
+    /**
      * Store renewal via bank transfer (manual).
      */
     public function store(Request $request)
@@ -86,13 +152,26 @@ class RenewalController extends Controller
         $validated = $request->validate([
             'receipt' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'notes' => 'nullable|string|max:1000',
+            'discount_code' => 'nullable|string|max:50',
         ]);
+
+        $plan = $tenant->plan_id ? Plan::find($tenant->plan_id) : null;
+        $discount = $plan
+            ? $this->resolveDiscount($validated['discount_code'] ?? null, $plan)
+            : ['model' => null, 'amount' => 0.0, 'error' => null];
+
+        if ($discount['error']) {
+            return back()->withErrors(['discount_code' => $discount['error']]);
+        }
 
         $receiptPath = $request->file('receipt')->store('renewal-receipts', 'public');
 
-        RenewalRequest::create([
+        $renewal = RenewalRequest::create([
             'tenant_id' => $tenant->id,
             'plan_id' => $tenant->plan_id,
+            'discount_code_id' => $discount['model']?->id,
+            'base_amount' => $plan?->price,
+            'discount_amount' => $discount['amount'],
             'status' => 'pending',
             'payment_method' => 'bank_transfer',
             'receipt_path' => $receiptPath,
@@ -100,13 +179,18 @@ class RenewalController extends Controller
             'requested_at' => now(),
         ]);
 
+        ActivityLogger::log('renewal.submitted', 'Renewal request submitted (bank transfer)', [
+            'renewal_id' => $renewal->id,
+            'discount_amount' => $discount['amount'],
+        ], $renewal);
+
         return back()->with('success', 'تم إرسال طلب التجديد بنجاح');
     }
 
     /**
      * Initiate a Moyasar invoice for renewal payment.
      */
-    public function initiatePayment()
+    public function initiatePayment(Request $request)
     {
         $tenant = app('current_tenant');
         $planModel = $tenant->plan_id ? \App\Models\Plan::find($tenant->plan_id) : null;
@@ -123,9 +207,20 @@ class RenewalController extends Controller
             return back()->with('error', 'لديك طلب تجديد قيد المراجعة بالفعل');
         }
 
+        $request->validate(['discount_code' => 'nullable|string|max:50']);
+        $discount = $this->resolveDiscount($request->input('discount_code'), $planModel);
+        if ($discount['error']) {
+            return back()->withErrors(['discount_code' => $discount['error']]);
+        }
+
+        $netAmount = round((float) $planModel->price - $discount['amount'], 2);
+
         $renewal = RenewalRequest::create([
             'tenant_id' => $tenant->id,
             'plan_id' => $tenant->plan_id,
+            'discount_code_id' => $discount['model']?->id,
+            'base_amount' => $planModel->price,
+            'discount_amount' => $discount['amount'],
             'status' => 'pending',
             'payment_method' => 'moyasar',
             'requested_at' => now(),
@@ -134,7 +229,7 @@ class RenewalController extends Controller
         $moyasar = new MoyasarPaymentService();
 
         $result = $moyasar->createCharge([
-            'amount' => (float) $planModel->price,
+            'amount' => $netAmount,
             'description' => "Diyafah - Renewal - {$planModel->name_en}",
             'customer_name' => $tenant->name,
             'customer_email' => $tenant->email,
@@ -231,8 +326,25 @@ class RenewalController extends Controller
             app(InvoiceService::class)->createRenewalInvoice($tenant, $renewal->fresh(), $plan);
         }
 
+        $this->markDiscountUsed($renewal);
+
+        ActivityLogger::log('renewal.paid', 'Subscription renewed via Moyasar', [
+            'renewal_id' => $renewal->id,
+            'payment_id' => $paymentId,
+        ], $renewal);
+
         return redirect()->route('client-admin.renewal.index')
             ->with('success', 'تم تجديد الاشتراك بنجاح عبر الدفع الإلكتروني');
+    }
+
+    /**
+     * Bump the linked discount code's usage counter (once per renewal).
+     */
+    private function markDiscountUsed(RenewalRequest $renewal): void
+    {
+        if ($renewal->discount_code_id) {
+            DiscountCode::where('id', $renewal->discount_code_id)->increment('current_uses');
+        }
     }
 
     /**
@@ -272,6 +384,8 @@ class RenewalController extends Controller
                     if ($plan) {
                         app(InvoiceService::class)->createRenewalInvoice($tenant, $renewal->fresh(), $plan);
                     }
+
+                    $this->markDiscountUsed($renewal);
                 }
             }
         }
