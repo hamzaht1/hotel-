@@ -141,6 +141,24 @@ class RoomController extends Controller
         return back()->with('success', 'Room deleted successfully');
     }
 
+    /** Max visible characters allowed in the room short description. */
+    private const SHORT_DESCRIPTION_MAX = 120;
+
+    /**
+     * Closure rule enforcing the 120 visible-character cap on the short
+     * description regardless of the surrounding colour markup. This is the
+     * server-side guard for the case where the client-side limit is bypassed
+     * (e.g. JavaScript disabled).
+     */
+    private function shortDescriptionLimit(): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail) {
+            if (HtmlSanitizer::visibleLength($value) > self::SHORT_DESCRIPTION_MAX) {
+                $fail('الوصف المختصر يجب ألا يتجاوز ' . self::SHORT_DESCRIPTION_MAX . ' حرفاً.');
+            }
+        };
+    }
+
     private function validateRoom(Request $request, array $extra = []): array
     {
         return $request->validate(array_merge([
@@ -148,8 +166,8 @@ class RoomController extends Controller
             'name_en' => 'required|string|max:255',
             'description_ar' => 'nullable|string',
             'description_en' => 'nullable|string',
-            'short_description_ar' => 'nullable|string|max:500',
-            'short_description_en' => 'nullable|string|max:500',
+            'short_description_ar' => ['nullable', 'string', 'max:5000', $this->shortDescriptionLimit()],
+            'short_description_en' => ['nullable', 'string', 'max:5000', $this->shortDescriptionLimit()],
             'internal_notes' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'capacity' => 'required|integer|min:1',
@@ -188,6 +206,15 @@ class RoomController extends Controller
         foreach (['description_ar', 'description_en'] as $field) {
             if (array_key_exists($field, $data)) {
                 $data[$field] = HtmlSanitizer::clean($data[$field]);
+            }
+        }
+
+        // Short descriptions are restricted to colour-only formatting: strip
+        // every other tag (bold/italic/lists/headings) so only text + colour
+        // is stored, matching the restricted editor.
+        foreach (['short_description_ar', 'short_description_en'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = HtmlSanitizer::cleanColorOnly($data[$field]);
             }
         }
 

@@ -40,7 +40,53 @@ class HtmlSanitizer
 
     private const ALLOWED_STYLES = ['color', 'text-align', 'list-style-type'];
 
+    /**
+     * Color-only allow-list for the room "short description": text plus colour,
+     * nothing else. Bold/italic/underline/headings/lists are unwrapped so only
+     * the plain text (and its colour) survives — matching the restricted editor.
+     */
+    private const ALLOWED_COLOR_ONLY = [
+        'p' => ['style'],
+        'br' => [],
+        'div' => ['style'],
+        'span' => ['style'],
+        'font' => ['color'],
+    ];
+
+    private const ALLOWED_COLOR_STYLES = ['color'];
+
+    /**
+     * Count of visible characters (tags stripped, entities decoded, non-breaking
+     * spaces normalised). Used to enforce the 120-char short-description cap on
+     * the server regardless of the surrounding markup.
+     */
+    public static function visibleLength(?string $html): int
+    {
+        if ($html === null || $html === '') {
+            return 0;
+        }
+
+        $text = strip_tags($html);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace("\xC2\xA0", ' ', $text); // &nbsp; → space
+
+        return mb_strlen($text);
+    }
+
+    /**
+     * Sanitize keeping only colour formatting (see ALLOWED_COLOR_ONLY).
+     */
+    public static function cleanColorOnly(?string $html): ?string
+    {
+        return self::run($html, self::ALLOWED_COLOR_ONLY, self::ALLOWED_COLOR_STYLES);
+    }
+
     public static function clean(?string $html): ?string
+    {
+        return self::run($html, self::ALLOWED, self::ALLOWED_STYLES);
+    }
+
+    private static function run(?string $html, array $allowed, array $allowedStyles): ?string
     {
         if ($html === null) {
             return null;
@@ -64,7 +110,7 @@ class HtmlSanitizer
             return '';
         }
 
-        self::sanitizeChildren($root);
+        self::sanitizeChildren($root, $allowed, $allowedStyles);
 
         $out = '';
         foreach (iterator_to_array($root->childNodes) as $child) {
@@ -74,14 +120,14 @@ class HtmlSanitizer
         return trim($out);
     }
 
-    private static function sanitizeChildren(DOMNode $node): void
+    private static function sanitizeChildren(DOMNode $node, array $allowed, array $allowedStyles): void
     {
         foreach (iterator_to_array($node->childNodes) as $child) {
-            self::sanitizeNode($child);
+            self::sanitizeNode($child, $allowed, $allowedStyles);
         }
     }
 
-    private static function sanitizeNode(DOMNode $node): void
+    private static function sanitizeNode(DOMNode $node, array $allowed, array $allowedStyles): void
     {
         if ($node->nodeType === XML_COMMENT_NODE) {
             $node->parentNode?->removeChild($node);
@@ -102,15 +148,15 @@ class HtmlSanitizer
         }
 
         // Sanitize descendants first.
-        self::sanitizeChildren($node);
+        self::sanitizeChildren($node, $allowed, $allowedStyles);
 
-        if (! array_key_exists($tag, self::ALLOWED)) {
+        if (! array_key_exists($tag, $allowed)) {
             self::unwrap($node);
 
             return;
         }
 
-        $allowedAttrs = self::ALLOWED[$tag];
+        $allowedAttrs = $allowed[$tag];
         foreach (iterator_to_array($node->attributes ?? []) as $attr) {
             $name = strtolower($attr->nodeName);
 
@@ -121,7 +167,7 @@ class HtmlSanitizer
             }
 
             if ($name === 'style') {
-                $clean = self::cleanStyle((string) $attr->nodeValue);
+                $clean = self::cleanStyle((string) $attr->nodeValue, $allowedStyles);
                 if ($clean === '') {
                     $node->removeAttribute('style');
                 } else {
@@ -147,7 +193,7 @@ class HtmlSanitizer
         $parent->removeChild($el);
     }
 
-    private static function cleanStyle(string $style): string
+    private static function cleanStyle(string $style, array $allowedStyles): string
     {
         $out = [];
         foreach (explode(';', $style) as $decl) {
@@ -156,7 +202,7 @@ class HtmlSanitizer
             }
             [$prop, $val] = array_map('trim', explode(':', $decl, 2));
             $prop = strtolower($prop);
-            if (in_array($prop, self::ALLOWED_STYLES, true) && $val !== ''
+            if (in_array($prop, $allowedStyles, true) && $val !== ''
                 && ! preg_match('/url\(|expression|javascript:/i', $val)) {
                 $out[] = $prop . ': ' . $val;
             }

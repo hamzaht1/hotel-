@@ -3,6 +3,7 @@ import { useStorageUrl } from '@/lib/storage';
 import { useForm } from '@inertiajs/react';
 import RichTextarea from '@/components/forms/rich-textarea';
 import RichTextEditor from '@/components/forms/rich-text-editor';
+import ColorTextEditor from '@/components/forms/color-text-editor';
 import {
     Upload,
     X,
@@ -558,20 +559,18 @@ function StepDescription({
         <div className="vuexy-card space-y-4 p-6">
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t('short_desc_ar')} error={errors.short_description_ar}>
-                    <RichTextarea
+                    <ColorTextEditor
                         value={data.short_description_ar}
                         onChange={(v) => setData('short_description_ar', v)}
-                        rows={2}
                         dir="rtl"
-                        maxLength={500}
+                        maxLength={120}
                     />
                 </Field>
                 <Field label={t('short_desc_en')} error={errors.short_description_en}>
-                    <RichTextarea
+                    <ColorTextEditor
                         value={data.short_description_en}
                         onChange={(v) => setData('short_description_en', v)}
-                        rows={2}
-                        maxLength={500}
+                        maxLength={120}
                     />
                 </Field>
             </div>
