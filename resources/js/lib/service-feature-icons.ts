@@ -28,6 +28,27 @@ import {
     Phone,
     Sun,
     Cigarette,
+    // Spa / massage
+    HandHeart,
+    Droplets,
+    Flame,
+    Leaf,
+    // Restaurant / food
+    UtensilsCrossed,
+    ChefHat,
+    CookingPot,
+    CakeSlice,
+    // Halls
+    Theater,
+    Presentation,
+    Projector,
+    PartyPopper,
+    Armchair,
+    // Transportation
+    Bus,
+    PlaneTakeoff,
+    CarTaxiFront,
+    CarFront,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -75,6 +96,31 @@ export const SERVICE_FEATURE_ICON_OPTIONS: FeatureIconOption[] = [
     { key: 'phone', Icon: Phone, label_ar: 'هاتف', label_en: 'Phone' },
     { key: 'terrace', Icon: Sun, label_ar: 'تراس', label_en: 'Terrace' },
     { key: 'smoking', Icon: Cigarette, label_ar: 'مسموح التدخين', label_en: 'Smoking' },
+
+    // ── Massage / Spa ──────────────────────────────────────────
+    { key: 'massage', Icon: HandHeart, label_ar: 'مساج', label_en: 'Massage' },
+    { key: 'aromatherapy', Icon: Droplets, label_ar: 'علاج عطري', label_en: 'Aromatherapy' },
+    { key: 'sauna', Icon: Flame, label_ar: 'ساونا', label_en: 'Sauna' },
+    { key: 'relaxation', Icon: Leaf, label_ar: 'استرخاء', label_en: 'Relaxation' },
+
+    // ── Restaurant / food ──────────────────────────────────────
+    { key: 'dining', Icon: UtensilsCrossed, label_ar: 'مأكولات', label_en: 'Dining' },
+    { key: 'chef', Icon: ChefHat, label_ar: 'شيف', label_en: 'Chef' },
+    { key: 'buffet', Icon: CookingPot, label_ar: 'بوفيه', label_en: 'Buffet' },
+    { key: 'dessert', Icon: CakeSlice, label_ar: 'حلويات', label_en: 'Desserts' },
+
+    // ── Halls / قاعات ──────────────────────────────────────────
+    { key: 'hall', Icon: Theater, label_ar: 'قاعة', label_en: 'Hall' },
+    { key: 'conference', Icon: Presentation, label_ar: 'مؤتمرات', label_en: 'Conference' },
+    { key: 'meeting', Icon: Projector, label_ar: 'اجتماعات', label_en: 'Meeting' },
+    { key: 'wedding', Icon: PartyPopper, label_ar: 'أفراح', label_en: 'Weddings' },
+    { key: 'seating', Icon: Armchair, label_ar: 'جلوس', label_en: 'Seating' },
+
+    // ── Transportation / مواصلات ───────────────────────────────
+    { key: 'shuttle', Icon: Bus, label_ar: 'نقل', label_en: 'Shuttle' },
+    { key: 'airport_transfer', Icon: PlaneTakeoff, label_ar: 'توصيل المطار', label_en: 'Airport Transfer' },
+    { key: 'taxi', Icon: CarTaxiFront, label_ar: 'سيارة أجرة', label_en: 'Taxi' },
+    { key: 'car_rental', Icon: CarFront, label_ar: 'تأجير سيارات', label_en: 'Car Rental' },
 ];
 
 /** Map of feature key → icon component, derived from the catalogue. */
