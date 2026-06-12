@@ -44,7 +44,9 @@ export default function RichTextEditor({ value, onChange, dir = 'ltr', placehold
     // Tracks the last HTML we emitted so the value→DOM sync below only runs for
     // *external* changes (initial load / reset), never echoing our own edits —
     // which would otherwise reset the caret to the start on every keystroke.
-    const lastHtml = useRef<string>(value);
+    // Starts as null (not `value`) so the FIRST sync always injects the stored
+    // text into the contentEditable — otherwise edit mode shows an empty field.
+    const lastHtml = useRef<string | null>(null);
     const [showColors, setShowColors] = useState(false);
     const [showEmojis, setShowEmojis] = useState(false);
 

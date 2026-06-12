@@ -34,7 +34,9 @@ const INSERT_TYPES = [
  */
 export default function ColorTextEditor({ value, onChange, dir = 'ltr', placeholder, maxLength = 120, minHeight = 80 }: Props) {
     const ref = useRef<HTMLDivElement>(null);
-    const lastHtml = useRef<string>(value);
+    // Starts as null (not `value`) so the FIRST sync always injects the stored
+    // text into the contentEditable — otherwise edit mode shows an empty field.
+    const lastHtml = useRef<string | null>(null);
     const [showColors, setShowColors] = useState(false);
     const [count, setCount] = useState(0);
 
