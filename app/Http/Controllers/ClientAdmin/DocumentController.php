@@ -14,7 +14,7 @@ class DocumentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => ['required', Rule::in(['cr', 'license', 'other'])],
+            'type' => ['required', Rule::in(['cr', 'tourism_license', 'municipality_license', 'zatca', 'other'])],
             'title' => 'required|string|max:150',
             'expires_at' => 'nullable|date',
             'file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',

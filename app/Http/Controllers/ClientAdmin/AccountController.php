@@ -137,6 +137,7 @@ class AccountController extends Controller
         return Inertia::render('client-admin/account/index', array_merge(
             [
                 'settings' => $settings,
+                'contactEmail' => $tenant->email ?: $request->user()?->email,
                 'documents' => $documents,
                 'subscription' => $subscription,
                 'domain' => $domain,

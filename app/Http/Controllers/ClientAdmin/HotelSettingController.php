@@ -47,13 +47,18 @@ class HotelSettingController extends Controller
             'secondary_color.light' => 'nullable|string|regex:/^#[0-9A-Fa-f]{3,8}$/',
             'secondary_color.dark' => 'nullable|string|regex:/^#[0-9A-Fa-f]{3,8}$/',
             'meta_tags' => 'nullable|array',
-            // Compliance fields
+            // Compliance / official establishment fields
             'commercial_activity' => 'nullable|string|max:255',
+            'branches_count' => 'nullable|integer|min:0|max:9999',
+            'manager_type' => 'nullable|in:owner,manager',
+            'responsible_position' => 'nullable|string|max:100',
             'cr_number' => 'nullable|string|max:50',
             'cr_expiry' => 'nullable|date',
             'vat_number' => 'nullable|string|max:50',
             'license_number' => 'nullable|string|max:50',
             'license_expiry' => 'nullable|date',
+            'municipality_license_number' => 'nullable|string|max:50',
+            'municipality_license_expiry' => 'nullable|date',
         ]);
 
         $settings = HotelSetting::firstOrNew([]);

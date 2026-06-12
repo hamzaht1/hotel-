@@ -109,6 +109,17 @@ class SetupController extends Controller
         $data = $request->validate([
             'org_name_ar' => 'required|string|max:255',
             'org_name_en' => 'required|string|max:255',
+            // Optional official establishment data captured at registration.
+            'commercial_activity' => 'nullable|string|max:255',
+            'branches_count' => 'nullable|integer|min:0|max:9999',
+            'manager_type' => 'nullable|in:owner,manager',
+            'responsible_position' => 'nullable|string|max:100',
+            'cr_number' => 'nullable|string|max:50',
+            'vat_number' => 'nullable|string|max:50',
+            'license_number' => 'nullable|string|max:50',
+            'license_expiry' => 'nullable|date',
+            'municipality_license_number' => 'nullable|string|max:50',
+            'municipality_license_expiry' => 'nullable|date',
         ]);
 
         $slug = Str::slug($data['org_name_en']);
@@ -121,6 +132,9 @@ class SetupController extends Controller
         $setup = session('setup', []);
         $setup['org_name_ar'] = $data['org_name_ar'];
         $setup['org_name_en'] = $data['org_name_en'];
+        foreach (['commercial_activity', 'branches_count', 'manager_type', 'responsible_position', 'cr_number', 'vat_number', 'license_number', 'license_expiry', 'municipality_license_number', 'municipality_license_expiry'] as $f) {
+            $setup[$f] = $data[$f] ?? null;
+        }
         $setup['slug'] = $slug;
         $setup['site_url'] = "www.{$slug}.com";
         session(['setup' => $setup]);
@@ -553,6 +567,17 @@ class SetupController extends Controller
             'star_rating' => 5,
             'currency' => 'SAR',
             'timezone' => 'Asia/Riyadh',
+            // Official establishment data captured during registration.
+            'commercial_activity' => $setup['commercial_activity'] ?? null,
+            'branches_count' => $setup['branches_count'] ?? null,
+            'manager_type' => $setup['manager_type'] ?? null,
+            'responsible_position' => $setup['responsible_position'] ?? null,
+            'cr_number' => $setup['cr_number'] ?? null,
+            'vat_number' => $setup['vat_number'] ?? null,
+            'license_number' => $setup['license_number'] ?? null,
+            'license_expiry' => $setup['license_expiry'] ?? null,
+            'municipality_license_number' => $setup['municipality_license_number'] ?? null,
+            'municipality_license_expiry' => $setup['municipality_license_expiry'] ?? null,
         ]);
 
         // Create default contact settings

@@ -12,6 +12,7 @@ import { useState } from 'react';
 
 interface Props {
     settings: HotelSettings;
+    contactEmail: string | null;
     documents: EstablishmentDocument[];
     subscription: SubscriptionInfo;
     domain: DomainProps;
@@ -35,6 +36,7 @@ const TAB_KEYS: TabKey[] = ['overview', 'profile', 'renewal', 'domain', 'invoice
  */
 export default function AccountIndex({
     settings,
+    contactEmail,
     documents,
     subscription,
     domain,
@@ -117,7 +119,7 @@ export default function AccountIndex({
 
                 {/* Active tab body */}
                 {activeTab === 'overview' && <SubscriptionOverviewSection subscription={subscription} />}
-                {activeTab === 'profile' && <EstablishmentDataSection settings={settings} documents={documents} />}
+                {activeTab === 'profile' && <EstablishmentDataSection settings={settings} documents={documents} contactEmail={contactEmail} />}
                 {activeTab === 'renewal' && (
                     <RenewalSection
                         tenant={tenant}

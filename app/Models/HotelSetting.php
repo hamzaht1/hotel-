@@ -33,11 +33,16 @@ class HotelSetting extends Model
         'secondary_color',
         'meta_tags',
         'commercial_activity',
+        'branches_count',
+        'manager_type',
+        'responsible_position',
         'cr_number',
         'cr_expiry',
         'vat_number',
         'license_number',
         'license_expiry',
+        'municipality_license_number',
+        'municipality_license_expiry',
     ];
 
     protected function casts(): array
@@ -48,6 +53,8 @@ class HotelSetting extends Model
             'meta_tags' => 'array',
             'cr_expiry' => 'date',
             'license_expiry' => 'date',
+            'municipality_license_expiry' => 'date',
+            'branches_count' => 'integer',
         ];
     }
 
