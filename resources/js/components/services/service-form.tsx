@@ -208,7 +208,11 @@ export default function ServiceForm({ mode, initial = {}, categories, submitUrl,
         name_ar: initial.name_ar ?? '',
         name_en: initial.name_en ?? '',
         category_id: initial.category_id != null ? String(initial.category_id) : '',
-        service_type: initial.service_type ?? 'rooms',
+        // Pre-select the type from the service's saved category on edit (the
+        // category field itself is no longer shown), falling back to rooms.
+        service_type: initial.service_type
+            ?? categories.find((c) => String(c.id) === String(initial.category_id))?.type
+            ?? 'rooms',
         room_type: initial.room_type ?? '',
         custom_subtype_ar: initial.custom_subtype_ar ?? '',
         custom_subtype_en: initial.custom_subtype_en ?? '',
@@ -480,11 +484,8 @@ function StepBasic({
 }) {
     const { t, isArabic } = useT();
 
-    // The food serving method belongs to "food" (restaurant) services. Derive
-    // the type from the selected category — robust on edit, where service_type
-    // would otherwise default — falling back to the explicitly picked type.
-    const effectiveServiceType = categories.find((c) => String(c.id) === data.category_id)?.type ?? data.service_type;
-    const isFood = effectiveServiceType === 'restaurant';
+    // The Service Type picker drives the conditional fields below.
+    const isFood = data.service_type === 'restaurant';
 
     return (
         <div className="space-y-6">
@@ -497,7 +498,16 @@ function StepBasic({
                             <button
                                 key={key}
                                 type="button"
-                                onClick={() => setData('service_type', key)}
+                                onClick={() => {
+                                    setData('service_type', key);
+                                    // Food serving method only applies to restaurant
+                                    // (food) services — clear it when switching away.
+                                    if (key !== 'restaurant') {
+                                        setData('food_serving_method', '');
+                                        setData('buffet_start_time', '');
+                                        setData('buffet_end_time', '');
+                                    }
+                                }}
                                 className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-4 text-sm transition ${
                                     active
                                         ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
@@ -536,97 +546,9 @@ function StepBasic({
                         />
                     </Field>
 
-                    <Field label={t('category')} error={errors.category_id}>
-                        <select
-                            value={data.category_id}
-                            onChange={(e) => {
-                                const newId = e.target.value;
-                                setData('category_id', newId);
-                                // The chosen category's type drives the
-                                // conditional sub-fields below (and the
-                                // billing picker for "custom").
-                                const cat = categories.find((c) => String(c.id) === newId);
-                                const derivedType = cat?.type ?? 'custom';
-                                setData('service_type', derivedType);
-                                // Food serving method only applies to restaurant
-                                // (food) services — clear it (and the buffet
-                                // window) when switching to any other type.
-                                if (derivedType !== 'restaurant') {
-                                    setData('food_serving_method', '');
-                                    setData('buffet_start_time', '');
-                                    setData('buffet_end_time', '');
-                                }
-                            }}
-                            className="vuexy-input"
-                        >
-                            <option value="">{t('select_category')}</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {isArabic ? c.name_ar : c.name_en}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
-
-                    {/* Sub-type select: label and option list change with service_type.
-                        Every list ends with a "custom" option that reveals
-                        custom_subtype_ar / custom_subtype_en underneath. */}
-                    {data.service_type === 'rooms' && (
-                        <Field label={t('room_type')} error={errors.room_type}>
-                            <select
-                                value={data.room_type}
-                                onChange={(e) => setData('room_type', e.target.value)}
-                                className="vuexy-input"
-                            >
-                                <option value="">{t('choose')}</option>
-                                {ROOM_SUBTYPES.map((k) => (
-                                    <option key={k} value={k}>{t(k)}</option>
-                                ))}
-                            </select>
-                        </Field>
-                    )}
-                    {data.service_type === 'spa' && (
-                        <Field label={t('massage_type')} error={errors.room_type}>
-                            <select
-                                value={data.room_type}
-                                onChange={(e) => setData('room_type', e.target.value)}
-                                className="vuexy-input"
-                            >
-                                <option value="">{t('choose')}</option>
-                                {MASSAGE_SUBTYPES.map((o) => (
-                                    <option key={o.key} value={o.key}>{t(o.labelKey)}</option>
-                                ))}
-                            </select>
-                        </Field>
-                    )}
-                    {data.service_type === 'hall' && (
-                        <Field label={t('hall_type')} error={errors.room_type}>
-                            <select
-                                value={data.room_type}
-                                onChange={(e) => setData('room_type', e.target.value)}
-                                className="vuexy-input"
-                            >
-                                <option value="">{t('choose')}</option>
-                                {HALL_SUBTYPES.map((o) => (
-                                    <option key={o.key} value={o.key}>{t(o.labelKey)}</option>
-                                ))}
-                            </select>
-                        </Field>
-                    )}
-                    {data.service_type === 'restaurant' && (
-                        <Field label={t('restaurant_category_label')} error={errors.room_type}>
-                            <select
-                                value={data.room_type}
-                                onChange={(e) => setData('room_type', e.target.value)}
-                                className="vuexy-input"
-                            >
-                                <option value="">{t('choose')}</option>
-                                {RESTAURANT_SUBTYPES.map((o) => (
-                                    <option key={o.key} value={o.key}>{t(o.labelKey)}</option>
-                                ))}
-                            </select>
-                        </Field>
-                    )}
+                    {/* "التصنيف" (category) and "Room Type" (sub-type) fields were
+                        removed from the UI per request. The Service Type picker
+                        above drives the remaining conditional fields. */}
 
                     {/* Food serving method (meal / buffet) — only for food
                         (restaurant) services. Buffet reveals a serving window. */}
@@ -690,28 +612,6 @@ function StepBasic({
                                 </div>
                             )}
                         </div>
-                    )}
-
-                    {data.room_type === 'custom' && data.service_type !== 'custom' && (
-                        <>
-                            <Field label={t('custom_subtype_ar')} error={errors.custom_subtype_ar}>
-                                <input
-                                    type="text"
-                                    value={data.custom_subtype_ar}
-                                    onChange={(e) => setData('custom_subtype_ar', e.target.value)}
-                                    className="vuexy-input"
-                                    dir="rtl"
-                                />
-                            </Field>
-                            <Field label={t('custom_subtype_en')} error={errors.custom_subtype_en}>
-                                <input
-                                    type="text"
-                                    value={data.custom_subtype_en}
-                                    onChange={(e) => setData('custom_subtype_en', e.target.value)}
-                                    className="vuexy-input"
-                                />
-                            </Field>
-                        </>
                     )}
 
                     {(data.service_type === 'rooms' || data.service_type === 'hall') && (

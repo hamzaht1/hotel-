@@ -11,7 +11,7 @@
  * All images and icons imported from template's local images folder
  */
 import React, { useMemo, useState, useEffect, useRef } from 'react'
-import BookingModal, { BookingType, BookingData } from '@/components/templates/BookingModal'
+import BookingModal, { BookingType, BookingData, BookingService } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
@@ -76,6 +76,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
   const { isArabic } = useTemplateLanguage()
   const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<BookingService | null>(null)
   const [defaultType, setDefaultType] = useState<BookingType>('غرفة')
   const [cardStyle, setCardStyle] = useState<'default' | 'simple'>('default')
   
@@ -187,15 +188,17 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
           id: room.id,
           name: isArabic ? room.name_ar : room.name_en,
           description: isArabic ? (room.description_ar || '') : (room.description_en || ''),
+          shortDescription: isArabic ? (room.short_description_ar || '') : (room.short_description_en || ''),
           price: Number(room.price) || 0,
           originalPrice: undefined,
           currency: isArabic ? 'ريال' : 'SAR',
-          features: amenityList.slice(0, 3).map((a) => (isArabic ? a.labelAr : a.labelEn)),
+          features: amenityList.slice(0, 6).map((a) => (isArabic ? a.labelAr : a.labelEn)),
           bedType: isArabic ? 'سرير مزدوج' : 'Double Bed',
           amenities: amenityList,
           maxGuests: room.capacity || 2,
           size: 30,
           image: storageUrl(room.featured_image) ?? storageUrl(room.images?.[0]?.path) ?? bilingualRoomsData[index % bilingualRoomsData.length]?.image,
+          gallery: [storageUrl(room.featured_image), ...((room.images || []).map((i: any) => storageUrl(i.path)))].filter(Boolean) as string[],
           popularTag: undefined,
           isAvailable: true,
         };
@@ -206,6 +209,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
       id: room.id,
       name: isArabic ? room.nameAr : room.nameEn,
       description: isArabic ? room.descriptionAr : room.descriptionEn,
+      shortDescription: '',
       price: room.price,
       originalPrice: room.originalPrice,
       currency: isArabic ? room.currency : room.currencyEn,
@@ -215,6 +219,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
       maxGuests: room.maxGuests,
       size: room.size,
       image: room.image,
+      gallery: [room.image].filter(Boolean) as string[],
       popularTag: room.popularTagAr || room.popularTagEn
         ? (isArabic ? room.popularTagAr : room.popularTagEn)
         : undefined,
@@ -257,7 +262,24 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
     }
   }, [roomsSource])
 
-  const onBookClick = () => {
+  const onBookClick = (room?: any) => {
+    // Surface the clicked room's real data into the popup so it matches what
+    // was entered (gallery, name, price, amenities, full description).
+    if (room) {
+      setSelectedRoom({
+        name: room.name,
+        description: room.description, // full detailed description
+        images: room.gallery,
+        features: (room.amenities || []).map((a: any) => ({
+          lucideKey: a.key,
+          emoji: a.icon,
+          labelAr: a.labelAr,
+          labelEn: a.labelEn,
+        })),
+        price: String(room.price),
+        currency: room.currency,
+      });
+    }
     setDefaultType('جناح');
     setModalOpen(true);
   }
@@ -370,7 +392,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                     custom ones); otherwise fall back to the generic set. */}
                 <div className="grid grid-cols-3 gap-3 mb-4 flex-shrink-0">
                 {(room.amenities && room.amenities.length > 0
-                  ? room.amenities.slice(0, 3).map((a) => ({
+                  ? room.amenities.slice(0, 6).map((a) => ({
                       // Resolve a themed icon from the amenity key first, then
                       // from the stored icon value (custom amenities save an
                       // icon key); fall back to the emoji for legacy rows.
@@ -456,9 +478,11 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                       />
                     </div>
                   </div>
+                  {/* The card shows the SHORT description (concise, colour-only).
+                      The full detailed description lives in the booking popup. */}
                   <div
                     className="rte-content madina-text-body text-sm md:text-base leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: room.description || '' }}
+                    dangerouslySetInnerHTML={{ __html: room.shortDescription || room.description || '' }}
                   />
                 </div>
 
@@ -471,7 +495,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                   onFocus={(e) => {
                     e.currentTarget.style.setProperty('--tw-ring-color', 'var(--madina-primary)')
                   }}
-                  onClick={onBookClick}
+                  onClick={() => onBookClick(room)}
                 >
                   <svg width="432" height="62" viewBox="0 0 432 62" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
                     <defs>
@@ -511,6 +535,8 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
           <BookingModal
             open={modalOpen}
             defaultType={defaultType}
+            service={selectedRoom}
+            variant="room"
             onClose={() => setModalOpen(false)}
             onConfirm={handleConfirm}
           />

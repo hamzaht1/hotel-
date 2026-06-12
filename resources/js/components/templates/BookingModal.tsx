@@ -784,8 +784,13 @@ function ModalFeatureIcon({ feature }: { feature: BookingFeature }) {
   if (Lucide) {
     return <Lucide className="w-4 h-4" style={{ color }} aria-hidden="true" />
   }
-  if (feature.emoji) {
-    return <span className="inline-flex w-4 h-4 items-center justify-center text-sm leading-none" aria-hidden="true">{feature.emoji}</span>
+  // Only render `emoji` when it is an ACTUAL emoji (a non-ASCII glyph). Some
+  // amenities store an icon *key* (e.g. "sea_view", "room_service") in this
+  // field, which must never be printed as raw text in the chip.
+  if (feature.emoji && /[^ -]/.test(feature.emoji)) {
+    return (feature.emoji.codePointAt(0) ?? 0) > 127
+      ? <span className="inline-flex w-4 h-4 items-center justify-center text-sm leading-none" aria-hidden="true">{feature.emoji}</span>
+      : null
   }
   if (feature.iconUrl) {
     return (

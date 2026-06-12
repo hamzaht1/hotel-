@@ -614,7 +614,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
 
                         {/* Icons */}
                         <div className="flex items-center gap-4 mb-4 flex-wrap md:flex-nowrap">
-                          {service.features.slice(0, 2).map((feature, index) => {
+                          {service.features.slice(0, 3).map((feature, index) => {
                             const label = isArabic ? feature.labelAr : feature.labelEn;
                             return (
                               <div
@@ -712,7 +712,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                       >
                         {/* Icons - transparent background with curve */}
                         <div className="flex items-center justify-center gap-4 mb-4 flex-wrap md:flex-nowrap">
-                          {service.features.slice(0, 2).map((feature, index) => {
+                          {service.features.slice(0, 3).map((feature, index) => {
                             const label = isArabic ? feature.labelAr : feature.labelEn;
                             return (
                               <div
