@@ -66,6 +66,7 @@ interface BilingualService {
   currency: string;
   currencyEn: string;
   image?: string | null;
+  images?: string[];
   features: CardFeature[];
   foodServingMethod?: string | null;
   buffetStart?: string | null;
@@ -83,6 +84,7 @@ interface BackendService {
   featured_image?: string | null;
   category?: { name_ar: string; name_en: string } | null;
   features?: { key: string; label_ar: string; label_en: string; icon?: string | null }[];
+  images?: { image_path: string }[];
   food_serving_method?: string | null;
   buffet_start_time?: string | null;
   buffet_end_time?: string | null;
@@ -331,9 +333,11 @@ export default function ServicesSection({ services: backendServices }: ServicesS
     })
   }, [siteTexts, liveSettings])
 
-  // If the tenant has real services configured, use those; otherwise fall back to (overridden) mock data so the design preview still renders.
+  // On the live tenant site the `services` prop is always provided (possibly an
+  // empty array): show ONLY admin-entered services, never mock placeholders.
+  // The mock data is reserved for the design preview, where the prop is absent.
   const sourceData = useMemo<BilingualService[]>(() => {
-    if (Array.isArray(backendServices) && backendServices.length > 0) {
+    if (Array.isArray(backendServices)) {
       return backendServices.map((s) => {
         const features: CardFeature[] = []
         if (s.duration) {
@@ -346,6 +350,9 @@ export default function ServicesSection({ services: backendServices }: ServicesS
           const lucideKey = FEATURE_ICON_MAP[f.key] ? f.key : (f.icon && FEATURE_ICON_MAP[f.icon] ? f.icon : undefined)
           features.push({ lucideKey, emoji: f.icon, labelAr: f.label_ar, labelEn: f.label_en })
         }
+        const featured = storageUrl(s.featured_image)
+        const gallery = (s.images ?? []).map((img) => storageUrl(img.image_path)).filter(Boolean) as string[]
+        const allImages = [featured, ...gallery].filter(Boolean) as string[]
         return {
           id: s.id,
           name: s.name_ar,
@@ -355,7 +362,8 @@ export default function ServicesSection({ services: backendServices }: ServicesS
           price: String(s.price ?? ''),
           currency: 'ريال',
           currencyEn: 'SAR',
-          image: storageUrl(s.featured_image),
+          image: featured,
+          images: allImages,
           features,
           foodServingMethod: s.food_serving_method ?? null,
           buffetStart: s.buffet_start_time ?? null,
@@ -378,6 +386,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
       currency: isArabic ? service.currency : service.currencyEn,
       currencyEn: service.currencyEn,
       image: service.image ?? null,
+      images: service.images ?? [],
       features: service.features,
       foodServingMethod: service.foodServingMethod ?? null,
       buffetStart: service.buffetStart ?? null,
@@ -402,8 +411,13 @@ export default function ServicesSection({ services: backendServices }: ServicesS
     setModalOpen(false)
   }
 
+  // Live site with no admin-entered services → render nothing (no mock cards).
+  if (Array.isArray(backendServices) && services.length === 0) {
+    return null
+  }
+
   return (
-    <section 
+    <section
       id="services" 
       className="py-20 relative"
       style={{
@@ -600,7 +614,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
 
                         {/* Icons */}
                         <div className="flex items-center gap-4 mb-4 flex-wrap md:flex-nowrap">
-                          {service.features.slice(0, 3).map((feature, index) => {
+                          {service.features.slice(0, 2).map((feature, index) => {
                             const label = isArabic ? feature.labelAr : feature.labelEn;
                             return (
                               <div
@@ -646,6 +660,8 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                                 name: service.name,
                                 description: service.description,
                                 image: service.image,
+                                images: service.images,
+                                features: service.features,
                                 price: String(service.price),
                                 currency: service.currency,
                                 foodServingMethod: service.foodServingMethod,
@@ -696,7 +712,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                       >
                         {/* Icons - transparent background with curve */}
                         <div className="flex items-center justify-center gap-4 mb-4 flex-wrap md:flex-nowrap">
-                          {service.features.slice(0, 3).map((feature, index) => {
+                          {service.features.slice(0, 2).map((feature, index) => {
                             const label = isArabic ? feature.labelAr : feature.labelEn;
                             return (
                               <div
@@ -757,6 +773,8 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                                 name: service.name,
                                 description: service.description,
                                 image: service.image,
+                                images: service.images,
+                                features: service.features,
                                 price: String(service.price),
                                 currency: service.currency,
                                 foodServingMethod: service.foodServingMethod,

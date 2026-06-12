@@ -8,6 +8,16 @@ import { Navigation } from 'swiper/modules';
 export type BookingType = 'مساج صيني' | 'مساج علاج' | 'غرفة' | 'شقة' | 'جناح'
 import roomImage from '@/assets/images/riyadh-template/rooms/room-1.png'
 import patternImage from '../../pages/templates/Madina/images/Boking-model/pattern.svg'
+import { SERVICE_FEATURE_ICONS } from '@/lib/service-feature-icons'
+
+// A single service feature shown in the details popup (matches the card data).
+export interface BookingFeature {
+  lucideKey?: string
+  emoji?: string | null
+  iconUrl?: string
+  labelAr: string
+  labelEn: string
+}
 
 export interface BookingData {
   firstName: string
@@ -26,6 +36,10 @@ export interface BookingService {
   name: string
   description?: string
   image?: string | null
+  /** Full gallery (featured first) shown in the popup slider. */
+  images?: string[]
+  /** Feature icons + labels entered in the admin, shown in the popup. */
+  features?: BookingFeature[]
   price?: string
   currency?: string
   // Food (restaurant) serving method, surfaced prominently under the name.
@@ -278,29 +292,53 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
         {/* Slider and Room Details */}
         <div className="px-5 pt-4">
           <div className="mb-3">
-            {service?.image ? (
-              <div className="rounded-xl overflow-hidden">
-                <img src={service.image} alt={service.name} className="w-full h-48 object-cover" />
-              </div>
-            ) : (
-              <Swiper
-                spaceBetween={10}
-                slidesPerView={1}
-                navigation
-                modules={[Navigation]}
-                className="rounded-xl overflow-hidden"
-              >
-                <SwiperSlide>
-                  <img src={roomImage} alt="Room 1" className="w-full h-48 object-cover" />
-                </SwiperSlide>
-                <SwiperSlide>
-                  <img src={roomImage} alt="Room 2" className="w-full h-48 object-cover" />
-                </SwiperSlide>
-                <SwiperSlide>
-                  <img src={roomImage} alt="Room 3" className="w-full h-48 object-cover" />
-                </SwiperSlide>
-              </Swiper>
-            )}
+            {(() => {
+              // Build the gallery from the service: featured first, then the
+              // additional images. Falls back to the placeholder slider only for
+              // the room variant (no concrete service).
+              const serviceImages = service
+                ? (service.images && service.images.length > 0
+                    ? service.images
+                    : (service.image ? [service.image] : []))
+                : []
+
+              if (service && serviceImages.length > 0) {
+                return (
+                  <Swiper
+                    spaceBetween={10}
+                    slidesPerView={1}
+                    navigation={serviceImages.length > 1}
+                    modules={[Navigation]}
+                    className="rounded-xl overflow-hidden"
+                  >
+                    {serviceImages.map((src, i) => (
+                      <SwiperSlide key={i}>
+                        <img src={src} alt={`${service.name} ${i + 1}`} className="w-full h-48 object-cover" />
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                )
+              }
+
+              if (service) {
+                // Service with no images at all → don't show a fake placeholder.
+                return null
+              }
+
+              return (
+                <Swiper
+                  spaceBetween={10}
+                  slidesPerView={1}
+                  navigation
+                  modules={[Navigation]}
+                  className="rounded-xl overflow-hidden"
+                >
+                  <SwiperSlide><img src={roomImage} alt="Room 1" className="w-full h-48 object-cover" /></SwiperSlide>
+                  <SwiperSlide><img src={roomImage} alt="Room 2" className="w-full h-48 object-cover" /></SwiperSlide>
+                  <SwiperSlide><img src={roomImage} alt="Room 3" className="w-full h-48 object-cover" /></SwiperSlide>
+                </Swiper>
+              )
+            })()}
           </div>
           <div className="mb-4 text-gray-700 dark:text-gray-200 text-sm space-y-1">
             {service ? (
@@ -330,6 +368,16 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
                   }
                   return <p className="madina-text-primary text-base font-bold mt-0.5">{text}</p>
                 })()}
+                {service.features && service.features.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    {service.features.map((f, i) => (
+                      <div key={i} className="flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-700/60 px-2.5 py-1">
+                        <ModalFeatureIcon feature={f} />
+                        <span className="text-xs font-medium">{isArabic ? f.labelAr : f.labelEn}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {service.description && (
                   <div className="rte-content" dangerouslySetInnerHTML={{ __html: service.description }} />
                 )}
@@ -725,4 +773,38 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
       </div>
     </div>
   )
+}
+
+// Renders a service feature icon in the details popup, mirroring the card:
+// themed lucide icon when the key is known, otherwise the chosen emoji,
+// otherwise a masked SVG (legacy mock icons).
+function ModalFeatureIcon({ feature }: { feature: BookingFeature }) {
+  const Lucide = feature.lucideKey ? SERVICE_FEATURE_ICONS[feature.lucideKey] : undefined
+  const color = 'var(--madina-identity-icon-color, var(--madina-primary))'
+  if (Lucide) {
+    return <Lucide className="w-4 h-4" style={{ color }} aria-hidden="true" />
+  }
+  if (feature.emoji) {
+    return <span className="inline-flex w-4 h-4 items-center justify-center text-sm leading-none" aria-hidden="true">{feature.emoji}</span>
+  }
+  if (feature.iconUrl) {
+    return (
+      <div
+        className="w-4 h-4"
+        aria-hidden="true"
+        style={{
+          maskImage: `url(${feature.iconUrl})`,
+          WebkitMaskImage: `url(${feature.iconUrl})`,
+          maskSize: 'contain',
+          WebkitMaskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
+          backgroundColor: color,
+        }}
+      />
+    )
+  }
+  return null
 }
