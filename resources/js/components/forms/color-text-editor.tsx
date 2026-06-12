@@ -110,7 +110,24 @@ export default function ColorTextEditor({ value, onChange, dir = 'ltr', placehol
     }
 
     function applyColor(c: string) {
-        ref.current?.focus();
+        const el = ref.current;
+        if (!el) return;
+        el.focus();
+
+        const sel = window.getSelection();
+        // If the user hasn't selected anything (collapsed caret), colour the
+        // WHOLE field so a single click visibly changes the text colour —
+        // otherwise foreColor would only affect text typed afterwards.
+        if (!sel || sel.isCollapsed || !el.contains(sel.anchorNode)) {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+        }
+
+        // Emit CSS (<span style="color">) rather than the legacy <font> tag;
+        // both are kept by the server sanitizer, but CSS is cleaner.
+        document.execCommand('styleWithCSS', false, 'true');
         document.execCommand('foreColor', false, c);
         setShowColors(false);
         emit();
