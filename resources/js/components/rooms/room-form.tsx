@@ -4,6 +4,8 @@ import { useForm } from '@inertiajs/react';
 import RichTextarea from '@/components/forms/rich-textarea';
 import RichTextEditor from '@/components/forms/rich-text-editor';
 import ColorTextEditor from '@/components/forms/color-text-editor';
+import { validateImageDimensions } from '@/lib/image-dimensions';
+import AlertModal from '@/components/ui/alert-modal';
 import {
     Upload,
     X,
@@ -139,6 +141,7 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [featuredPreview, setFeaturedPreview] = useState<string | null>(storageUrl(initial.featured_image ?? null));
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [imageAlert, setImageAlert] = useState<string | null>(null);
 
     const steps = useMemo(
         () => [
@@ -179,18 +182,38 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
         setData('amenities', next);
     }
 
-    function handleFeaturedImage(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
-        if (file) {
-            setData('featured_image', file);
-            setFeaturedPreview(URL.createObjectURL(file));
+    async function handleFeaturedImage(e: React.ChangeEvent<HTMLInputElement>) {
+        const input = e.target;
+        const file = input.files?.[0];
+        if (!file) return;
+        const error = await validateImageDimensions(file);
+        if (error) {
+            input.value = '';
+            setImageAlert(error);
+            return;
         }
+        setData('featured_image', file);
+        setFeaturedPreview(URL.createObjectURL(file));
     }
 
-    function handleExtraImages(e: React.ChangeEvent<HTMLInputElement>) {
-        const files = Array.from(e.target.files || []);
-        setData('images', [...data.images, ...files]);
-        setImagePreviews([...imagePreviews, ...files.map((f) => URL.createObjectURL(f))]);
+    async function handleExtraImages(e: React.ChangeEvent<HTMLInputElement>) {
+        const input = e.target;
+        const files = Array.from(input.files || []);
+        const valid: File[] = [];
+        const rejected: string[] = [];
+        for (const f of files) {
+            const error = await validateImageDimensions(f);
+            if (error) {
+                rejected.push(error);
+                continue;
+            }
+            valid.push(f);
+        }
+        input.value = '';
+        if (rejected.length) setImageAlert(rejected.join('\n\n'));
+        if (!valid.length) return;
+        setData('images', [...data.images, ...valid]);
+        setImagePreviews([...imagePreviews, ...valid.map((f) => URL.createObjectURL(f))]);
     }
 
     function removeExtraImage(i: number) {
@@ -211,6 +234,7 @@ export default function RoomForm({ mode, initial = {}, submitUrl, cancelUrl }: P
 
     return (
         <div className="mx-auto max-w-5xl p-4 sm:p-6" dir={dir}>
+            <AlertModal open={!!imageAlert} message={imageAlert} onClose={() => setImageAlert(null)} />
             {/* Header */}
             <div className="mb-6 flex items-start justify-between">
                 <div>
