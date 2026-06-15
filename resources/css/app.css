@@ -265,7 +265,7 @@
 /* Rich-text editor content — restores the list markers, headings and
    alignment that Tailwind's preflight strips, shared by the admin editor and
    the public render so authored descriptions look identical in both. */
-.rte-content { line-height: 1.7; }
+.rte-content { line-height: 1.7; overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
 .rte-content:empty::before { content: attr(data-placeholder); color: var(--muted-foreground); pointer-events: none; }
 .rte-content h2 { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; }
 .rte-content p { margin: 0.25rem 0; }
