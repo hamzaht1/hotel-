@@ -137,23 +137,10 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
     return `${currentYear}-${pad(currentMonth + 1)}-${pad(day)}`
   }
 
-  // Sync date+time into form.from / form.to
+  // Both room and service bookings now use a date only (no session time).
   useEffect(() => {
-    if (variant === 'service') {
-      if (fromDate && fromTime) {
-        setForm(prev => ({ ...prev, from: `${fromDate}T${fromTime}` }))
-      } else {
-        setForm(prev => ({ ...prev, from: '' }))
-      }
-    } else {
-      // room booking: only date needed
-      if (fromDate) {
-        setForm(prev => ({ ...prev, from: fromDate }))
-      } else {
-        setForm(prev => ({ ...prev, from: '' }))
-      }
-    }
-  }, [fromDate, fromTime, variant])
+    setForm(prev => ({ ...prev, from: fromDate || '' }))
+  }, [fromDate])
 
   useEffect(() => {
     if (variant === 'service') {
@@ -227,11 +214,8 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
     if (!form.firstName) newErrors.firstName = isArabic ? 'هذا الحقل مطلوب' : 'This field is required'
     if (!form.lastName) newErrors.lastName = isArabic ? 'هذا الحقل مطلوب' : 'This field is required'
     if (!form.phone) newErrors.phone = isArabic ? 'هذا الحقل مطلوب' : 'This field is required'
-    // For service variant, only require from date/time
-    if (!fromDate || !fromTime) newErrors.from = isArabic ? 'اختر التاريخ والوقت' : 'Select date and time'
+    if (!fromDate) newErrors.from = isArabic ? 'اختر التاريخ' : 'Select a date'
     if (variant === 'room' && !toDate) newErrors.to = isArabic ? 'اختر تاريخ المغادرة' : 'Select check-out date'
-    if (variant === 'service' && !duration) newErrors.duration = isArabic ? 'اختر مدة الجلسة' : 'Choose session duration'
-    if (!form.type) newErrors.type = isArabic ? 'اختر نوع الحجز' : 'Please select a booking type'
 
     if (variant === 'room' && form.from && form.to && new Date(form.from) >= new Date(form.to)) {
       newErrors.to = isArabic ? 'وقت المغادرة يجب أن يكون بعد الوصول' : 'Check-out must be after check-in'
@@ -313,7 +297,7 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
                   >
                     {serviceImages.map((src, i) => (
                       <SwiperSlide key={i}>
-                        <img src={src} alt={`${service.name} ${i + 1}`} className="w-full h-48 object-cover" />
+                        <img src={src} alt={`${service.name} ${i + 1}`} className="aspect-video w-full object-cover bg-gray-100 dark:bg-gray-800" />
                       </SwiperSlide>
                     ))}
                   </Swiper>
@@ -333,9 +317,9 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
                   modules={[Navigation]}
                   className="rounded-xl overflow-hidden"
                 >
-                  <SwiperSlide><img src={roomImage} alt="Room 1" className="w-full h-48 object-cover" /></SwiperSlide>
-                  <SwiperSlide><img src={roomImage} alt="Room 2" className="w-full h-48 object-cover" /></SwiperSlide>
-                  <SwiperSlide><img src={roomImage} alt="Room 3" className="w-full h-48 object-cover" /></SwiperSlide>
+                  <SwiperSlide><img src={roomImage} alt="Room 1" className="aspect-video w-full object-cover bg-gray-100 dark:bg-gray-800" /></SwiperSlide>
+                  <SwiperSlide><img src={roomImage} alt="Room 2" className="aspect-video w-full object-cover bg-gray-100 dark:bg-gray-800" /></SwiperSlide>
+                  <SwiperSlide><img src={roomImage} alt="Room 3" className="aspect-video w-full object-cover bg-gray-100 dark:bg-gray-800" /></SwiperSlide>
                 </Swiper>
               )
             })()}
@@ -643,109 +627,11 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
               {errors.to && !errors.from && <p className="mt-1 text-xs text-red-600">{errors.to}</p>}
             </div>
 
-            {/* Time Picker - Check-in (only for service variant) */}
-            {variant === 'service' && (
-              <div className={`rounded-xl border p-4 ${errors.from ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 madina-text-primary" />
-                  <span className="text-sm font-semibold text-gray-800 dark:text-white">
-                    {isArabic ? 'وقت بداية الجلسة' : 'Session start time'} <span className="text-red-600">*</span>
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {TIME_SLOTS.map(t => {
-                    const selected = fromTime === t
-                    return (
-                      <button
-                        key={`from-${t}`}
-                        type="button"
-                        onClick={() => setFromTime(t)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                          selected
-                            ? 'text-white border-transparent shadow-md'
-                            : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
-                        }`}
-                        style={selected ? { backgroundColor: 'var(--madina-primary)' } : undefined}
-                      >
-                        {formatTime(t, isArabic)}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Session Duration for services only */}
-            {variant === 'service' && (
-              <div className={`rounded-xl border p-4 ${errors.duration ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 madina-text-primary" />
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                    {isArabic ? 'مدة الجلسة' : 'Session duration'} <span className="text-red-600">*</span>
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: '30', labelAr: '30 دقيقة', labelEn: '30 min', mins: 30 },
-                    { id: '45', labelAr: '45 دقيقة', labelEn: '45 min', mins: 45 },
-                    { id: '60', labelAr: '1 ساعة', labelEn: '1 hr', mins: 60 },
-                    { id: '120', labelAr: '2 ساعتين', labelEn: '2 hrs', mins: 120 },
-                  ].map(opt => {
-                    const selected = duration === opt.id
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setDuration(opt.id)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                          selected
-                            ? 'text-white border-transparent shadow-md'
-                            : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
-                        }`}
-                        style={selected ? { backgroundColor: 'var(--madina-primary)' } : undefined}
-                      >
-                        {isArabic ? opt.labelAr : opt.labelEn}
-                      </button>
-                    )
-                  })}
-                </div>
-                {errors.duration && <p className="mt-1 text-xs text-red-600">{errors.duration}</p>}
-              </div>
-            )}
           </div>
 
-          {/* Booking Type */}
+          {/* Message (booking-type / session time / duration pickers removed) */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'نوع الحجز' : 'Booking Type'} <span className="text-red-600">*</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'مساج صيني', labelEn: 'Chinese Massage', labelAr: 'مساج صيني' },
-                { value: 'مساج علاج', labelEn: 'Therapeutic Massage', labelAr: 'مساج علاج' },
-                { value: 'غرفة', labelEn: 'Room', labelAr: 'غرفة' },
-                { value: 'شقة', labelEn: 'Apartment', labelAr: 'شقة' },
-                { value: 'جناح', labelEn: 'Suite', labelAr: 'جناح' }
-              ].map(opt => {
-                const selected = form.type === opt.value
-                return (
-                  <label key={opt.value} className={`cursor-pointer inline-flex items-center px-3 py-2 rounded-lg border text-sm select-none transition-colors ${selected ? 'border-transparent text-white' : 'border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300'} ${selected ? 'madina-bg-primary hover:opacity-95' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-                    <input
-                      type="radio"
-                      name="booking-type"
-                      value={opt.value}
-                      checked={selected}
-                      onChange={() => setForm(prev => ({ ...prev, type: opt.value as BookingType }))}
-                      className="sr-only"
-                    />
-                    {isArabic ? opt.labelAr : opt.labelEn}
-                  </label>
-                )
-              })}
-            </div>
-
-            {/* Message */}
-            <div className="md:col-span-2 mt-4">
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {isArabic ? 'رسالة إضافية (اختياري)' : 'Message (optional)'}
               </label>
@@ -787,7 +673,7 @@ function ModalFeatureIcon({ feature }: { feature: BookingFeature }) {
   // Only render `emoji` when it is an ACTUAL emoji (a non-ASCII glyph). Some
   // amenities store an icon *key* (e.g. "sea_view", "room_service") in this
   // field, which must never be printed as raw text in the chip.
-  if (feature.emoji && /[^ -]/.test(feature.emoji)) {
+  if (feature.emoji) {
     return (feature.emoji.codePointAt(0) ?? 0) > 127
       ? <span className="inline-flex w-4 h-4 items-center justify-center text-sm leading-none" aria-hidden="true">{feature.emoji}</span>
       : null
