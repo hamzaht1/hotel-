@@ -247,7 +247,15 @@ function EstablishmentEditForm({
     }
 
     function doSave() {
-        post('/client-admin/hotel-settings', { onSuccess: () => onDone() });
+        post('/client-admin/hotel-settings', {
+            preserveScroll: true,
+            onSuccess: () => {
+                onDone();
+                // Guarantee the read-only view shows the freshly saved values
+                // (refetch the account props, not a cached copy).
+                router.reload({ only: ['settings', 'documents'] });
+            },
+        });
     }
 
     return (
