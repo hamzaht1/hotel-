@@ -36,7 +36,12 @@ const BULLET_STYLES: { label: string; value: string }[] = [
     { label: '◆', value: '"◆  "' },
 ];
 
-const COLORS = ['#1e293b', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+const COLORS = [
+    '#000000', '#1e293b', '#475569', '#64748b', '#94a3b8',
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+    '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#3b82f6',
+    '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e',
+];
 const EMOJIS = ['😀', '😍', '👍', '🎉', '✨', '🌟', '🔥', '❤️', '✅', '📍', '🕒', '🏨', '🛏️', '🍽️', '🌊', '🏊', '🚗', '☕', '🎁', '🌴'];
 
 export default function RichTextEditor({ value, onChange, dir = 'ltr', placeholder, minHeight = 140 }: Props) {
@@ -80,9 +85,9 @@ export default function RichTextEditor({ value, onChange, dir = 'ltr', placehold
     }
 
     return (
-        <div className="overflow-hidden rounded-md border border-input bg-background focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+        <div className="rounded-md border border-input bg-background focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-1 border-b border-input bg-muted/30 px-2 py-1.5 text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-1 rounded-t-md border-b border-input bg-muted/30 px-2 py-1.5 text-muted-foreground">
                 <Btn onClick={() => exec('bold')} label="Bold"><Bold className="h-4 w-4" /></Btn>
                 <Btn onClick={() => exec('italic')} label="Italic"><Italic className="h-4 w-4" /></Btn>
                 <Btn onClick={() => exec('underline')} label="Underline"><Underline className="h-4 w-4" /></Btn>
@@ -106,15 +111,17 @@ export default function RichTextEditor({ value, onChange, dir = 'ltr', placehold
                 <div className="relative">
                     <Btn onClick={() => { setShowColors((s) => !s); setShowEmojis(false); }} label="Text color"><Palette className="h-4 w-4" /></Btn>
                     {showColors && (
-                        <div className="absolute z-20 mt-1 grid grid-cols-4 gap-1 rounded-lg border bg-popover p-2 shadow-md">
+                        <div className="absolute z-20 mt-1 grid w-max grid-cols-10 gap-2 rounded-lg border bg-popover p-3 shadow-lg">
                             {COLORS.map((c) => (
                                 <button
                                     key={c}
                                     type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => { exec('foreColor', c); setShowColors(false); }}
-                                    className="h-6 w-6 rounded-full border"
+                                    className="h-8 w-8 rounded-full border transition hover:scale-110"
                                     style={{ backgroundColor: c }}
                                     aria-label={c}
+                                    title={c}
                                 />
                             ))}
                         </div>
