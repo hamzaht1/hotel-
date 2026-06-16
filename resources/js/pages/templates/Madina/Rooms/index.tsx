@@ -455,11 +455,11 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
                 {/* Title and price area */}
                 <div className="mb-4 flex-grow">
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h3 className="madina-font-heading text-xl font-bold madina-text-primary flex-1">
+                    <h3 className="madina-font-heading text-xl font-bold madina-text-primary min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
                       {room.name}
                     </h3>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="madina-text-primary text-2xl font-bold">{room.price}</span>
+                      <span className="madina-text-primary text-2xl font-bold break-all">{room.price}</span>
                       <div 
                         className="w-5 h-5"
                         aria-label="price"
