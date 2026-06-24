@@ -62,6 +62,8 @@ interface BilingualService {
   nameEn: string;
   description: string;
   descriptionEn: string;
+  shortDescription?: string;
+  shortDescriptionEn?: string;
   price: string;
   currency: string;
   currencyEn: string;
@@ -79,6 +81,8 @@ interface BackendService {
   name_en: string;
   description_ar?: string | null;
   description_en?: string | null;
+  short_description_ar?: string | null;
+  short_description_en?: string | null;
   price: string | number;
   duration?: string | null;
   featured_image?: string | null;
@@ -359,6 +363,8 @@ export default function ServicesSection({ services: backendServices }: ServicesS
           nameEn: s.name_en,
           description: s.description_ar ?? '',
           descriptionEn: s.description_en ?? '',
+          shortDescription: s.short_description_ar ?? '',
+          shortDescriptionEn: s.short_description_en ?? '',
           price: String(s.price ?? ''),
           currency: 'ريال',
           currencyEn: 'SAR',
@@ -382,6 +388,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
       nameEn: service.nameEn,
       description: isArabic ? service.description : service.descriptionEn,
       descriptionEn: service.descriptionEn,
+      shortDescription: isArabic ? service.shortDescription : service.shortDescriptionEn,
       price: service.price,
       currency: isArabic ? service.currency : service.currencyEn,
       currencyEn: service.currencyEn,
@@ -658,6 +665,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                               setDefaultType(service.name as any)
                               setSelectedService({
                                 name: service.name,
+                                shortDescription: service.shortDescription,
                                 description: service.description,
                                 image: service.image,
                                 images: service.images,
@@ -771,6 +779,7 @@ export default function ServicesSection({ services: backendServices }: ServicesS
                               setDefaultType(service.name as any)
                               setSelectedService({
                                 name: service.name,
+                                shortDescription: service.shortDescription,
                                 description: service.description,
                                 image: service.image,
                                 images: service.images,

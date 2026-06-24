@@ -34,6 +34,8 @@ export interface BookingData {
 // reflects the clicked card instead of static placeholder content.
 export interface BookingService {
   name: string
+  /** Concise colour-only description shown first (above the icons). */
+  shortDescription?: string | null
   description?: string
   image?: string | null
   /** Full gallery (featured first) shown in the popup slider. */
@@ -211,15 +213,7 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
 
   const handleConfirm = () => {
     const newErrors: Partial<Record<'firstName' | 'lastName' | 'phone' | 'from' | 'to' | 'type' | 'duration', string>> = {}
-    if (!form.firstName) newErrors.firstName = isArabic ? 'هذا الحقل مطلوب' : 'This field is required'
-    if (!form.lastName) newErrors.lastName = isArabic ? 'هذا الحقل مطلوب' : 'This field is required'
     if (!form.phone) newErrors.phone = isArabic ? 'هذا الحقل مطلوب' : 'This field is required'
-    if (!fromDate) newErrors.from = isArabic ? 'اختر التاريخ' : 'Select a date'
-    if (variant === 'room' && !toDate) newErrors.to = isArabic ? 'اختر تاريخ المغادرة' : 'Select check-out date'
-
-    if (variant === 'room' && form.from && form.to && new Date(form.from) >= new Date(form.to)) {
-      newErrors.to = isArabic ? 'وقت المغادرة يجب أن يكون بعد الوصول' : 'Check-out must be after check-in'
-    }
 
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) return
@@ -235,22 +229,25 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
 
   return (
     <div
-      className={`fixed inset-0 z-[1050] ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}
+      className={`fixed inset-0 z-[2000] overflow-y-auto ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}
       aria-hidden={!open}
     >
       {/* Overlay */}
       <div
         ref={overlayRef}
         onClick={closeOnBackdrop}
-        className={`absolute inset-0 bg-black/90 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 bg-black/90 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
       />
 
-      {/* Modal */}
-      <div
-        className={`madina-booking-modal absolute inset-x-4 top-8 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:top-16 w-auto md:w-[680px] bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 ${open ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-2 scale-95'} overflow-hidden`}
-        dir={isArabic ? 'rtl' : 'ltr'}
-        style={{ maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'var(--madina-booking-modal-bg, #ffffff)', color: isDarkMode ? '#FFFFFF' : undefined }}
-      >
+      {/* Centering container — scrolls on small screens and keeps the modal
+          clear of the page header/sections. */}
+      <div className="relative flex min-h-full items-start justify-center p-4 md:items-center">
+        {/* Modal */}
+        <div
+          className={`madina-booking-modal relative w-full max-w-[680px] my-4 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 ${open ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-2 scale-95'} overflow-hidden`}
+          dir={isArabic ? 'rtl' : 'ltr'}
+          style={{ maxHeight: 'calc(100vh - 2rem)', overflowY: 'auto', backgroundColor: 'var(--madina-booking-modal-bg, #ffffff)', color: isDarkMode ? '#FFFFFF' : undefined }}
+        >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 relative">
           <div 
@@ -352,6 +349,9 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
                   }
                   return <p className="madina-text-primary text-base font-bold mt-0.5">{text}</p>
                 })()}
+                {service.shortDescription && (
+                  <div className="rte-content text-sm" dangerouslySetInnerHTML={{ __html: service.shortDescription }} />
+                )}
                 {service.features && service.features.length > 0 && (
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     {service.features.map((f, i) => (
@@ -466,38 +466,6 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
 
         {/* Booking Form */}
         <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* First Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {isArabic ? 'الاسم' : 'First Name'} <span className="text-red-600">*</span>
-            </label>
-            <input
-              name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              required
-              className={inputClass(Boolean(errors.firstName))}
-              placeholder={isArabic ? 'أدخل الاسم' : 'Enter first name'}
-            />
-            {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>}
-          </div>
-
-          {/* Last Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {isArabic ? 'الكنية' : 'Last Name'} <span className="text-red-600">*</span>
-            </label>
-            <input
-              name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              required
-              className={inputClass(Boolean(errors.lastName))}
-              placeholder={isArabic ? 'أدخل الكنية' : 'Enter last name'}
-            />
-            {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>}
-          </div>
-
           {/* Phone */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -517,134 +485,6 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
             {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
           </div>
 
-          {/* Date & Time Picker Section */}
-          <div className="md:col-span-2 space-y-4">
-
-            {/* Mini Calendar */}
-            <div className={`rounded-xl border p-4 ${errors.from || errors.to ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}>
-              <div className="flex items-center gap-2 mb-3">
-                <CalendarDays className="w-4 h-4 madina-text-primary" />
-                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  {isArabic ? `${AR_MONTHS[currentMonth]} ${currentYear}` : `${new Date(currentYear, currentMonth).toLocaleString('en', { month: 'long' })} ${currentYear}`}
-                </span>
-              </div>
-
-              {/* Day headers */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {(isArabic ? AR_DAYS : EN_DAYS).map(d => (
-                  <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 py-1">{d}</div>
-                ))}
-              </div>
-
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {calendarGrid.map((day, i) => {
-                  if (day === null) return <div key={`empty-${i}`} />
-                  const val = dateValue(day)
-                  const isPast = day < today
-                  const isFromSelected = fromDate === val
-                  const isToSelected = toDate === val
-                  const isInRange = variant !== 'service' && fromDate && toDate && val > fromDate && val < toDate
-                  const isSelected = variant === 'service' ? isFromSelected : (isFromSelected || isToSelected)
-
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      disabled={isPast}
-                      onClick={() => {
-                        if (variant === 'service') {
-                          // Single-date selection for services
-                          setFromDate(val)
-                          setToDate('')
-                        } else {
-                          // Range selection for room bookings (existing behavior)
-                          // If no from date or clicking before from date, set as from
-                          if (!fromDate || val < fromDate) {
-                            setFromDate(val)
-                            if (toDate && val >= toDate) setToDate('')
-                          } else if (!toDate || val === fromDate) {
-                            // If from is set but no to, set as to
-                            if (val === fromDate) {
-                              // Same day click: toggle off
-                              setFromDate('')
-                              setToDate('')
-                            } else {
-                              setToDate(val)
-                            }
-                          } else {
-                            // Both set: restart selection
-                            setFromDate(val)
-                            setToDate('')
-                          }
-                        }
-                      }}
-                      className={`
-                        relative w-full aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all
-                        ${isPast ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'cursor-pointer hover:scale-110'}
-                        ${isSelected ? 'text-white shadow-md' : ''}
-                        ${isInRange ? 'bg-[var(--madina-primary)]/10 text-gray-800 dark:text-gray-200' : ''}
-                        ${!isSelected && !isInRange && !isPast ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
-                      `}
-                      style={isSelected ? { backgroundColor: 'var(--madina-primary)' } : undefined}
-                    >
-                      {day}
-                      {isFromSelected && <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-white" />}
-                      {isToSelected && variant !== 'service' && <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-white" />}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Selection summary */}
-              {variant === 'service' ? (
-                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                  <span>
-                    {isArabic ? 'تاريخ الجلسة: ' : 'Session date: '}
-                    <strong className="text-gray-800 dark:text-white">
-                      {fromDate ? new Date(fromDate + 'T00:00').toLocaleDateString(isArabic ? 'ar-SA' : 'en-US', { day: 'numeric', month: 'short' }) : (isArabic ? 'لم يُحدد' : 'Not set')}
-                    </strong>
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between mt-3 text-xs text-gray-500 dark:text-gray-400">
-                  <span>
-                    {isArabic ? 'الوصول: ' : 'Check-in: '}
-                    <strong className="text-gray-800 dark:text-white">
-                      {fromDate ? new Date(fromDate + 'T00:00').toLocaleDateString(isArabic ? 'ar-SA' : 'en-US', { day: 'numeric', month: 'short' }) : (isArabic ? 'لم يُحدد' : 'Not set')}
-                    </strong>
-                  </span>
-                  <span className="mx-2">←→</span>
-                  <span>
-                    {isArabic ? 'المغادرة: ' : 'Check-out: '}
-                    <strong className="text-gray-800 dark:text-white">
-                      {toDate ? new Date(toDate + 'T00:00').toLocaleDateString(isArabic ? 'ar-SA' : 'en-US', { day: 'numeric', month: 'short' }) : (isArabic ? 'لم يُحدد' : 'Not set')}
-                    </strong>
-                  </span>
-                </div>
-              )}
-              {errors.from && <p className="mt-1 text-xs text-red-600">{errors.from}</p>}
-              {errors.to && !errors.from && <p className="mt-1 text-xs text-red-600">{errors.to}</p>}
-            </div>
-
-          </div>
-
-          {/* Message (booking-type / session time / duration pickers removed) */}
-          <div className="md:col-span-2">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {isArabic ? 'رسالة إضافية (اختياري)' : 'Message (optional)'}
-              </label>
-              <textarea
-                name="message"
-                value={form.message}
-                onChange={handleChange}
-                rows={3}
-                className="w-full rounded-lg border bg-white dark:bg-gray-800 px-3 py-2.5 text-sm outline-none focus:ring-2 border-gray-300 dark:border-gray-700 focus:ring-[var(--madina-primary)]"
-                placeholder={isArabic ? 'اكتب أي ملاحظات أو طلبات خاصة هنا' : 'Write any notes or special requests here'}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
@@ -655,6 +495,7 @@ export default function BookingModal({ open, defaultType = 'غرفة', service =
           <button onClick={handleConfirm} className="px-4 py-2 rounded-lg text-white text-sm font-semibold hover:opacity-95 madina-bg-primary">
             {isArabic ? 'تأكيد الحجز' : 'Confirm Booking'}
           </button>
+        </div>
         </div>
       </div>
     </div>

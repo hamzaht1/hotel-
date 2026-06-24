@@ -268,6 +268,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
     if (room) {
       setSelectedRoom({
         name: room.name,
+        shortDescription: room.shortDescription, // concise, shown above the icons
         description: room.description, // full detailed description
         images: room.gallery,
         features: (room.amenities || []).map((a: any) => ({
