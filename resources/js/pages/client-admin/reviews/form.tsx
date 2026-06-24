@@ -45,7 +45,7 @@ export default function ReviewFormBuilder({ form }: Props) {
         { title: 'Form builder', href: '/client-admin/reviews/form' },
     ];
 
-    const { data, setData, post, processing } = useForm<ReviewFormModel>({
+    const { data, setData, post, processing, errors } = useForm<ReviewFormModel>({
         title_ar: form?.title_ar ?? 'نموذج تقييم الإقامة',
         title_en: form?.title_en ?? 'Stay review form',
         intro_ar: form?.intro_ar ?? '',
@@ -90,6 +90,17 @@ export default function ReviewFormBuilder({ form }: Props) {
             <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
                 {flash?.success && (
                     <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{flash.success}</div>
+                )}
+
+                {Object.keys(errors).length > 0 && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <p className="mb-1 font-medium">Some fields need fixing / بعض الحقول تحتاج إلى تصحيح:</p>
+                        <ul className="list-inside list-disc space-y-0.5">
+                            {Object.entries(errors).map(([key, msg]) => (
+                                <li key={key}>{msg as string}</li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
 
                 <h1 className="text-2xl font-bold">Form builder</h1>

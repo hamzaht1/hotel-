@@ -94,6 +94,14 @@ class ReviewController extends Controller
 
     public function saveForm(Request $request)
     {
+        // Drop blank field rows the user added but never filled in, so an empty
+        // row doesn't block the whole save with a cryptic validation error.
+        $cleanFields = collect($request->input('fields', []))
+            ->filter(fn ($f) => filled($f['key'] ?? null) || filled($f['label_ar'] ?? null) || filled($f['label_en'] ?? null))
+            ->values()
+            ->all();
+        $request->merge(['fields' => $cleanFields]);
+
         $validated = $request->validate([
             'title_ar' => 'required|string|max:255',
             'title_en' => 'required|string|max:255',
@@ -108,6 +116,13 @@ class ReviewController extends Controller
             'fields.*.options' => 'nullable|array',
             'fields.*.is_required' => 'boolean',
             'fields.*.sort_order' => 'nullable|integer|min:0',
+        ], [], [
+            'title_ar' => 'العنوان (عربي) / Title (AR)',
+            'title_en' => 'العنوان (إنجليزي) / Title (EN)',
+            'fields.*.key' => 'مفتاح الحقل / Field key',
+            'fields.*.label_ar' => 'تسمية الحقل (عربي) / Field label (AR)',
+            'fields.*.label_en' => 'تسمية الحقل (إنجليزي) / Field label (EN)',
+            'fields.*.type' => 'نوع الحقل / Field type',
         ]);
 
         $form = ReviewForm::firstOrNew([]);
