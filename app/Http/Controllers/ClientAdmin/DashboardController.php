@@ -27,10 +27,16 @@ class DashboardController extends Controller
 
         // "Other services" = the Madina template's additional-services section,
         // which has 4 fixed slots; count those that have a title filled in.
+        // site_texts stores values per-locale (value_ar / value_en) — there is
+        // no `value` column — so a slot counts if either locale is non-empty.
         $additionalServicesCount = SiteText::where('section', 'additional_services')
             ->whereIn('key', ['service_1_title', 'service_2_title', 'service_3_title', 'service_4_title'])
-            ->whereNotNull('value')
-            ->where('value', '!=', '')
+            ->where(function ($q) {
+                $q->where('value_ar', '!=', '')->whereNotNull('value_ar')
+                    ->orWhere(function ($q) {
+                        $q->where('value_en', '!=', '')->whereNotNull('value_en');
+                    });
+            })
             ->count();
 
         // ─── Visitor chart placeholder ──────────────────────────
