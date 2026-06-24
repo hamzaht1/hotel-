@@ -134,6 +134,9 @@ class DomainController extends Controller
             'subdomain' => $subdomain,
             'subdomain_changes_count' => $tenant->subdomain_changes_count + 1,
             'subdomain_last_changed_at' => now(),
+            // The platform subdomain is served over the wildcard TLS cert, so it
+            // is reachable over HTTPS immediately after the change.
+            'ssl_status' => 'active',
         ]);
 
         ActivityLogger::log('subdomain.changed', "Subdomain changed from «{$old}» to «{$subdomain}»", [

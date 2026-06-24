@@ -52,7 +52,12 @@ export default function DomainSection({ domain }: { domain: DomainProps }) {
     }
 
     function saveSubdomain() {
-        subForm.post('/client-admin/domain/subdomain', { preserveScroll: true });
+        subForm.post('/client-admin/domain/subdomain', {
+            preserveScroll: true,
+            // Refresh the domain data right after OTP so the link, SSL badge and
+            // remaining-changes counter update instantly (no manual reload).
+            onSuccess: () => router.reload({ only: ['domain'] }),
+        });
     }
 
     function copy(value: string, key: string) {
