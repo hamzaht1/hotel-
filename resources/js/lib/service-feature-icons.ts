@@ -49,6 +49,16 @@ import {
     PlaneTakeoff,
     CarTaxiFront,
     CarFront,
+    // Hotel services & housekeeping
+    ConciergeBell,
+    CalendarDays,
+    Clock,
+    Drama,
+    GraduationCap,
+    DoorOpen,
+    Crown,
+    CigaretteOff,
+    WashingMachine,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -121,6 +131,19 @@ export const SERVICE_FEATURE_ICON_OPTIONS: FeatureIconOption[] = [
     { key: 'airport_transfer', Icon: PlaneTakeoff, label_ar: 'توصيل المطار', label_en: 'Airport Transfer' },
     { key: 'taxi', Icon: CarTaxiFront, label_ar: 'سيارة أجرة', label_en: 'Taxi' },
     { key: 'car_rental', Icon: CarFront, label_ar: 'تأجير سيارات', label_en: 'Car Rental' },
+    { key: 'valet', Icon: Car, label_ar: 'صف السيارات', label_en: 'Valet Parking' },
+
+    // ── Hotel services & housekeeping ──────────────────────────
+    { key: 'room_service', Icon: ConciergeBell, label_ar: 'خدمة الغرف', label_en: 'Room Service' },
+    { key: 'calendar', Icon: CalendarDays, label_ar: 'المواعيد', label_en: 'Calendar' },
+    { key: 'working_hours', Icon: Clock, label_ar: 'ساعات العمل', label_en: 'Working Hours' },
+    { key: 'shows', Icon: Drama, label_ar: 'عروض', label_en: 'Shows' },
+    { key: 'seminar', Icon: GraduationCap, label_ar: 'ندوات', label_en: 'Seminar' },
+    { key: 'meeting_room', Icon: DoorOpen, label_ar: 'غرفة اجتماعات', label_en: 'Meeting Room' },
+    { key: 'luxury', Icon: Crown, label_ar: 'فخامة', label_en: 'Luxury' },
+    { key: 'no_smoking', Icon: CigaretteOff, label_ar: 'ممنوع التدخين', label_en: 'No Smoking' },
+    { key: 'washing_machine', Icon: WashingMachine, label_ar: 'غسيل آلي', label_en: 'Laundry Machine' },
+    { key: 'ironing', Icon: Shirt, label_ar: 'كي الملابس', label_en: 'Ironing' },
 ];
 
 /** Map of feature key → icon component, derived from the catalogue. */
