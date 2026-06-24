@@ -41,10 +41,19 @@ class ReviewController extends Controller
             'negative' => Review::negative()->count(),
         ];
 
+        $tenant = app('current_tenant');
+        $form = ReviewForm::first();
+
         return Inertia::render('client-admin/reviews/index', [
             'reviews' => $reviews,
             'stats' => $stats,
             'filters' => $request->only(['search', 'status', 'published']),
+            // Public review form: its status and the shareable link guests use.
+            'reviewForm' => [
+                'exists' => (bool) $form,
+                'is_active' => (bool) ($form?->is_active),
+                'public_url' => route('review.show', $tenant->slug),
+            ],
         ]);
     }
 

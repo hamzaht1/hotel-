@@ -1,7 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Star, Settings } from 'lucide-react';
+import { Star, Settings, Copy, ExternalLink, Check } from 'lucide-react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,15 +28,30 @@ interface Stats {
     negative: number;
 }
 
+interface ReviewFormInfo {
+    exists: boolean;
+    is_active: boolean;
+    public_url: string;
+}
+
 interface Props {
     reviews: { data: Review[]; links: { url: string | null; label: string; active: boolean }[]; last_page: number };
     stats: Stats;
     filters: { search?: string; status?: string; published?: string };
+    reviewForm: ReviewFormInfo;
 }
 
-export default function ReviewsIndex({ reviews, stats, filters }: Props) {
+export default function ReviewsIndex({ reviews, stats, filters, reviewForm }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
+    const [copied, setCopied] = useState(false);
+
+    function copyLink() {
+        navigator.clipboard.writeText(reviewForm.public_url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('dashboard'), href: '/client-admin' },
@@ -64,6 +80,37 @@ export default function ReviewsIndex({ reviews, stats, filters }: Props) {
                         <Link href="/client-admin/reviews/form"><Settings className="h-4 w-4" /> Form builder</Link>
                     </Button>
                 </div>
+
+                {/* Public review-form status + shareable link */}
+                <Card>
+                    <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium">نموذج التقييم العام / Public review form</span>
+                            {!reviewForm.exists ? (
+                                <Badge variant="secondary">غير مُنشأ / Not created</Badge>
+                            ) : reviewForm.is_active ? (
+                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">نشط / Active</Badge>
+                            ) : (
+                                <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">غير نشط / Inactive</Badge>
+                            )}
+                        </div>
+                        <div className="flex flex-1 items-center gap-2 sm:max-w-xl">
+                            <Input readOnly value={reviewForm.public_url} className="vuexy-input flex-1 text-xs" onFocus={(e) => e.target.select()} />
+                            <Button type="button" variant="outline" size="sm" onClick={copyLink}>
+                                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                                {copied ? 'Copié' : 'Copier'}
+                            </Button>
+                            <Button asChild variant="outline" size="sm">
+                                <a href={reviewForm.public_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /> Ouvrir</a>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+                {reviewForm.exists && !reviewForm.is_active && (
+                    <p className="-mt-3 text-xs text-amber-600">
+                        النموذج موجود لكنه غير نشط — فعّل خيار «Active» في «Form builder» لعرض حقولك المخصّصة. (الرابط يعمل بالحقول الافتراضية على أي حال.)
+                    </p>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-5">
                     <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Total</div><div className="text-2xl font-bold">{stats.total}</div></CardContent></Card>
