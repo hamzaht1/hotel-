@@ -15,7 +15,11 @@ export default defineConfig(({ command, mode }) => {
     },
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.tsx'],
+            // app.css is imported by app.tsx, so it must NOT also be a standalone
+            // entry — that made Vite build it as a separate chunk whose CSS got
+            // <link rel="preload">'d but never used as a stylesheet (browser
+            // "preloaded but not used" warning). Let app.tsx pull it in.
+            input: ['resources/js/app.tsx'],
                 ssr: isSSR ? 'resources/js/ssr.tsx' : undefined,
             refresh: true,
         }),
