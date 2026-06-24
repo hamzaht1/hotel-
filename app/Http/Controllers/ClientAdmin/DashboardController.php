@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\ClientAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\GalleryImage;
 use App\Models\Review;
 use App\Models\Room;
-use App\Models\ServiceBooking;
+use App\Models\Service;
+use App\Models\ServiceCategory;
+use App\Models\SiteText;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
@@ -16,14 +19,19 @@ class DashboardController extends Controller
         $tenant = app('current_tenant');
 
         // ─── KPI cards ──────────────────────────────────────────
-        // No room-level booking model exists yet, so morning bookings and
-        // cancellations are derived from ServiceBooking until a dedicated
-        // RoomBooking module ships.
+        // Content-driven KPIs: what the establishment has configured on its site.
         $totalRooms = Room::count();
-        $bookingRequests = ServiceBooking::count();
-        $confirmedBookings = ServiceBooking::where('status', 'confirmed')->count();
-        $morningBookings = ServiceBooking::whereDate('created_at', Carbon::today())->count();
-        $cancellations = ServiceBooking::where('status', 'canceled')->count();
+        $servicesCount = Service::count();
+        $serviceCategoriesCount = ServiceCategory::count();
+        $galleryCount = GalleryImage::count();
+
+        // "Other services" = the Madina template's additional-services section,
+        // which has 4 fixed slots; count those that have a title filled in.
+        $additionalServicesCount = SiteText::where('section', 'additional_services')
+            ->whereIn('key', ['service_1_title', 'service_2_title', 'service_3_title', 'service_4_title'])
+            ->whereNotNull('value')
+            ->where('value', '!=', '')
+            ->count();
 
         // ─── Visitor chart placeholder ──────────────────────────
         // Real visitor analytics aren't tracked yet. Generate an empty 30-day
@@ -66,10 +74,10 @@ class DashboardController extends Controller
         return Inertia::render('client-admin/dashboard', [
             'kpis' => [
                 'rooms' => $totalRooms,
-                'booking_requests' => $bookingRequests,
-                'confirmed_bookings' => $confirmedBookings,
-                'morning_bookings' => $morningBookings,
-                'cancellations' => $cancellations,
+                'services' => $servicesCount,
+                'partners' => $serviceCategoriesCount,
+                'other_services' => $additionalServicesCount,
+                'gallery' => $galleryCount,
             ],
             'visitorSeries' => $visitorSeries,
             'rooms' => $rooms,

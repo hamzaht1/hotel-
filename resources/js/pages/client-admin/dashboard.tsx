@@ -5,17 +5,17 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import {
     BedDouble, CalendarDays, Ticket, Sun, XCircle, Plus, Image as ImageIcon, Tag,
-    ChevronLeft, ChevronRight, Star, MessageSquare, Eye,
+    ChevronLeft, ChevronRight, Star, MessageSquare, Eye, ConciergeBell, Handshake, Images,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface Kpi {
     rooms: number;
-    booking_requests: number;
-    confirmed_bookings: number;
-    morning_bookings: number;
-    cancellations: number;
+    services: number;
+    partners: number;
+    other_services: number;
+    gallery: number;
 }
 
 interface RoomItem {
@@ -112,10 +112,10 @@ function Header({ tenant, isArabic }: { tenant: Props['tenant']; isArabic: boole
 
 const KPI_DEFS = [
     { key: 'rooms', label_ar: 'عدد الغرف', label_en: 'Rooms', icon: BedDouble, tone: 'blue' },
-    { key: 'booking_requests', label_ar: 'طلبات الحجز', label_en: 'Booking Requests', icon: CalendarDays, tone: 'green' },
-    { key: 'confirmed_bookings', label_ar: 'الحجوزات', label_en: 'Confirmed Bookings', icon: Ticket, tone: 'violet' },
-    { key: 'morning_bookings', label_ar: 'حجوزات اليوم', label_en: "Today's Bookings", icon: Sun, tone: 'amber' },
-    { key: 'cancellations', label_ar: 'الإلغاءات', label_en: 'Cancellations', icon: XCircle, tone: 'red' },
+    { key: 'services', label_ar: 'الخدمات المضافة', label_en: 'Added Services', icon: ConciergeBell, tone: 'green' },
+    { key: 'partners', label_ar: 'عدد الشركاء', label_en: 'Partners', icon: Handshake, tone: 'violet' },
+    { key: 'other_services', label_ar: 'الخدمات الأخرى', label_en: 'Other Services', icon: Plus, tone: 'amber' },
+    { key: 'gallery', label_ar: 'معرض الصور', label_en: 'Photo Gallery', icon: Images, tone: 'red' },
 ] as const;
 
 const TONE_CLASSES: Record<string, string> = {
