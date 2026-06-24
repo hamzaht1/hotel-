@@ -21,6 +21,7 @@ interface Props {
   rooms?: any[];
   services?: any[];
   gallery?: any[];
+  reviews?: any[];
   siteTexts?: Record<string, any>;
   activeSections?: string[];
   templateTranslations?: any;
@@ -41,7 +42,7 @@ export default function Madina(props: Props) {
   )
 }
 
-function MadinaInner({ tenant, hotelSettings, contactSettings, rooms, services, gallery, activeSections, templateTranslations, locale }: Props) {
+function MadinaInner({ tenant, hotelSettings, contactSettings, rooms, services, gallery, reviews, activeSections, templateTranslations, locale }: Props) {
   const t = useTemplateT()
   // Pull the merged map so the editor can stream live text edits into the iframe.
   const mergedTexts = useMergedSiteTexts()
@@ -74,7 +75,7 @@ function MadinaInner({ tenant, hotelSettings, contactSettings, rooms, services, 
     rooms: <RoomsSection rooms={rooms} />,
     services: <ServicesSection services={services} />,
     partners: <PartnersSection />,
-    testimonials: <TestimonialsSection />,
+    testimonials: <TestimonialsSection reviews={reviews} />,
     gallery: <GallerySlider gallery={gallery} />,
     contact: <ContactSection contactSettings={contactSettings} tenant={tenant} />,
   }

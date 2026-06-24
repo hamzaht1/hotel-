@@ -49,7 +49,7 @@ export default function Review({ tenant, form }: Props) {
 
     const [answers, setAnswers] = useState<Record<string, unknown>>({});
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, transform } = useForm({
         guest_name: '',
         guest_email: '',
         guest_phone: '',
@@ -60,7 +60,9 @@ export default function Review({ tenant, form }: Props) {
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        setData('answers', answers);
+        // setData is async, so merge the custom-field answers at submit time via
+        // transform — otherwise the first submit would post stale (empty) answers.
+        transform((d) => ({ ...d, answers }));
         post(`/hotel/${tenant.slug}/review`);
     }
 

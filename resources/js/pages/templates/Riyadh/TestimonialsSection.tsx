@@ -26,15 +26,24 @@ interface BilingualTestimonial {
   roleEn: string
   commentAr: string
   commentEn: string
+  rating?: number
 }
 
-export default function TestimonialsSection() {
+// A published guest review coming from the backend.
+interface PublicReview {
+  id: number
+  guest_name: string
+  rating: number
+  comment: string | null
+}
+
+export default function TestimonialsSection({ reviews }: { reviews?: PublicReview[] }) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const swiperRef = useRef<SwiperType | null>(null)
-  
-  // Mock bilingual testimonials data - can be replaced with dynamic data later
-  const testimonialsData: BilingualTestimonial[] = [
+
+  // Demo data shown when the tenant has no published reviews yet.
+  const mockTestimonials: BilingualTestimonial[] = [
     {
       id: 1,
       nameAr: "أحمد العبدالله",
@@ -72,6 +81,22 @@ export default function TestimonialsSection() {
       commentEn: "Best hotel I've stayed at in Riyadh. Fast service and very friendly staff. The place is perfectly clean and organized.",
     }
   ]
+
+  // Map real published reviews into the card shape; fall back to demo data.
+  const realTestimonials: BilingualTestimonial[] = (reviews ?? [])
+    .filter((r) => (r.comment ?? '').trim() !== '')
+    .map((r) => ({
+      id: r.id,
+      nameAr: r.guest_name,
+      nameEn: r.guest_name,
+      roleAr: 'عميل',
+      roleEn: 'Guest',
+      commentAr: r.comment ?? '',
+      commentEn: r.comment ?? '',
+      rating: r.rating,
+    }))
+
+  const testimonialsData = realTestimonials.length > 0 ? realTestimonials : mockTestimonials
 
   return (
     <section className="py-20   ">
@@ -158,6 +183,13 @@ export default function TestimonialsSection() {
                           <div>
                             <p className="text-sm sm:text-xl font-bold text-white mb-1">{name}</p>
                             <p className="text-gray-300 dark:text-gray-200 text-sm sm:text-base">{role}</p>
+                            {typeof testimonial.rating === 'number' && (
+                              <div className="mt-1 text-sm leading-none tracking-wide" aria-label={`${testimonial.rating}/5`}>
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                  <span key={n} style={{ color: n <= testimonial.rating! ? '#F5B301' : 'rgba(255,255,255,0.3)' }}>★</span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
 

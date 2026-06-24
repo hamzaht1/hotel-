@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\GalleryImage;
+use App\Models\Review;
 use App\Models\SiteText;
 use App\Models\SiteSection;
 use Inertia\Inertia;
@@ -33,6 +34,15 @@ class TenantSiteController extends Controller
         $gallery = GalleryImage::where('is_active', true)->orderBy('sort_order')->get();
         $siteTexts = SiteText::all()->groupBy('section')->map(fn ($items) => $items->keyBy('key'));
         $sections = SiteSection::where('is_active', true)->orderBy('sort_order')->pluck('section_name');
+
+        // Published guest reviews feed the public "testimonials" section.
+        // Only published reviews that actually carry a comment are shown.
+        $reviews = Review::where('is_published', true)
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
+            ->orderByDesc('created_at')
+            ->take(12)
+            ->get(['id', 'guest_name', 'rating', 'comment', 'created_at']);
 
         $templatePage = match ($tenant->template) {
             'riyadh' => 'templates/Riyadh/index',
@@ -61,6 +71,7 @@ class TenantSiteController extends Controller
             'services' => $services,
             'serviceCategories' => $serviceCategories,
             'gallery' => $gallery,
+            'reviews' => $reviews,
             'siteTexts' => $siteTexts,
             'activeSections' => $sections,
             'headerMenu' => optional(Menu::where('location', 'header')->first())->items ?? [],

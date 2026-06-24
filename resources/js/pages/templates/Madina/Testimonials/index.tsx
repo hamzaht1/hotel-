@@ -33,9 +33,18 @@ interface BilingualTestimonial {
   commentAr: string
   commentEn: string
   avatar?: string
+  rating?: number
 }
 
-export default function TestimonialsSection() {
+// A published guest review coming from the backend.
+interface PublicReview {
+  id: number
+  guest_name: string
+  rating: number
+  comment: string | null
+}
+
+export default function TestimonialsSection({ reviews }: { reviews?: PublicReview[] }) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const swiperRef = useRef<SwiperType | null>(null)
@@ -144,8 +153,25 @@ export default function TestimonialsSection() {
     },
   ]
   
-  // Use bilingual data directly
-  const testimonialsData = bilingualTestimonialsData
+  // Map real published reviews into the card shape. A guest comment is written
+  // in a single language, so the same text is shown for both locales; the role
+  // is a generic localized "Guest" label. Fall back to the demo data when the
+  // tenant has no published reviews yet (keeps the template preview populated).
+  const realTestimonials: BilingualTestimonial[] = (reviews ?? [])
+    .filter((r) => (r.comment ?? '').trim() !== '')
+    .map((r) => ({
+      id: r.id,
+      nameAr: r.guest_name,
+      nameEn: r.guest_name,
+      roleAr: 'عميل',
+      roleEn: 'Guest',
+      commentAr: r.comment ?? '',
+      commentEn: r.comment ?? '',
+      avatar: avatarImage,
+      rating: r.rating,
+    }))
+
+  const testimonialsData = realTestimonials.length > 0 ? realTestimonials : bilingualTestimonialsData
   
   // Function to get card background color based on index
   const getCardColor = (index: number): string => {
@@ -356,14 +382,23 @@ export default function TestimonialsSection() {
                       </h3>
 
                       {/* Role */}
-                      <p 
-                        className="text-xs mb-4 flex-shrink-0"
+                      <p
+                        className="text-xs mb-2 flex-shrink-0"
                         style={{
                           color: isDarkMode ? 'var(--madina-testimonial-text-color, rgba(255,255,255,0.8))' : 'var(--madina-testimonial-text-color, rgba(0,0,0,0.6))'
                         }}
                       >
                         {role}
                       </p>
+
+                      {/* Star rating (real reviews only) */}
+                      {typeof testimonial.rating === 'number' && (
+                        <div className="mb-4 flex-shrink-0 text-base leading-none tracking-wide" aria-label={`${testimonial.rating}/5`}>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <span key={n} style={{ color: n <= testimonial.rating! ? '#F5B301' : 'rgba(0,0,0,0.18)' }}>★</span>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Testimonial text */}
                       <div className="relative w-full flex-grow flex flex-col justify-start">
