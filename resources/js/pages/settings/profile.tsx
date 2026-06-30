@@ -114,7 +114,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                     </Form>
                 </div>
 
-                <DeleteUser />
+                {/* The primary system administrator account cannot be deleted. */}
+                {auth.user.role !== 'super_admin' && <DeleteUser />}
             </SettingsLayout>
         </AppLayout>
     );

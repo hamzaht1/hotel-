@@ -45,11 +45,16 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // The primary system administrator account can never be deleted — not
+        // even via a crafted request. The self-service delete UI is also hidden
+        // for super-admins, so this is the hard safety net.
+        abort_if($user->isSuperAdmin(), 403, 'لا يمكن حذف حساب مدير النظام الأساسي.');
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
-
-        $user = $request->user();
 
         Auth::logout();
 
