@@ -151,29 +151,45 @@ class DashboardController extends Controller
         $diffDays = $from->diffInDays($to);
         $groupByMonth = $diffDays > 45;
 
-        // Bucket expression — Postgres uses to_char, SQLite uses strftime
+        // Revenue is realised when an invoice is actually paid, so the series is
+        // keyed by paid_at (not issue_date) — that's when the subscription money
+        // lands and where the spike should appear on the timeline.
         $driver = DB::connection()->getDriverName();
         $bucketExpr = match (true) {
-            $driver === 'pgsql' && $groupByMonth => "to_char(issue_date, 'YYYY-MM')",
-            $driver === 'pgsql' => "to_char(issue_date, 'YYYY-MM-DD')",
-            $driver === 'sqlite' && $groupByMonth => "strftime('%Y-%m', issue_date)",
-            $driver === 'sqlite' => "strftime('%Y-%m-%d', issue_date)",
-            $groupByMonth => "DATE_FORMAT(issue_date, '%Y-%m')",
-            default => "DATE_FORMAT(issue_date, '%Y-%m-%d')",
+            $driver === 'pgsql' && $groupByMonth => "to_char(paid_at, 'YYYY-MM')",
+            $driver === 'pgsql' => "to_char(paid_at, 'YYYY-MM-DD')",
+            $driver === 'sqlite' && $groupByMonth => "strftime('%Y-%m', paid_at)",
+            $driver === 'sqlite' => "strftime('%Y-%m-%d', paid_at)",
+            $groupByMonth => "DATE_FORMAT(paid_at, '%Y-%m')",
+            default => "DATE_FORMAT(paid_at, '%Y-%m-%d')",
         };
 
-        $rows = Invoice::query()
-            ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
+        $totals = Invoice::query()
             ->where('status', 'paid')
+            ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$from, $to])
             ->select(DB::raw("{$bucketExpr} as bucket"), DB::raw('sum(total) as total'))
             ->groupBy('bucket')
-            ->orderBy('bucket')
-            ->get();
+            ->pluck('total', 'bucket');
 
-        return $rows->map(fn ($r) => [
-            'date' => $r->bucket,
-            'total' => (float) $r->total,
-        ])->all();
+        // No revenue in the range → let the frontend show its empty state.
+        if ($totals->isEmpty()) {
+            return [];
+        }
+
+        // Emit a continuous timeline across the whole period so days/months
+        // without revenue render as 0 instead of being dropped — otherwise the
+        // chart collapses to a flat, undated line that hides when revenue
+        // actually occurred.
+        $series = [];
+        $cursor = $groupByMonth ? $from->copy()->startOfMonth() : $from->copy()->startOfDay();
+        while ($cursor <= $to) {
+            $key = $cursor->format($groupByMonth ? 'Y-m' : 'Y-m-d');
+            $series[] = ['date' => $key, 'total' => (float) $totals->get($key, 0)];
+            $groupByMonth ? $cursor->addMonth() : $cursor->addDay();
+        }
+
+        return $series;
     }
 
 }
