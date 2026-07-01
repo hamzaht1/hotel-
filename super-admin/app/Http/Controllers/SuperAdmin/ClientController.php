@@ -134,6 +134,18 @@ class ClientController extends Controller
 
         $primaryUser = User::where('tenant_id', $tenant->id)->where('role', 'client_admin')->first();
 
+        // Establishment / registration data the client filled in — lives in the
+        // main app's hotel_settings table (no model in this app, so query directly).
+        $establishment = DB::table('hotel_settings')
+            ->where('tenant_id', $tenant->id)
+            ->first([
+                'hotel_name_ar', 'hotel_name_en', 'first_name', 'last_name',
+                'responsible_position', 'commercial_activity', 'branches_count',
+                'cr_number', 'cr_expiry', 'vat_number',
+                'license_number', 'license_expiry',
+                'municipality_license_number', 'municipality_license_expiry',
+            ]);
+
         $invoices = Invoice::where('tenant_id', $tenant->id)
             ->latest('issue_date')
             ->get(['id', 'invoice_number', 'type', 'status', 'total', 'issue_date', 'due_date', 'payment_method', 'paid_at']);
@@ -173,6 +185,7 @@ class ClientController extends Controller
         return Inertia::render('super-admin/clients/show', [
             'tenant' => $tenant,
             'primary_user' => $primaryUser,
+            'establishment' => $establishment,
             'invoices' => $invoices,
             'renewals' => $renewals,
             'messages' => $messages,
@@ -305,7 +318,9 @@ class ClientController extends Controller
                 'category' => Conversation::CATEGORY_SUPPORT,
                 'status' => Conversation::STATUS_NEW,
                 'subject' => $validated['subject'],
-                'source' => Conversation::SOURCE_SUPPORT,
+                // Platform-originated message → lands in the client's "من ضيافة"
+                // section, not their own "طلباتي" requests.
+                'source' => Conversation::SOURCE_PLATFORM,
                 'created_by_user_id' => $request->user()->id,
                 'client_name' => $request->user()->name,
                 'client_email' => $request->user()->email,

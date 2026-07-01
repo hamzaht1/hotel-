@@ -88,9 +88,27 @@ interface Review {
     created_at: string;
 }
 
+interface Establishment {
+    hotel_name_ar: string | null;
+    hotel_name_en: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    responsible_position: string | null;
+    commercial_activity: string | null;
+    branches_count: number | null;
+    cr_number: string | null;
+    cr_expiry: string | null;
+    vat_number: string | null;
+    license_number: string | null;
+    license_expiry: string | null;
+    municipality_license_number: string | null;
+    municipality_license_expiry: string | null;
+}
+
 interface Props {
     tenant: Tenant;
     primary_user: PrimaryUser | null;
+    establishment: Establishment | null;
     invoices: Invoice[];
     renewals: Renewal[];
     messages: Msg[];
@@ -117,7 +135,7 @@ function paymentStatusBadge(invoice: Invoice, isAr: boolean) {
     return <Badge className="bg-amber-100 text-amber-700 border-amber-200 gap-1"><AlertCircle className="h-3 w-3" />{isAr ? 'معلقة' : 'Pending'}</Badge>;
 }
 
-export default function ClientShow({ tenant, primary_user, invoices, renewals, messages, reviews, stats }: Props) {
+export default function ClientShow({ tenant, primary_user, establishment, invoices, renewals, messages, reviews, stats }: Props) {
     const { t, locale, isArabic } = useT();
     const pageProps = usePage().props as { flash?: { success?: string; error?: string }; mainAppUrl?: string };
     const flash = pageProps.flash;
@@ -425,6 +443,25 @@ export default function ClientShow({ tenant, primary_user, invoices, renewals, m
                                 <InfoRow label={isArabic ? 'رقم الجوال' : 'Phone'} value={tenant.phone ?? '—'} />
                                 <InfoRow label={isArabic ? 'الدولة' : 'Country'} value={tenant.country === 'SA' ? (isArabic ? 'السعودية' : 'Saudi Arabia') : (tenant.country ?? '—')} />
                                 <InfoRow label={isArabic ? 'المنطقة' : 'Region'} value={tenant.city ?? tenant.template} />
+                            </CardContent>
+                        </Card>
+
+                        {/* Establishment / registration data (from hotel_settings) */}
+                        <Card>
+                            <CardHeader className="pb-3"><CardTitle className="text-sm">{isArabic ? 'بيانات المنشأة' : 'Establishment data'}</CardTitle></CardHeader>
+                            <CardContent className="space-y-2 text-xs">
+                                <InfoRow label={isArabic ? 'اسم المنشأة' : 'Establishment name'} value={establishment?.hotel_name_ar || establishment?.hotel_name_en || '—'} />
+                                <InfoRow label={isArabic ? 'النشاط التجاري' : 'Commercial activity'} value={establishment?.commercial_activity || '—'} />
+                                <InfoRow label={isArabic ? 'السجل التجاري' : 'Commercial registration'} value={establishment?.cr_number || '—'} />
+                                <InfoRow label={isArabic ? 'انتهاء السجل التجاري' : 'CR expiry'} value={establishment?.cr_expiry || '—'} />
+                                <InfoRow label={isArabic ? 'الرقم الضريبي (VAT)' : 'VAT number'} value={establishment?.vat_number || '—'} />
+                                <InfoRow label={isArabic ? 'رخصة السياحة' : 'Tourism licence'} value={establishment?.license_number || '—'} />
+                                <InfoRow label={isArabic ? 'انتهاء رخصة السياحة' : 'Licence expiry'} value={establishment?.license_expiry || '—'} />
+                                <InfoRow label={isArabic ? 'رخصة البلدية' : 'Municipality licence'} value={establishment?.municipality_license_number || '—'} />
+                                <InfoRow label={isArabic ? 'انتهاء رخصة البلدية' : 'Municipality expiry'} value={establishment?.municipality_license_expiry || '—'} />
+                                <InfoRow label={isArabic ? 'المسؤول' : 'Responsible'} value={[establishment?.first_name, establishment?.last_name].filter(Boolean).join(' ') || '—'} />
+                                <InfoRow label={isArabic ? 'صفة المسؤول' : 'Responsible position'} value={establishment?.responsible_position || '—'} />
+                                <InfoRow label={isArabic ? 'عدد الفروع' : 'Branches'} value={establishment?.branches_count != null ? String(establishment.branches_count) : '—'} />
                             </CardContent>
                         </Card>
                     </div>
