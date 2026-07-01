@@ -284,6 +284,7 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         Route::middleware('permission:reviews.moderate')->group(function () {
             Route::post('reviews/{review}/status', [ReviewController::class, 'updateStatus'])->name('reviews.status');
             Route::post('reviews/{review}/approve', [ReviewController::class, 'approve'])->name('reviews.approve');
+            Route::post('reviews/{review}/toggle-published', [ReviewController::class, 'togglePublished'])->name('reviews.toggle-published');
             Route::post('reviews/{review}/notify', [ReviewController::class, 'notify'])->name('reviews.notify');
         });
         Route::post('reviews/{review}/reply', [ReviewController::class, 'reply'])->middleware('permission:reviews.reply')->name('reviews.reply');

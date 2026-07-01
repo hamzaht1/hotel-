@@ -112,6 +112,17 @@ class ReviewController extends Controller
     }
 
     /**
+     * Publish or unpublish the review — the admin fully controls whether it is
+     * visible on the tenant site.
+     */
+    public function togglePublished(Review $review)
+    {
+        $review->update(['is_published' => ! $review->is_published]);
+
+        return back()->with('success', $review->is_published ? 'تم نشر المراجعة' : 'تم إلغاء نشر المراجعة');
+    }
+
+    /**
      * Send a notification to the guest (logs an entry — wire to mail later).
      */
     public function notify(Review $review)

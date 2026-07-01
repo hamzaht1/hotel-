@@ -3,7 +3,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     MessageSquare, Star, Smile, Frown, Clock, CheckCircle, AlertTriangle,
-    Search, RotateCcw, Eye, Mail, Send, User as UserIcon, Phone, Calendar,
+    Search, RotateCcw, Eye, EyeOff, Mail, Send, User as UserIcon, Phone, Calendar,
     XCircle, ThumbsUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -99,8 +99,8 @@ export default function ReviewsIndex({ reviews, stats, tenants, filters }: Props
         router.get('/super-admin/reviews', {}, { preserveScroll: true });
     }
 
-    function approve(id: number) {
-        router.post(`/super-admin/reviews/${id}/approve`, {}, { preserveScroll: true });
+    function togglePublished(id: number) {
+        router.post(`/super-admin/reviews/${id}/toggle-published`, {}, { preserveScroll: true });
     }
     function notify(id: number) {
         router.post(`/super-admin/reviews/${id}/notify`, {}, { preserveScroll: true });
@@ -322,9 +322,15 @@ export default function ReviewsIndex({ reviews, stats, tenants, filters }: Props
                                             <Button variant="outline" size="sm" onClick={() => markInReview(rev.id)}>
                                                 <Eye className="h-3.5 w-3.5" /> {isArabic ? 'مراجعة' : 'Review'}
                                             </Button>
-                                            <Button variant="outline" size="sm" onClick={() => approve(rev.id)} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                                                <ThumbsUp className="h-3.5 w-3.5" /> {isArabic ? 'موافقة' : 'Approve'}
-                                            </Button>
+                                            {rev.is_published ? (
+                                                <Button variant="outline" size="sm" onClick={() => togglePublished(rev.id)} className="border-amber-200 text-amber-700 hover:bg-amber-50">
+                                                    <EyeOff className="h-3.5 w-3.5" /> {isArabic ? 'إلغاء النشر' : 'Unpublish'}
+                                                </Button>
+                                            ) : (
+                                                <Button variant="outline" size="sm" onClick={() => togglePublished(rev.id)} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                                                    <ThumbsUp className="h-3.5 w-3.5" /> {isArabic ? 'نشر' : 'Publish'}
+                                                </Button>
+                                            )}
                                             <Button variant="outline" size="sm" onClick={() => notify(rev.id)}>
                                                 <Mail className="h-3.5 w-3.5" /> {isArabic ? 'إعلام' : 'Notify'}
                                             </Button>
