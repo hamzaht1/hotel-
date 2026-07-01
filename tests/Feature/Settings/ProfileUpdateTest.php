@@ -69,6 +69,23 @@ test('user can delete their account', function () {
     expect($user->fresh())->toBeNull();
 });
 
+test('the primary system administrator account cannot be deleted', function () {
+    $admin = User::factory()->superAdmin()->create();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/settings/profile')
+        ->delete('/settings/profile', [
+            'password' => 'password',
+        ]);
+
+    $response->assertForbidden();
+
+    // The account must still exist and remain authenticated.
+    expect($admin->fresh())->not->toBeNull();
+    $this->assertAuthenticatedAs($admin);
+});
+
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
 
