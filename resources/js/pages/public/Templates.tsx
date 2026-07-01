@@ -22,7 +22,8 @@ interface BackendTemplate {
   description_en: string | null;
   preview_url: string | null;
   demo_url: string | null;
-  regions: string[];
+  city_ar: string | null;
+  city_en: string | null;
   is_coming_soon: boolean;
 }
 
@@ -41,17 +42,21 @@ export default function Templates({ templates }: Props) {
   const [visibleCount, setVisibleCount] = useState(9);
   const [preview, setPreview] = useState<BackendTemplate | null>(null);
 
-  // Filter chips: "all" plus the union of regions across all backend templates.
+  // A template's region = the city the admin set on it (localized). Empty city
+  // → no tag, so only cities actually assigned by the admin appear as chips.
+  const cityOf = (t: BackendTemplate) => ((isArabic ? t.city_ar : t.city_en) || t.city_ar || t.city_en || '').trim();
+
+  // Filter chips: "all" plus the set of cities across all backend templates.
   const filters = useMemo(() => {
-    const regions = new Set<string>();
-    templates.forEach((t) => t.regions.forEach((r) => regions.add(r)));
-    return ['all', ...Array.from(regions).sort()];
-  }, [templates]);
+    const cities = new Set<string>();
+    templates.forEach((t) => { const c = cityOf(t); if (c) cities.add(c); });
+    return ['all', ...Array.from(cities).sort()];
+  }, [templates, isArabic]);
 
   const filtered = useMemo(() => {
     if (active === 'all') return templates;
-    return templates.filter((t) => t.regions.includes(active));
-  }, [active, templates]);
+    return templates.filter((t) => cityOf(t) === active);
+  }, [active, templates, isArabic]);
 
   const items = filtered.slice(0, visibleCount);
   const canShowMore = filtered.length > visibleCount;
@@ -108,7 +113,7 @@ export default function Templates({ templates }: Props) {
                           : "text-public-primary border-public-primary hover:bg-public-primary/10 cursor-pointer",
                       ].join(" ")}
                     >
-                      {__(`messages.templates_section.filters.${label}`) || label}
+                      {label === 'all' ? (__('messages.templates_section.filters.all') || (isArabic ? 'الكل' : 'All')) : label}
                     </button>
                   );
                 })}
@@ -128,11 +133,11 @@ export default function Templates({ templates }: Props) {
                 const src = previewImage(item, idx);
                 return (
                   <article key={item.id} className="group relative flex flex-col items-center text-center">
-                    <div className="relative w-full overflow-hidden rounded-xl shadow-md transition-colors duration-300">
+                    <div className="relative w-full aspect-[16/10] overflow-hidden rounded-xl shadow-md transition-colors duration-300">
                       <img
                         src={src}
                         alt={title}
-                        className={`w-full h-auto object-cover transition-transform duration-300 ${item.is_coming_soon ? 'grayscale opacity-60' : 'group-hover:scale-[1.03]'}`}
+                        className={`w-full h-full object-cover transition-transform duration-300 ${item.is_coming_soon ? 'grayscale opacity-60' : 'group-hover:scale-[1.03]'}`}
                         loading="lazy"
                         decoding="async"
                       />
@@ -152,7 +157,15 @@ export default function Templates({ templates }: Props) {
                           <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center opacity-0 transition-all duration-300 group-hover:opacity-100 bg-black/55">
                             <button
                               type="button"
-                              onClick={() => setPreview(item)}
+                              onClick={() => {
+                                // Open the admin-configured live demo in a new tab;
+                                // fall back to the enlarged preview image if none set.
+                                if (item.demo_url) {
+                                  window.open(item.demo_url, '_blank', 'noopener,noreferrer');
+                                } else {
+                                  setPreview(item);
+                                }
+                              }}
                               className="pointer-events-auto inline-flex flex-col items-center gap-2 text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded-md px-3 py-2"
                               aria-label={__("messages.templates_page.preview_aria") || "معاينة القالب"}
                             >

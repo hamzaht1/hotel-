@@ -132,7 +132,10 @@ class TemplateController extends Controller
             'city_en' => 'nullable|string|max:100',
             'description_ar' => 'nullable|string|max:1000',
             'description_en' => 'nullable|string|max:1000',
-            'preview_image' => 'nullable|file|image|max:4096',
+            // Enforce a consistent landscape preview so the cards line up. The
+            // gallery renders every card at a 16:10 ratio, so require a decent
+            // landscape image (recommended 1200×750).
+            'preview_image' => 'nullable|file|image|max:4096|dimensions:min_width=1000,min_height=600',
             'demo_url' => 'nullable|url|max:500',
             'is_active' => 'boolean',
             'is_coming_soon' => 'boolean',

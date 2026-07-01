@@ -70,10 +70,6 @@ Route::get('/templates', function () {
                 ? \Illuminate\Support\Facades\Storage::disk('public')->url($t->preview_image)
                 : null;
 
-            $regions = is_array($t->settings['regions'] ?? null)
-                ? array_values($t->settings['regions'])
-                : [];
-
             return [
                 'id' => $t->id,
                 'key' => $t->key,
@@ -83,7 +79,11 @@ Route::get('/templates', function () {
                 'description_en' => $t->description_en,
                 'preview_url' => $previewUrl,
                 'demo_url' => $t->demo_url,
-                'regions' => $regions,
+                // City is the only region link the admin actually controls (in the
+                // template form). Drive the filter tags from it so no stale/seeded
+                // region (e.g. "المنطقة الوسطى") shows up unless it was assigned.
+                'city_ar' => $t->city_ar,
+                'city_en' => $t->city_en,
                 'is_coming_soon' => (bool) ($t->is_coming_soon ?? false) || !(bool) $t->is_active,
             ];
         })

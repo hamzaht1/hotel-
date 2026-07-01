@@ -87,6 +87,7 @@ export default function TemplateCreate() {
                             </Field>
                             <Field label="Preview image" error={(errors as Record<string, string>).preview_image}>
                                 <Input type="file" accept="image/*" onChange={(e) => setData('preview_image', e.target.files?.[0] ?? null)} />
+                                <p className="mt-1 text-xs text-muted-foreground">صورة أفقية 16:10 — يُفضّل 1200×750 بكسل (الحد الأدنى 1000×600) لتظهر البطاقات بأبعاد موحّدة.</p>
                             </Field>
                             <Field label="Demo URL" error={errors.demo_url}>
                                 <Input type="url" value={data.demo_url} onChange={(e) => setData('demo_url', e.target.value)} placeholder="https://demo.diyafah.com/template" />
