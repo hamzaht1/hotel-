@@ -15,6 +15,8 @@ class Conversation extends Model
     public const SOURCE_SUPPORT = 'support';
     public const SOURCE_CONTACT = 'contact';
     public const SOURCE_BROADCAST = 'broadcast';
+    // Direct message from the platform (super-admin) → shown under "من ضيافة".
+    public const SOURCE_PLATFORM = 'platform';
 
     public const STATUS_NEW = 'new';
     public const STATUS_IN_PROGRESS = 'in_progress';

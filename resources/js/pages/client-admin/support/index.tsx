@@ -18,7 +18,7 @@ interface Conversation {
     subject: string;
     category: Category;
     status: Status;
-    source: 'support' | 'contact' | 'broadcast';
+    source: 'support' | 'contact' | 'broadcast' | 'platform';
     last_message_at: string | null;
     tenant_unread_count: number;
     messages_count: number;
@@ -89,7 +89,7 @@ export default function ClientSupportIndex({ conversations, stats, filters }: Pr
     }
 
     const myRequests = conversations.data.filter((c) => c.source === 'support');
-    const fromDiyafah = conversations.data.filter((c) => c.source === 'contact' || c.source === 'broadcast');
+    const fromDiyafah = conversations.data.filter((c) => c.source === 'contact' || c.source === 'broadcast' || c.source === 'platform');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
