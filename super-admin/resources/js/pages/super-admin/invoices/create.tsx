@@ -34,6 +34,9 @@ interface Props {
 export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, defaultTemplate }: Props) {
     const { t, isArabic } = useT();
     const [clientMode, setClientMode] = useState<'existing' | 'external'>('existing');
+    // Diyafah is not VAT-registered → no tax by default. The admin can opt in
+    // per invoice; turning it off zeroes both tax rates.
+    const [taxEnabled, setTaxEnabled] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('super_admin'), href: '/super-admin' },
@@ -80,7 +83,7 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
         type: 'subscription',
         issue_date: new Date().toISOString().slice(0, 10),
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        tax_rate: 15,
+        tax_rate: 0,
         tax_rate_2: 0,
         discount: 0,
         discount_percent: 0,
@@ -379,14 +382,31 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                             <CardHeader className="pb-3"><CardTitle className="text-base">{isArabic ? 'الحسابات' : 'Totals'}</CardTitle></CardHeader>
                             <CardContent className="space-y-3">
                                 <Row label={isArabic ? 'المجموع الفرعي' : 'Subtotal'} value={`${totals.subtotal.toFixed(2)}`} />
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs">{isArabic ? 'الضريبة 1 (%)' : 'Tax 1 (%)'}</Label>
-                                    <Input type="number" min={0} max={100} step="0.1" value={data.tax_rate} onChange={(e) => setData('tax_rate', parseFloat(e.target.value) || 0)} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs">{isArabic ? 'الضريبة 2 (%)' : 'Tax 2 (%)'}</Label>
-                                    <Input type="number" min={0} max={100} step="0.1" value={data.tax_rate_2} onChange={(e) => setData('tax_rate_2', parseFloat(e.target.value) || 0)} />
-                                </div>
+                                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                                    <Checkbox
+                                        checked={taxEnabled}
+                                        onCheckedChange={(v) => {
+                                            const on = v === true;
+                                            setTaxEnabled(on);
+                                            // Off → clear tax; On → default to 15% VAT (editable).
+                                            setData('tax_rate', on ? 15 : 0);
+                                            if (!on) setData('tax_rate_2', 0);
+                                        }}
+                                    />
+                                    {isArabic ? 'تطبيق ضريبة على هذه الفاتورة' : 'Apply tax to this invoice'}
+                                </label>
+                                {taxEnabled && (
+                                    <>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">{isArabic ? 'الضريبة 1 (%)' : 'Tax 1 (%)'}</Label>
+                                            <Input type="number" min={0} max={100} step="0.1" value={data.tax_rate} onChange={(e) => setData('tax_rate', parseFloat(e.target.value) || 0)} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">{isArabic ? 'الضريبة 2 (%)' : 'Tax 2 (%)'}</Label>
+                                            <Input type="number" min={0} max={100} step="0.1" value={data.tax_rate_2} onChange={(e) => setData('tax_rate_2', parseFloat(e.target.value) || 0)} />
+                                        </div>
+                                    </>
+                                )}
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">{isArabic ? 'خصم ثابت' : 'Flat discount'}</Label>
                                     <Input type="number" min={0} step="0.01" value={data.discount} onChange={(e) => setData('discount', parseFloat(e.target.value) || 0)} />
@@ -395,8 +415,8 @@ export default function CreateInvoice({ tenants, plans, salesReps, nextNumber, d
                                     <Label className="text-xs">{isArabic ? 'خصم (%)' : 'Discount (%)'}</Label>
                                     <Input type="number" min={0} max={100} step="0.1" value={data.discount_percent} onChange={(e) => setData('discount_percent', parseFloat(e.target.value) || 0)} />
                                 </div>
-                                <Row label={isArabic ? 'الضريبة 1' : 'Tax 1'} value={totals.tax1.toFixed(2)} />
-                                {data.tax_rate_2 > 0 && <Row label={isArabic ? 'الضريبة 2' : 'Tax 2'} value={totals.tax2.toFixed(2)} />}
+                                {taxEnabled && <Row label={isArabic ? 'الضريبة 1' : 'Tax 1'} value={totals.tax1.toFixed(2)} />}
+                                {taxEnabled && data.tax_rate_2 > 0 && <Row label={isArabic ? 'الضريبة 2' : 'Tax 2'} value={totals.tax2.toFixed(2)} />}
                                 <Row label={isArabic ? 'الخصم' : 'Discount'} value={`-${totals.discount.toFixed(2)}`} />
                                 <div className="border-t pt-2">
                                     <Row label={isArabic ? 'الإجمالي' : 'Total'} value={`${totals.total.toFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}`} bold />

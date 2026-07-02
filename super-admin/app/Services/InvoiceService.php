@@ -28,7 +28,10 @@ class InvoiceService
     private function createSubscriptionInvoice(Tenant $tenant, Plan $plan, string $paymentMethod, string $notes): Invoice
     {
         $amount = (float) $plan->price;
-        $taxRate = 15.00;
+        // Diyafah is not VAT-registered, so subscription invoices carry no tax by
+        // default. A tax rate can still be applied per-invoice from the admin
+        // invoice form if the company ever registers for VAT.
+        $taxRate = 0.00;
         $taxAmount = round($amount * ($taxRate / 100), 2);
         $total = round($amount + $taxAmount, 2);
 

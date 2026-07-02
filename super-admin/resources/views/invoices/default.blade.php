@@ -168,7 +168,7 @@
         <td class="value">-{{ number_format($invoice->discount, 2) }} {{ $currency }}</td>
     </tr>
     @endif
-    @if(!$s || $s->pdf_show_vat)
+    @if((!$s || $s->pdf_show_vat) && (float) $invoice->tax_rate > 0)
     <tr>
         <td class="label">{{ $L('VAT', 'ض. القيمة المضافة') }} ({{ $invoice->tax_rate }}%):</td>
         <td class="value">{{ number_format($invoice->tax_amount, 2) }} {{ $currency }}</td>

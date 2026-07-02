@@ -12,6 +12,13 @@
         'draft' => 'DRAFT', 'sent' => 'SENT', 'paid' => 'PAID', 'overdue' => 'OVERDUE', 'cancelled' => 'CANCELLED',
     ];
     $currency = $rtl ? 'ر.س' : 'SAR';
+
+    // Company identity comes from the global invoice settings so the PDF reflects
+    // what the admin configured (falls back to the per-invoice header, then brand).
+    $s = $settings ?? null;
+    $companyName = $s ? ($rtl ? ($s->company_name_ar ?: $s->company_name_en) : ($s->company_name_en ?: $s->company_name_ar)) : null;
+    $companyAddress = $s ? ($rtl ? ($s->address_ar ?: $s->address_en) : ($s->address_en ?: $s->address_ar)) : null;
+    $showVat = (!$s || $s->pdf_show_vat) && (float) $invoice->tax_rate > 0;
 @endphp
 <!DOCTYPE html>
 <html dir="{{ $dir }}" lang="{{ $lang }}">
@@ -50,8 +57,17 @@
     <div class="header">
         <table style="width: 100%;"><tr>
             <td>
-                <div class="brand">{{ $invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah') }}</div>
-                <div class="brand-sub">{{ $invoice->tenant?->name ?? $invoice->external_client_name ?? '' }}</div>
+                <div class="brand">{{ $companyName ?: ($invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah')) }}</div>
+                @if(!$s || $s->pdf_show_company_info)
+                    <div class="brand-sub">
+                        @if($companyAddress){{ $companyAddress }}<br>@endif
+                        @if($s && $s->phone){{ $L('Tel:', 'هاتف:') }} {{ $s->phone }}@endif
+                        @if($s && $s->email) · {{ $s->email }}@endif
+                        @if($s && $s->website) · {{ $s->website }}@endif
+                        @if($s && $s->pdf_show_cr && $s->cr)<br>{{ $L('CR:', 'س.ت:') }} {{ $s->cr }}@endif
+                        @if($s && $s->pdf_show_vat && $s->vat) · {{ $L('VAT:', 'ر.ض:') }} {{ $s->vat }}@endif
+                    </div>
+                @endif
             </td>
             <td style="text-align: {{ $rtl ? 'left' : 'right' }};">
                 <div class="invoice-title">{{ $L('INVOICE', 'فاتورة') }}</div>
@@ -100,7 +116,9 @@
         @if($invoice->discount > 0)
         <tr><td class="label">{{ $L('Discount:', 'الخصم:') }}</td><td class="value">-{{ number_format($invoice->discount, 2) }} {{ $currency }}</td></tr>
         @endif
+        @if($showVat)
         <tr><td class="label">{{ $L('VAT', 'ض. القيمة المضافة') }} ({{ $invoice->tax_rate }}%):</td><td class="value">{{ number_format($invoice->tax_amount, 2) }} {{ $currency }}</td></tr>
+        @endif
         <tr class="grand-total"><td class="label">{{ $L('Grand total:', 'الإجمالي الكلي:') }}</td><td class="value">{{ number_format($invoice->total, 2) }} {{ $currency }}</td></tr>
     </table>
 
@@ -117,7 +135,7 @@
     @endif
 
     <div class="footer">
-        {{ $invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah') }} · {{ $L('Thank you for your business', 'شكراً لتعاملكم معنا') }}
+        {{ ($s && $s->footer_line) ? $s->footer_line : ($companyName ?: ($invoice->company_header ?? ($rtl ? 'ضيافة' : 'Diyafah'))) . ' · ' . $L('Thank you for your business', 'شكراً لتعاملكم معنا') }}
     </div>
 </body>
 </html>

@@ -49,8 +49,24 @@ interface Props {
     filters: { search?: string; status?: string };
 }
 
+const PAYMENT_METHOD_LABELS: Record<string, { ar: string; en: string }> = {
+    bank_transfer: { ar: 'تحويل بنكي', en: 'Bank transfer' },
+    moyasar: { ar: 'ميسر', en: 'Moyasar' },
+    tap: { ar: 'تاب', en: 'Tap' },
+    credit_card: { ar: 'بطاقة ائتمان', en: 'Credit card' },
+    mada: { ar: 'مدى', en: 'Mada' },
+    apple_pay: { ar: 'Apple Pay', en: 'Apple Pay' },
+    manual: { ar: 'يدوي', en: 'Manual' },
+};
+
+function paymentMethodLabel(method: string | null, isArabic: boolean): string {
+    if (!method) return '—';
+    const m = PAYMENT_METHOD_LABELS[method];
+    return m ? (isArabic ? m.ar : m.en) : method;
+}
+
 export default function InvoicesIndex({ invoices, stats, filters }: Props) {
-    const { t } = useT();
+    const { t, isArabic } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -205,6 +221,7 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                                     <th className="px-4 py-3 text-start font-medium">{t('type', 'Type')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('amount', 'Amount')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('status', 'Status')}</th>
+                                    <th className="px-4 py-3 text-start font-medium">{t('payment_method', 'Payment method')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('issue_date', 'Issue Date')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('due_date', 'Due Date')}</th>
                                     <th className="px-4 py-3 text-start font-medium">{t('actions', 'Actions')}</th>
@@ -221,6 +238,7 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                                         <td className="px-4 py-3">{typeBadge(invoice.type)}</td>
                                         <td className="px-4 py-3 font-medium">{Number(invoice.total).toLocaleString()} SAR</td>
                                         <td className="px-4 py-3">{statusBadge(invoice.status)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{paymentMethodLabel(invoice.payment_method, isArabic)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{invoice.issue_date}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{invoice.due_date}</td>
                                         <td className="px-4 py-3">
@@ -246,7 +264,7 @@ export default function InvoicesIndex({ invoices, stats, filters }: Props) {
                                 ))}
                                 {invoices.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                                        <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                                             {t('no_invoices_found', 'No invoices found')}
                                         </td>
                                     </tr>

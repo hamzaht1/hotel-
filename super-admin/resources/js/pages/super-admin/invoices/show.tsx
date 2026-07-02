@@ -277,10 +277,12 @@ export default function ShowInvoice({ invoice, settings, defaultBank, defaultTer
                                 <span className="text-muted-foreground">{t('discount', 'Discount')}</span>
                                 <span className="font-medium text-red-600">-{Number(invoice.discount).toLocaleString()} SAR</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">{t('tax', 'Tax')} ({invoice.tax_rate}%)</span>
-                                <span className="font-medium">{Number(invoice.tax_amount).toLocaleString()} SAR</span>
-                            </div>
+                            {Number(invoice.tax_rate) > 0 && (
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('tax', 'Tax')} ({invoice.tax_rate}%)</span>
+                                    <span className="font-medium">{Number(invoice.tax_amount).toLocaleString()} SAR</span>
+                                </div>
+                            )}
                             <div className="flex justify-between border-t pt-2 text-base font-bold">
                                 <span>{t('grand_total', 'Grand Total')}</span>
                                 <span>{Number(invoice.total).toLocaleString()} SAR</span>
