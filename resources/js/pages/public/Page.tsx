@@ -33,7 +33,15 @@ export default function Page({ page }: Props) {
     const content = isArabic ? page.content_ar : page.content_en;
     const metaDescription = isArabic ? page.meta_description_ar : page.meta_description_en;
 
-    const useCustomHeader = page.show_header && page.header_config !== null;
+    // Only treat it as a custom header when the admin actually configured one
+    // (a logo or at least one usable link). Otherwise fall back to the default
+    // Diyafah header (logo, nav links and subscribe button).
+    const cfg = page.header_config;
+    const hasMeaningfulCustomHeader = !!cfg && (
+        !!(cfg.logo_url && cfg.logo_url.trim()) ||
+        (Array.isArray(cfg.links) && cfg.links.some((l) => l.url && (l.label_ar || l.label_en)))
+    );
+    const useCustomHeader = page.show_header && hasMeaningfulCustomHeader;
     const formFields = page.form_fields ?? [];
     const hasForm = formFields.length > 0;
 
