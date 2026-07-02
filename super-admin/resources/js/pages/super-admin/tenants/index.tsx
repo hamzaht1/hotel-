@@ -42,6 +42,7 @@ interface Tenant {
     created_at: string;
     pending_count: number | null;
     last_request_at: string | null;
+    last_request_status: string | null;
     tags: Tag[];
 }
 
@@ -77,6 +78,8 @@ function deriveStatus(t: Tenant): 'completed' | 'pending' | 'expired' | 'rejecte
     if ((t.pending_count ?? 0) > 0) return 'pending';
     if (t.payment_status === 'pending') return 'pending';
     if (t.payment_status === 'rejected') return 'rejected';
+    // A rejected latest renewal must not read as "completed".
+    if (t.last_request_status === 'rejected') return 'rejected';
     if (!t.is_active) return 'inactive';
     if (t.subscription_ends_at && new Date(t.subscription_ends_at) < new Date()) return 'expired';
     return 'completed';

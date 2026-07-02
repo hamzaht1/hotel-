@@ -38,13 +38,16 @@ class TenantController extends Controller
                     ->select('tenant_id')
                     ->selectRaw('count(*) filter (where status = ?) as pending_count', ['pending'])
                     ->selectRaw('max(created_at) as last_request_at')
+                    // Status of the most recent renewal request, so a rejected
+                    // renewal is reflected in the row status (not shown as completed).
+                    ->selectRaw('(array_agg(status ORDER BY created_at DESC))[1] as last_request_status')
                     ->groupBy('tenant_id'),
                 'req_stats',
                 'req_stats.tenant_id',
                 '=',
                 'tenants.id',
             )
-            ->select('tenants.*', 'req_stats.pending_count', 'req_stats.last_request_at');
+            ->select('tenants.*', 'req_stats.pending_count', 'req_stats.last_request_at', 'req_stats.last_request_status');
 
         // ─── Search (name / email / domain / invoice number) ───────
         if ($search = $request->search) {
