@@ -430,7 +430,11 @@ export default function TenantShow({ tenant, primary_user, latest_invoice, lates
                                 <CreditCard className="h-4 w-4" />
                                 {isArabic ? 'عملية الدفع' : 'Payment operation'}
                             </CardTitle>
-                            {latest_invoice && paymentStatusBadge(latest_invoice.status, isArabic)}
+                            {latest_renewal && latest_renewal.status === 'pending' ? (
+                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 gap-1"><Clock className="h-3 w-3" />{isArabic ? 'بانتظار الدفع' : 'Awaiting payment'}</Badge>
+                            ) : (
+                                latest_invoice && paymentStatusBadge(latest_invoice.status, isArabic)
+                            )}
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="flex items-center gap-3">

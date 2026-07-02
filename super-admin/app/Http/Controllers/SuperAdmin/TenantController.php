@@ -294,16 +294,17 @@ class TenantController extends Controller
             ->latest('issue_date')
             ->first();
 
-        $latestRenewal = \App\Models\RenewalRequest::where('tenant_id', $tenant->id)
+        $renewals = \App\Models\RenewalRequest::where('tenant_id', $tenant->id)
             ->with('processedByUser:id,name')
-            ->latest('created_at')
-            ->first();
+            ->orderBy('created_at')
+            ->get();
+        $latestRenewal = $renewals->last();
 
         $completedRequestsCount = \App\Models\Tenant::where('email', $primaryUser?->email ?? '---never---')
             ->where('payment_status', 'approved')
             ->count();
 
-        $activity = $this->buildActivity($tenant, $latestRenewal);
+        $activity = $this->buildActivity($tenant, $renewals);
 
         return Inertia::render('super-admin/tenants/show', [
             'tenant' => $tenant,
@@ -320,47 +321,76 @@ class TenantController extends Controller
         ]);
     }
 
-    private function buildActivity(Tenant $tenant, ?\App\Models\RenewalRequest $renewal): array
+    /**
+     * Chronological activity log. Each payment/renewal gets its OWN entries with
+     * its own real dates — the timeline no longer mixes tenant-level and
+     * latest-renewal dates (which produced out-of-order, stale entries).
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\RenewalRequest>  $renewals
+     */
+    private function buildActivity(Tenant $tenant, \Illuminate\Support\Collection $renewals): array
     {
-        $events = [
-            [
-                'label_ar' => 'تم إنشاء الطلب',
-                'label_en' => 'Request created',
-                'date' => $tenant->created_at->toDateTimeString(),
-                'type' => 'created',
-                'actor' => null,
-            ],
+        $ts = fn ($d) => $d instanceof \Carbon\Carbon ? $d->toDateTimeString() : ($d ? (string) $d : null);
+        $events = [];
+
+        $events[] = [
+            'label_ar' => 'تم إنشاء الطلب',
+            'label_en' => 'Request created',
+            'date' => $ts($tenant->created_at),
+            'type' => 'created',
+            'actor' => null,
         ];
 
-        if ($tenant->payment_status === 'pending' || $renewal) {
-            $when = $renewal?->created_at ?? $tenant->created_at;
+        // Initial subscription payment (distinct from later renewals).
+        if ($tenant->payment_status === 'approved' && ($tenant->approved_at || $tenant->subscription_starts_at)) {
             $events[] = [
-                'label_ar' => 'تم تغيير الحالة من جديد إلى قيد المراجعة',
-                'label_en' => 'Status changed from new to under review',
-                'date' => $when->toDateTimeString(),
+                'label_ar' => 'تم تأكيد الدفع الأولي',
+                'label_en' => 'Initial payment confirmed',
+                'date' => $ts($tenant->approved_at ?? $tenant->subscription_starts_at),
+                'type' => 'payment',
+                'actor' => $tenant->approver?->name,
+            ];
+        } elseif ($tenant->payment_status === 'pending') {
+            $events[] = [
+                'label_ar' => 'قيد المراجعة',
+                'label_en' => 'Under review',
+                'date' => $ts($tenant->created_at),
                 'type' => 'review',
                 'actor' => null,
             ];
         }
 
-        if ($tenant->payment_status === 'approved') {
-            $processor = $renewal?->processedByUser ?? $tenant->approver;
-            $when = $renewal?->processed_at ?? $tenant->approved_at ?? $tenant->subscription_starts_at ?? $tenant->updated_at;
+        // One record per renewal request, using its own dates/status.
+        foreach ($renewals as $r) {
             $events[] = [
-                'label_ar' => 'تم تأكيد عملية الدفع',
-                'label_en' => 'Payment confirmed',
-                'date' => $when ? ($when instanceof \Carbon\Carbon ? $when->toDateTimeString() : (string) $when) : null,
-                'type' => 'payment',
-                'actor' => $processor?->name,
+                'label_ar' => 'طلب تجديد قيد المراجعة',
+                'label_en' => 'Renewal request — under review',
+                'date' => $ts($r->requested_at ?? $r->created_at),
+                'type' => 'review',
+                'actor' => null,
             ];
-            $events[] = [
-                'label_ar' => 'تم تغيير الحالة من قيد التنفيذ إلى مكتمل',
-                'label_en' => 'Status changed from in-progress to completed',
-                'date' => $tenant->approved_at?->toDateTimeString() ?? $tenant->updated_at?->toDateTimeString(),
-                'type' => 'completed',
-                'actor' => $tenant->approver?->name,
-            ];
+
+            if ($r->status === 'approved') {
+                $events[] = [
+                    'label_ar' => 'تم تأكيد دفع التجديد',
+                    'label_en' => 'Renewal payment confirmed',
+                    'date' => $ts($r->processed_at ?? $r->updated_at),
+                    'type' => 'payment',
+                    'actor' => $r->processedByUser?->name,
+                ];
+            } elseif ($r->status === 'rejected') {
+                $events[] = [
+                    'label_ar' => 'تم رفض طلب التجديد',
+                    'label_en' => 'Renewal request rejected',
+                    'date' => $ts($r->processed_at ?? $r->updated_at),
+                    'type' => 'completed',
+                    'actor' => $r->processedByUser?->name,
+                ];
+            }
         }
+
+        // Sort chronologically so the timeline reads left-to-right in real order.
+        usort($events, fn ($a, $b) => strcmp((string) $a['date'], (string) $b['date']));
 
         return $events;
     }
