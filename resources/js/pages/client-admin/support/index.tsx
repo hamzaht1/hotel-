@@ -4,7 +4,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     MessageSquare, AlertCircle, HelpCircle, Wrench, Plus, Sparkles,
-    Inbox, CheckCircle,
+    Inbox, CheckCircle, Mail, Phone, User,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,9 @@ interface Conversation {
     category: Category;
     status: Status;
     source: 'support' | 'contact' | 'broadcast' | 'platform';
+    client_name: string | null;
+    client_email: string | null;
+    client_phone: string | null;
     last_message_at: string | null;
     tenant_unread_count: number;
     messages_count: number;
@@ -89,7 +92,9 @@ export default function ClientSupportIndex({ conversations, stats, filters }: Pr
     }
 
     const myRequests = conversations.data.filter((c) => c.source === 'support');
-    const fromDiyafah = conversations.data.filter((c) => c.source === 'contact' || c.source === 'broadcast' || c.source === 'platform');
+    // Visitor "Contact us" submissions get their own section (not "From Diyafah").
+    const contactMessages = conversations.data.filter((c) => c.source === 'contact');
+    const fromDiyafah = conversations.data.filter((c) => c.source === 'broadcast' || c.source === 'platform');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -186,7 +191,50 @@ export default function ClientSupportIndex({ conversations, stats, filters }: Pr
                     </div>
                 </section>
 
-                {/* From Diyafah (contact source / future broadcasts) */}
+                {/* Contact-us messages from website visitors — own section with the visitor's details */}
+                {contactMessages.length > 0 && (
+                    <section className="space-y-2">
+                        <h2 className="text-sm font-semibold text-muted-foreground">{isArabic ? 'رسائل تواصل معنا' : 'Contact messages'}</h2>
+                        <div className="rounded-lg border bg-card divide-y">
+                            {contactMessages.map((c) => (
+                                <Link key={c.id} href={`/client-admin/support/${c.id}`}
+                                    className="block p-3 hover:bg-muted/50 transition">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="h-9 w-9 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0">
+                                                <Mail className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-semibold truncate">{c.subject}</div>
+                                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                                    <User className="h-3 w-3" /> {c.client_name || '—'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            {c.tenant_unread_count > 0 && (
+                                                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground text-background text-[10px] px-1">
+                                                    {c.tenant_unread_count}
+                                                </span>
+                                            )}
+                                            <span className="text-[10px] text-muted-foreground">{formatRelative(c.last_message_at, isArabic)}</span>
+                                        </div>
+                                    </div>
+                                    {/* Visitor contact details */}
+                                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground ps-11" dir="ltr">
+                                        {c.client_email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{c.client_email}</span>}
+                                        {c.client_phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{c.client_phone}</span>}
+                                    </div>
+                                    {c.latest_message && (
+                                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2 ps-11">{c.latest_message.body}</p>
+                                    )}
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* From Diyafah (platform broadcasts / direct messages) */}
                 {fromDiyafah.length > 0 && (
                     <section className="space-y-2">
                         <h2 className="text-sm font-semibold text-muted-foreground">{isArabic ? 'من ضيافة' : 'From Diyafah'}</h2>

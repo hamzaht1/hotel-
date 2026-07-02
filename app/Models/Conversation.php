@@ -26,6 +26,8 @@ class Conversation extends Model
     public const CATEGORY_COMPLAINT = 'complaint';
     public const CATEGORY_INQUIRY = 'inquiry';
     public const CATEGORY_TECHNICAL = 'technical';
+    // Public "Contact us" form submissions get their own category.
+    public const CATEGORY_CONTACT = 'contact';
 
     protected $fillable = [
         'tenant_id',
@@ -37,6 +39,7 @@ class Conversation extends Model
         'created_by_user_id',
         'client_name',
         'client_email',
+        'client_phone',
         'assigned_to_user_id',
         'last_message_at',
         'tenant_unread_count',

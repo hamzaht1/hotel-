@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useT } from '@/hooks/use-translations';
 
 type Status = 'new' | 'in_progress' | 'closed';
-type Category = 'support' | 'complaint' | 'inquiry' | 'technical';
+type Category = 'support' | 'complaint' | 'inquiry' | 'technical' | 'contact';
 
 interface ConversationListItem {
     id: number;
@@ -37,6 +37,7 @@ interface Attachment {
 
 interface ConversationFull extends ConversationListItem {
     client_email: string | null;
+    client_phone: string | null;
     messages: Array<{
         id: number; sender_type: 'tenant' | 'admin'; sender_name: string; body: string;
         created_at: string; read_at: string | null;
@@ -62,6 +63,7 @@ const CATEGORY_META: Record<Category, { ar: string; en: string; color: string; i
     complaint: { ar: 'الشكاوى', en: 'Complaints', color: 'bg-red-500', icon: AlertCircle },
     inquiry: { ar: 'الاستفسارات', en: 'Inquiries', color: 'bg-emerald-500', icon: MessageSquare },
     technical: { ar: 'المشاكل التقنية', en: 'Technical', color: 'bg-orange-500', icon: Wrench },
+    contact: { ar: 'تواصل معنا', en: 'Contact us', color: 'bg-violet-500', icon: Mail },
 };
 
 const STATUS_META: Record<Status, { ar: string; en: string; cls: string }> = {
@@ -188,6 +190,7 @@ export default function SupportIndex({ conversations, selected, stats, filters }
         { key: 'complaint', label: CATEGORY_META.complaint[isArabic ? 'ar' : 'en'], icon: AlertCircle, color: 'bg-red-500' },
         { key: 'inquiry', label: CATEGORY_META.inquiry[isArabic ? 'ar' : 'en'], icon: MessageSquare, color: 'bg-emerald-500' },
         { key: 'technical', label: CATEGORY_META.technical[isArabic ? 'ar' : 'en'], icon: Wrench, color: 'bg-orange-500' },
+        { key: 'contact', label: CATEGORY_META.contact[isArabic ? 'ar' : 'en'], icon: Mail, color: 'bg-violet-500' },
     ], [isArabic]);
 
     return (
@@ -341,6 +344,20 @@ export default function SupportIndex({ conversations, selected, stats, filters }
                                                 <span className="text-sm truncate">{selected.client_name}</span>
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-0.5">{selected.subject}</div>
+                                            {(selected.client_email || selected.client_phone) && (
+                                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                                                    {selected.client_email && (
+                                                        <a href={`mailto:${selected.client_email}`} className="hover:text-primary" dir="ltr">
+                                                            <Mail className="inline h-3 w-3 me-1" />{selected.client_email}
+                                                        </a>
+                                                    )}
+                                                    {selected.client_phone && (
+                                                        <a href={`tel:${selected.client_phone}`} className="hover:text-primary" dir="ltr">
+                                                            📞 {selected.client_phone}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
                                             {selected.assigned_to && (
                                                 <div className="text-[11px] text-muted-foreground mt-1">
                                                     <UserCheck className="inline h-3 w-3 me-1" />

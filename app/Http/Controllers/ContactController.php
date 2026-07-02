@@ -41,12 +41,13 @@ class ContactController extends Controller
         // (tenant_id = null) inquiries under the same "تواصل معنا" tab.
         $conversation = Conversation::withoutGlobalScope('tenant')->create([
             'tenant_id' => $tenantId,
-            'category' => Conversation::CATEGORY_INQUIRY,
+            'category' => Conversation::CATEGORY_CONTACT,
             'status' => Conversation::STATUS_NEW,
             'subject' => $validated['subject'] ?? 'Contact form submission',
             'source' => Conversation::SOURCE_CONTACT,
             'client_name' => $validated['name'],
             'client_email' => $validated['email'] ?? null,
+            'client_phone' => $validated['phone'] ?? null,
             'last_message_at' => Carbon::now(),
             'admin_unread_count' => 1,
         ]);

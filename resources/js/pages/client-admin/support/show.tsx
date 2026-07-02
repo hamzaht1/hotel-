@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useT } from '@/hooks/use-translations';
 
 type Status = 'new' | 'in_progress' | 'closed';
-type Category = 'support' | 'complaint' | 'inquiry' | 'technical';
+type Category = 'support' | 'complaint' | 'inquiry' | 'technical' | 'contact';
 
 interface Attachment {
     id: number;
@@ -25,7 +25,10 @@ interface ConversationFull {
     subject: string;
     category: Category;
     status: Status;
-    source: 'support' | 'contact' | 'broadcast';
+    source: 'support' | 'contact' | 'broadcast' | 'platform';
+    client_name: string | null;
+    client_email: string | null;
+    client_phone: string | null;
     assigned_to: { id: number; name: string } | null;
     messages: Array<{
         id: number;
@@ -42,6 +45,7 @@ const CATEGORY_META: Record<Category, { ar: string; en: string }> = {
     complaint: { ar: 'شكوى', en: 'Complaint' },
     inquiry: { ar: 'استفسار', en: 'Inquiry' },
     technical: { ar: 'تقني', en: 'Technical' },
+    contact: { ar: 'تواصل معنا', en: 'Contact us' },
 };
 
 const STATUS_META: Record<Status, { ar: string; en: string; cls: string }> = {
@@ -115,6 +119,19 @@ export default function ClientSupportShow({ conversation }: { conversation: Conv
                             </span>
                         </div>
                     </div>
+                    {conversation.source === 'contact' && (conversation.client_name || conversation.client_email || conversation.client_phone) && (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+                            {conversation.client_name && (
+                                <span className="font-medium">{isArabic ? 'المرسل' : 'Sender'}: {conversation.client_name}</span>
+                            )}
+                            {conversation.client_email && (
+                                <a href={`mailto:${conversation.client_email}`} className="text-muted-foreground hover:text-primary" dir="ltr">✉ {conversation.client_email}</a>
+                            )}
+                            {conversation.client_phone && (
+                                <a href={`tel:${conversation.client_phone}`} className="text-muted-foreground hover:text-primary" dir="ltr">📞 {conversation.client_phone}</a>
+                            )}
+                        </div>
+                    )}
                     {conversation.assigned_to && (
                         <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1">
                             <Sparkles className="h-3.5 w-3.5 text-amber-500" />

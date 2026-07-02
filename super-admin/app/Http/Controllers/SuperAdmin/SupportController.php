@@ -191,6 +191,7 @@ class SupportController extends Controller
                 'complaint' => $nonBroadcast()->where('category', Conversation::CATEGORY_COMPLAINT)->count(),
                 'inquiry' => $nonBroadcast()->where('category', Conversation::CATEGORY_INQUIRY)->count(),
                 'technical' => $nonBroadcast()->where('category', Conversation::CATEGORY_TECHNICAL)->count(),
+                'contact' => $nonBroadcast()->where('category', Conversation::CATEGORY_CONTACT)->count(),
             ],
             'tabs' => [
                 'all' => $nonBroadcast()->count(),
