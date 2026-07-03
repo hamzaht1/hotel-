@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\InvoiceService;
 use App\Services\MoyasarPaymentService;
 use App\Support\Mailer;
+use App\Support\RegistrationForm;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,26 +102,17 @@ class SetupController extends Controller
         syncLangFiles('messages');
         return Inertia::render('public/setup/Org', [
             'setup' => session('setup', []),
+            'formConfig' => RegistrationForm::withMeta(),
         ]);
     }
 
     public function storeOrg(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        // org name is always required; the rest honour the admin's field config.
+        $data = $request->validate(array_merge([
             'org_name_ar' => 'required|string|max:255',
             'org_name_en' => 'required|string|max:255',
-            // Optional official establishment data captured at registration.
-            'commercial_activity' => 'nullable|string|max:255',
-            'branches_count' => 'nullable|integer|min:0|max:9999',
-            'manager_type' => 'nullable|in:owner,manager',
-            'responsible_position' => 'nullable|string|max:100',
-            'cr_number' => 'nullable|string|max:50',
-            'vat_number' => 'nullable|string|max:50',
-            'license_number' => 'nullable|string|max:50',
-            'license_expiry' => 'nullable|date',
-            'municipality_license_number' => 'nullable|string|max:50',
-            'municipality_license_expiry' => 'nullable|date',
-        ]);
+        ], RegistrationForm::rulesForStep('org')));
 
         $slug = Str::slug($data['org_name_en']);
 
@@ -149,42 +141,69 @@ class SetupController extends Controller
         syncLangFiles('messages');
         return Inertia::render('public/setup/Account', [
             'setup' => session('setup', []),
+            'formConfig' => RegistrationForm::withMeta(),
         ]);
     }
 
     public function storeAccount(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        $config = RegistrationForm::config();
+
+        // username / email / password are always required; the rest honour config.
+        $data = $request->validate(array_merge([
             'username' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8',
-            'first_name' => 'required|string|max:100',
-            'last_name' => 'required|string|max:100',
-            'city' => 'required|string|max:100',
-            'phone' => 'required|string|max:30',
-        ]);
+        ], RegistrationForm::rulesForStep('account')));
 
         $setup = session('setup', []);
         $setup['username'] = $data['username'];
         $setup['email'] = $data['email'];
         $setup['password'] = $data['password'];
-        $setup['first_name'] = $data['first_name'];
-        $setup['last_name'] = $data['last_name'];
-        $setup['city'] = $data['city'];
-        $setup['phone'] = $data['phone'];
+        foreach (['first_name', 'last_name', 'city', 'phone'] as $f) {
+            $setup[$f] = $data[$f] ?? null;
+        }
 
-        // Generate OTP
-        $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $setup['otp_code'] = $otpCode;
-        $setup['otp_expires_at'] = now()->addMinutes(10)->toISOString();
+        $requireEmail = (bool) $config['require_email_verification'];
+        // Phone verification only applies when a phone number was actually provided.
+        $requirePhone = (bool) $config['require_phone_verification'] && !empty($setup['phone']);
+        $setup['require_email_verification'] = $requireEmail;
+        $setup['require_phone_verification'] = $requirePhone;
+
+        if ($requireEmail) {
+            $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $setup['otp_code'] = $otpCode;
+            $setup['otp_expires_at'] = now()->addMinutes(10)->toISOString();
+        } else {
+            unset($setup['otp_code'], $setup['otp_expires_at']);
+        }
+
+        if ($requirePhone) {
+            $phoneOtp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $setup['phone_otp_code'] = $phoneOtp;
+            $setup['phone_otp_expires_at'] = now()->addMinutes(10)->toISOString();
+            // SMS gateway not wired yet — log the code so it can be delivered/tested.
+            Log::info('Setup phone OTP (SMS integration pending)', ['phone' => $setup['phone'], 'code' => $phoneOtp]);
+        } else {
+            unset($setup['phone_otp_code'], $setup['phone_otp_expires_at']);
+        }
+
+        // No verification at all → skip the OTP step entirely.
+        if (!$requireEmail && !$requirePhone) {
+            $setup['otp_verified'] = true;
+            session(['setup' => $setup]);
+            return redirect()->route('setup.review');
+        }
 
         session(['setup' => $setup]);
 
-        Mailer::sendIfConfigured(
-            $data['email'],
-            fn () => new SetupOtpMail(otpCode: $otpCode, userName: $data['username']),
-            'setup OTP'
-        );
+        if ($requireEmail) {
+            Mailer::sendIfConfigured(
+                $data['email'],
+                fn () => new SetupOtpMail(otpCode: $setup['otp_code'], userName: $data['username']),
+                'setup OTP'
+            );
+        }
 
         return redirect()->route('setup.verifyOtp');
     }
@@ -202,30 +221,47 @@ class SetupController extends Controller
 
         return Inertia::render('public/setup/VerifyOtp', [
             'email' => $setup['email'] ?? '',
+            'phone' => $setup['phone'] ?? '',
+            'requireEmail' => (bool) ($setup['require_email_verification'] ?? true),
+            'requirePhone' => (bool) ($setup['require_phone_verification'] ?? false),
             'debugOtp' => config('app.debug') ? ($setup['otp_code'] ?? null) : null,
+            'debugPhoneOtp' => config('app.debug') ? ($setup['phone_otp_code'] ?? null) : null,
         ]);
     }
 
     public function checkOtp(Request $request): RedirectResponse
     {
-        $request->validate([
-            'otp' => 'required|string|size:6',
-        ]);
-
         $setup = session('setup', []);
+        $requireEmail = (bool) ($setup['require_email_verification'] ?? true);
+        $requirePhone = (bool) ($setup['require_phone_verification'] ?? false);
 
-        if (empty($setup['otp_code'])) {
-            return back()->withErrors(['otp' => 'لم يتم إرسال رمز التحقق. أعد المحاولة.']);
+        $rules = [];
+        if ($requireEmail) $rules['otp'] = 'required|string|size:6';
+        if ($requirePhone) $rules['phone_otp'] = 'required|string|size:6';
+        $request->validate($rules);
+
+        if ($requireEmail) {
+            if (empty($setup['otp_code'])) {
+                return back()->withErrors(['otp' => 'لم يتم إرسال رمز التحقق. أعد المحاولة.']);
+            }
+            if (now()->isAfter($setup['otp_expires_at'])) {
+                return back()->withErrors(['otp' => 'انتهت صلاحية رمز التحقق. أعد الإرسال.']);
+            }
+            if ($request->otp !== $setup['otp_code']) {
+                return back()->withErrors(['otp' => 'رمز التحقق غير صحيح.']);
+            }
         }
 
-        // Check expiry
-        if (now()->isAfter($setup['otp_expires_at'])) {
-            return back()->withErrors(['otp' => 'انتهت صلاحية رمز التحقق. أعد الإرسال.']);
-        }
-
-        // Check code
-        if ($request->otp !== $setup['otp_code']) {
-            return back()->withErrors(['otp' => 'رمز التحقق غير صحيح.']);
+        if ($requirePhone) {
+            if (empty($setup['phone_otp_code'])) {
+                return back()->withErrors(['phone_otp' => 'لم يتم إرسال رمز تحقق الجوال. أعد المحاولة.']);
+            }
+            if (now()->isAfter($setup['phone_otp_expires_at'])) {
+                return back()->withErrors(['phone_otp' => 'انتهت صلاحية رمز تحقق الجوال. أعد الإرسال.']);
+            }
+            if ($request->phone_otp !== $setup['phone_otp_code']) {
+                return back()->withErrors(['phone_otp' => 'رمز تحقق الجوال غير صحيح.']);
+            }
         }
 
         $setup['otp_verified'] = true;
@@ -242,16 +278,25 @@ class SetupController extends Controller
             return redirect()->route('setup.account');
         }
 
-        $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $setup['otp_code'] = $otpCode;
-        $setup['otp_expires_at'] = now()->addMinutes(10)->toISOString();
-        session(['setup' => $setup]);
+        if (!empty($setup['require_email_verification'])) {
+            $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $setup['otp_code'] = $otpCode;
+            $setup['otp_expires_at'] = now()->addMinutes(10)->toISOString();
+            Mailer::sendIfConfigured(
+                $setup['email'],
+                fn () => new SetupOtpMail(otpCode: $otpCode, userName: $setup['username'] ?? ''),
+                'OTP resend'
+            );
+        }
 
-        Mailer::sendIfConfigured(
-            $setup['email'],
-            fn () => new SetupOtpMail(otpCode: $otpCode, userName: $setup['username'] ?? ''),
-            'OTP resend'
-        );
+        if (!empty($setup['require_phone_verification'])) {
+            $phoneOtp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $setup['phone_otp_code'] = $phoneOtp;
+            $setup['phone_otp_expires_at'] = now()->addMinutes(10)->toISOString();
+            Log::info('Setup phone OTP resend (SMS integration pending)', ['phone' => $setup['phone'] ?? null, 'code' => $phoneOtp]);
+        }
+
+        session(['setup' => $setup]);
 
         return back()->with('success', 'تم إعادة إرسال رمز التحقق.');
     }

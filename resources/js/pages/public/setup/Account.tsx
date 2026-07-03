@@ -6,13 +6,26 @@ import FormInput from "@/components/public/setup/FormInput";
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import { useLang } from '@/hooks/useLang'
 
-interface Props {
-  setup: Record<string, string>
+interface FieldCfg { enabled: boolean; required: boolean }
+interface FormConfig {
+  fields: Record<string, FieldCfg>
+  require_email_verification: boolean
+  require_phone_verification: boolean
 }
 
-export default function Account({ setup }: Props) {
+interface Props {
+  setup: Record<string, string>
+  formConfig: FormConfig
+}
+
+export default function Account({ setup, formConfig }: Props) {
   const { __ } = useLang()
   const serverErrors = usePage().props.errors as Record<string, string>;
+
+  // Field visibility / requiredness driven by the super-admin registration config.
+  const fields = formConfig?.fields ?? {};
+  const shown = (k: string) => fields[k]?.enabled ?? true;
+  const req = (k: string) => (fields[k]?.enabled ?? true) && (fields[k]?.required ?? false);
 
   const [firstName, setFirstName] = useState(setup?.first_name || "");
   const [lastName, setLastName] = useState(setup?.last_name || "");
@@ -27,10 +40,10 @@ export default function Account({ setup }: Props) {
   const validate = () => {
     const e: Record<string, string> = {};
     const required = __("messages.setup.account_information.required_field");
-    if (!firstName.trim()) e.first_name = required;
-    if (!lastName.trim()) e.last_name = required;
-    if (!city.trim()) e.city = required;
-    if (!phone.trim()) e.phone = required;
+    if (req('first_name') && !firstName.trim()) e.first_name = required;
+    if (req('last_name') && !lastName.trim()) e.last_name = required;
+    if (req('city') && !city.trim()) e.city = required;
+    if (req('phone') && !phone.trim()) e.phone = required;
     if (!username.trim()) e.username = required;
     if (!email.trim()) e.email = required;
     else if (!/^\S+@\S+\.\S+$/.test(email)) e.email = __("messages.setup.account_information.invalid_email");
@@ -73,46 +86,56 @@ export default function Account({ setup }: Props) {
               </h1>
             </AnimatedHeading>
             <div className="grid gap-5">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {(shown('first_name') || shown('last_name')) && (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  {shown('first_name') && (
+                    <FormInput
+                      id="first_name"
+                      label={__("messages.setup.account.first_name_label")}
+                      placeholder={__("messages.setup.account.first_name_placeholder")}
+                      value={firstName}
+                      onChange={setFirstName}
+                      required={req('first_name')}
+                      error={errors.first_name ?? null}
+                    />
+                  )}
+                  {shown('last_name') && (
+                    <FormInput
+                      id="last_name"
+                      label={__("messages.setup.account.last_name_label")}
+                      placeholder={__("messages.setup.account.last_name_placeholder")}
+                      value={lastName}
+                      onChange={setLastName}
+                      required={req('last_name')}
+                      error={errors.last_name ?? null}
+                    />
+                  )}
+                </div>
+              )}
+              {shown('city') && (
                 <FormInput
-                  id="first_name"
-                  label={__("messages.setup.account.first_name_label")}
-                  placeholder={__("messages.setup.account.first_name_placeholder")}
-                  value={firstName}
-                  onChange={setFirstName}
-                  required
-                  error={errors.first_name ?? null}
+                  id="city"
+                  label={__("messages.setup.account.city_label")}
+                  placeholder={__("messages.setup.account.city_placeholder")}
+                  value={city}
+                  onChange={setCity}
+                  required={req('city')}
+                  error={errors.city ?? null}
                 />
+              )}
+              {shown('phone') && (
                 <FormInput
-                  id="last_name"
-                  label={__("messages.setup.account.last_name_label")}
-                  placeholder={__("messages.setup.account.last_name_placeholder")}
-                  value={lastName}
-                  onChange={setLastName}
-                  required
-                  error={errors.last_name ?? null}
+                  id="phone"
+                  label={__("messages.setup.account.phone_label")}
+                  placeholder={__("messages.setup.account.phone_placeholder")}
+                  value={phone}
+                  onChange={setPhone}
+                  required={req('phone')}
+                  error={errors.phone ?? serverErrors?.phone ?? null}
+                  inputMode="tel"
+                  prefix="+966"
                 />
-              </div>
-              <FormInput
-                id="city"
-                label={__("messages.setup.account.city_label")}
-                placeholder={__("messages.setup.account.city_placeholder")}
-                value={city}
-                onChange={setCity}
-                required
-                error={errors.city ?? null}
-              />
-              <FormInput
-                id="phone"
-                label={__("messages.setup.account.phone_label")}
-                placeholder={__("messages.setup.account.phone_placeholder")}
-                value={phone}
-                onChange={setPhone}
-                required
-                error={errors.phone ?? serverErrors?.phone ?? null}
-                inputMode="tel"
-                prefix="+966"
-              />
+              )}
               <FormInput
                 id="username"
                 label={__("messages.setup.account_information.username_label")}

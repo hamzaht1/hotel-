@@ -243,6 +243,10 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         Route::middleware('permission:site_settings.edit')->group(function () {
             Route::get('site-settings', [SiteSettingController::class, 'index'])->name('site-settings.index');
             Route::put('site-settings', [SiteSettingController::class, 'update'])->name('site-settings.update');
+
+            // Client registration form configuration.
+            Route::get('registration-settings', [\App\Http\Controllers\SuperAdmin\RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
+            Route::put('registration-settings', [\App\Http\Controllers\SuperAdmin\RegistrationSettingsController::class, 'update'])->name('registration-settings.update');
         });
 
         // Invoice Settings — unified page (logo, company info, banks, footer, colors,

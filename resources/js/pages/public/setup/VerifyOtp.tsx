@@ -4,91 +4,106 @@ import PublicLayout from "@/layouts/public-layout";
 import SetupBanner from "@/components/public/setup/SetupBanner";
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import { useLang } from '@/hooks/useLang'
-import { MailCheck, RefreshCw } from "lucide-react";
+import { MailCheck, RefreshCw, Smartphone } from "lucide-react";
 
 interface Props {
   email: string;
+  phone?: string;
+  requireEmail?: boolean;
+  requirePhone?: boolean;
   debugOtp?: string | null;
+  debugPhoneOtp?: string | null;
 }
 
-export default function VerifyOtp({ email, debugOtp }: Props) {
+/** Six single-digit boxes with auto-advance / paste support. */
+function OtpBoxes({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (i: number, v: string) => {
+    if (!/^\d*$/.test(v)) return;
+    const next = [...value];
+    next[i] = v.slice(-1);
+    onChange(next);
+    if (v && i < 5) refs.current[i + 1]?.focus();
+  };
+  const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !value[i] && i > 0) refs.current[i - 1]?.focus();
+  };
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const next = [...value];
+    for (let i = 0; i < text.length; i++) next[i] = text[i];
+    onChange(next);
+    refs.current[Math.min(text.length, 5)]?.focus();
+  };
+
+  return (
+    <div className="flex justify-center gap-3 my-6" dir="ltr" onPaste={handlePaste}>
+      {value.map((digit, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          className="h-14 w-12 rounded-xl border-2 border-slate-200 bg-slate-50 text-center text-2xl font-bold text-public-primary
+                     focus:border-public-active focus:bg-white focus:outline-none focus:ring-2 focus:ring-public-active/20 transition-all"
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function VerifyOtp({ email, phone, requireEmail = true, requirePhone = false, debugOtp, debugPhoneOtp }: Props) {
   const { __ } = useLang()
   const serverErrors = usePage().props.errors as Record<string, string>;
   const flash = usePage().props.flash as { success?: string };
+  const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
 
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [emailOtp, setEmailOtp] = useState(["", "", "", "", "", ""]);
+  const [phoneOtp, setPhoneOtp] = useState(["", "", "", "", "", ""]);
   const [processing, setProcessing] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Masked email
   const maskedEmail = (() => {
     const [u, d] = (email || "").split("@");
     if (!u || !d) return email;
     return u[0] + "•••@" + d;
   })();
 
-  // Countdown timer
   useEffect(() => {
     if (countdown <= 0) return;
     const t = setTimeout(() => setCountdown(countdown - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
 
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    const newOtp = [...otp];
-    for (let i = 0; i < text.length; i++) {
-      newOtp[i] = text[i];
-    }
-    setOtp(newOtp);
-    const focusIndex = Math.min(text.length, 5);
-    inputRefs.current[focusIndex]?.focus();
-  };
+  const emailReady = !requireEmail || emailOtp.join("").length === 6;
+  const phoneReady = !requirePhone || phoneOtp.join("").length === 6;
 
   const submitOtp = () => {
-    const code = otp.join("");
-    if (code.length !== 6) return;
-
+    if (!emailReady || !phoneReady) return;
     setProcessing(true);
-    router.post("/setup/verify-otp", { otp: code }, {
-      onFinish: () => setProcessing(false),
-    });
+    const payload: Record<string, string> = {};
+    if (requireEmail) payload.otp = emailOtp.join("");
+    if (requirePhone) payload.phone_otp = phoneOtp.join("");
+    router.post("/setup/verify-otp", payload, { onFinish: () => setProcessing(false) });
   };
 
   const resendOtp = () => {
     setResending(true);
     router.post("/setup/resend-otp", {}, {
-      onFinish: () => {
-        setResending(false);
-        setCountdown(60);
-      },
+      onFinish: () => { setResending(false); setCountdown(60); },
     });
   };
 
   return (
     <PublicLayout>
-      <Head title="تأكيد البريد الإلكتروني | ضيافة" />
+      <Head title={isArabic ? 'تأكيد الحساب | ضيافة' : 'Verify account | Diyafah'} />
 
       <section className="py-10">
         <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
@@ -100,62 +115,66 @@ export default function VerifyOtp({ email, debugOtp }: Props) {
               </div>
               <AnimatedHeading dir="up" delay={0.30}>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-public-primary">
-                  تأكيد البريد الإلكتروني
+                  {isArabic ? 'تأكيد الحساب' : 'Verify your account'}
                 </h1>
               </AnimatedHeading>
-              <p className="mt-3 text-sm text-slate-600">
-                تم إرسال رمز التحقق المكون من 6 أرقام إلى
-              </p>
-              <p className="mt-1 font-semibold text-public-primary">{maskedEmail}</p>
             </div>
 
-            {/* Success flash */}
             {flash?.success && (
-              <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-sm font-medium text-green-600">
-                {flash.success}
+              <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-sm font-medium text-green-600">{flash.success}</div>
+            )}
+
+            {/* Email verification */}
+            {requireEmail && (
+              <div className="mb-4">
+                <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+                  <MailCheck className="h-4 w-4 text-blue-600" />
+                  {isArabic ? 'رمز البريد الإلكتروني' : 'Email code'} — <span className="font-semibold text-public-primary">{maskedEmail}</span>
+                </div>
+                {serverErrors?.otp && (
+                  <div className="mt-2 rounded-lg bg-red-50 p-2 text-center text-sm font-medium text-red-600">{serverErrors.otp}</div>
+                )}
+                <OtpBoxes value={emailOtp} onChange={setEmailOtp} />
+                {debugOtp && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-center">
+                    <span className="text-xs text-amber-600">{isArabic ? 'وضع التطوير — رمز البريد: ' : 'Dev — email code: '}</span>
+                    <span className="text-lg font-bold text-amber-800 tracking-widest" dir="ltr">{debugOtp}</span>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Error */}
-            {serverErrors?.otp && (
-              <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-sm font-medium text-red-600">
-                {serverErrors.otp}
+            {/* Phone verification */}
+            {requirePhone && (
+              <div className="mb-4">
+                <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+                  <Smartphone className="h-4 w-4 text-blue-600" />
+                  {isArabic ? 'رمز الجوال' : 'Phone code'} — <span className="font-semibold text-public-primary" dir="ltr">{phone}</span>
+                </div>
+                {serverErrors?.phone_otp && (
+                  <div className="mt-2 rounded-lg bg-red-50 p-2 text-center text-sm font-medium text-red-600">{serverErrors.phone_otp}</div>
+                )}
+                <OtpBoxes value={phoneOtp} onChange={setPhoneOtp} />
+                {debugPhoneOtp && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-center">
+                    <span className="text-xs text-amber-600">{isArabic ? 'وضع التطوير — رمز الجوال: ' : 'Dev — phone code: '}</span>
+                    <span className="text-lg font-bold text-amber-800 tracking-widest" dir="ltr">{debugPhoneOtp}</span>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* OTP Inputs */}
-            <div className="flex justify-center gap-3 my-8" dir="ltr" onPaste={handlePaste}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(i, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="h-14 w-12 rounded-xl border-2 border-slate-200 bg-slate-50 text-center text-2xl font-bold text-public-primary
-                             focus:border-public-active focus:bg-white focus:outline-none focus:ring-2 focus:ring-public-active/20
-                             transition-all"
-                  autoFocus={i === 0}
-                />
-              ))}
-            </div>
-
-            {/* Submit */}
             <button
               type="button"
               onClick={submitOtp}
-              disabled={processing || otp.join("").length !== 6}
+              disabled={processing || !emailReady || !phoneReady}
               className="w-full rounded-xl bg-public-primary px-6 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-all"
             >
-              {processing ? "جاري التحقق..." : "تأكيد الرمز"}
+              {processing ? (isArabic ? 'جاري التحقق...' : 'Verifying...') : (isArabic ? 'تأكيد' : 'Confirm')}
             </button>
 
-            {/* Resend */}
             <div className="mt-4 text-center">
-              <p className="text-sm text-slate-500 mb-2">لم يصلك الرمز؟</p>
+              <p className="text-sm text-slate-500 mb-2">{isArabic ? 'لم يصلك الرمز؟' : "Didn't get the code?"}</p>
               <button
                 type="button"
                 onClick={resendOtp}
@@ -163,22 +182,15 @@ export default function VerifyOtp({ email, debugOtp }: Props) {
                 className="inline-flex items-center gap-2 text-sm font-semibold text-public-active hover:underline disabled:opacity-50 disabled:no-underline"
               >
                 <RefreshCw className={`h-4 w-4 ${resending ? 'animate-spin' : ''}`} />
-                {countdown > 0 ? `إعادة الإرسال بعد ${countdown} ثانية` : "إعادة إرسال الرمز"}
+                {countdown > 0
+                  ? (isArabic ? `إعادة الإرسال بعد ${countdown} ثانية` : `Resend in ${countdown}s`)
+                  : (isArabic ? 'إعادة إرسال الرمز' : 'Resend code')}
               </button>
             </div>
 
-            {/* Timer note */}
             <p className="mt-4 text-center text-xs text-slate-400">
-              الرمز صالح لمدة 10 دقائق
+              {isArabic ? 'الرمز صالح لمدة 10 دقائق' : 'Code valid for 10 minutes'}
             </p>
-
-            {/* Debug: show OTP in development */}
-            {debugOtp && (
-              <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-center">
-                <p className="text-xs text-amber-600 mb-1">وضع التطوير — رمز التحقق:</p>
-                <p className="text-2xl font-bold text-amber-800 tracking-widest" dir="ltr">{debugOtp}</p>
-              </div>
-            )}
           </div>
         </div>
       </section>
