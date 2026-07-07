@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/use-locale';
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FileSignature, Plug, PaintBucket, FileStack, Receipt, Percent, Star, UserCog, Send, Settings, ClipboardList } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BarChart3, MessageSquare, Package, FileText, FileSignature, Plug, PaintBucket, FileStack, Receipt, Percent, Star, UserCog, Send, Settings, ClipboardList, Images } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface GatedNavItem extends NavItem {
@@ -41,6 +41,7 @@ export function AppSidebar() {
         { title: isArabic ? 'التكاملات' : 'Integrations', href: '/super-admin/integrations', icon: Plug, perm: 'integrations.manage' },
         { title: isArabic ? 'الصفحات' : 'Pages', href: '/super-admin/pages', icon: FileStack, perm: 'pages.manage' },
         { title: isArabic ? 'هوية الموقع' : 'Site Branding', href: '/super-admin/site-settings', icon: PaintBucket, perm: 'site_settings.edit' },
+        { title: isArabic ? 'معرض الصور' : 'Gallery', href: '/super-admin/gallery', icon: Images, perm: 'site_settings.edit' },
         { title: isArabic ? 'نموذج التسجيل' : 'Registration Form', href: '/super-admin/registration-settings', icon: ClipboardList, perm: 'site_settings.edit' },
     ];
 

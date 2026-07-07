@@ -9,6 +9,7 @@ import { useNavItems } from './navbar/NavItems'
 import { useLang } from '@/hooks/useLang'
 import { useStorageUrl } from '@/lib/storage'
 import { useSiteSettings } from '@/hooks/use-preview-overrides'
+import { useAppearance } from '@/hooks/use-appearance'
 
 interface ResolvedMenuItem {
   label_ar: string
@@ -64,9 +65,13 @@ export default function Navbar() {
       .filter((m) => !!m.label)
     return configured.length > 0 ? configured : defaultItems
   }, [headerMenu, isArabic, defaultItems])
-  const rawLogo = siteSettings?.identity?.site_logo ?? null
-  // Preview mode pushes blob: URLs through; pass them straight through, otherwise resolve via storage helper.
-  const siteLogo = rawLogo && rawLogo.startsWith('blob:') ? rawLogo : (storageUrl(rawLogo) ?? '/logo.png')
+  const { appearance } = useAppearance()
+  // In dark mode prefer the dedicated dark logo, falling back to the light one.
+  const rawLogoLight = siteSettings?.identity?.site_logo ?? null
+  const rawLogoDark = siteSettings?.identity?.site_logo_dark ?? null
+  const rawLogo = (appearance === 'dark' ? (rawLogoDark || rawLogoLight) : rawLogoLight)
+  // Preview mode pushes blob:/data: URLs through; pass them straight through, otherwise resolve via storage helper.
+  const siteLogo = rawLogo && (rawLogo.startsWith('blob:') || rawLogo.startsWith('data:')) ? rawLogo : (storageUrl(rawLogo) ?? '/logo.png')
 
   // Toggle mobile menu
   const toggle = () => setOpen((v) => !v)

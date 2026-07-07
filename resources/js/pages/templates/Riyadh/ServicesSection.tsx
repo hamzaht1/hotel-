@@ -6,6 +6,8 @@ import React, { useState, useMemo } from 'react'
 import BookingModal, { BookingData, BookingType } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import { useStorageUrl } from '@/lib/storage'
 import { TemplateService } from '@/types/template-types'
 
@@ -55,6 +57,9 @@ interface ServicesSectionProps {
 export default function ServicesSection({ services: backendServices }: ServicesSectionProps = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section texts (section=services) from the Site Branding
+  // editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
   const [defaultType, setDefaultType] = useState<BookingType>('مساج صيني')
@@ -188,22 +193,28 @@ export default function ServicesSection({ services: backendServices }: ServicesS
   }
 
   return (
-    <section id="services" className="py-20 ">
+    <section data-preview-section="services" id="services" className="py-20 ">
       <div className="container mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-4">
             <img src={leftLine} alt="left line" className="h-6 w-auto hidden md:block line-icon" />
               <h2 className="relative z-10 text-4xl  font-bold riyadh-heading mb-4">
-                {t('sections.services.title', 'مساج فاخر يعيد لجسدك حيويته ويمنحك استرخاءً تاماً')}
+                {pickSiteText(siteTexts, 'services', 'title', t('sections.services.title', 'مساج فاخر يعيد لجسدك حيويته ويمنحك استرخاءً تاماً'), isArabic)}
               </h2>
             <img src={rightLine} alt="right line" className="h-6 w-auto hidden md:block line-icon" />
           </div>
-          <BackgroundTitle text={t('sections.services.background_title', 'المساج')} />
+          <BackgroundTitle text={pickSiteText(siteTexts, 'services', 'background_title', t('sections.services.background_title', 'المساج'), isArabic)} />
           <p className="relative z-10 text-xl riyadh-text-muted max-w-4xl mx-auto leading-relaxed">
-            {t(
-              'sections.services.subtitle',
-              'نمنحك ما هو أبعد من الإقامة، نقدم تجربة استثنائية حيث يلتقي الترف بالضيافة الراقية. من الغرف الواسعة إلى المرافق الحديثة، صُمّم كل تفصيل ليمنحك الراحة والرفاهية التي تستحقها.'
+            {pickSiteText(
+              siteTexts,
+              'services',
+              'subtitle',
+              t(
+                'sections.services.subtitle',
+                'نمنحك ما هو أبعد من الإقامة، نقدم تجربة استثنائية حيث يلتقي الترف بالضيافة الراقية. من الغرف الواسعة إلى المرافق الحديثة، صُمّم كل تفصيل ليمنحك الراحة والرفاهية التي تستحقها.'
+              ),
+              isArabic,
             )}
           </p>
         </div>

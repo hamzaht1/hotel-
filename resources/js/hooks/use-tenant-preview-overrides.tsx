@@ -56,6 +56,9 @@ export type TenantSiteSettings = {
 
 const PREVIEW_MESSAGE_TYPE = 'tenant-site-branding-preview'
 const PREVIEW_READY_TYPE = 'tenant-site-branding-preview-ready'
+// Sent iframe → parent when the user clicks an editable zone in the preview, so
+// the editor can scroll to and highlight that zone's fields.
+const PREVIEW_SECTION_CLICK_TYPE = 'tenant-site-branding-section-click'
 
 const TenantPreviewContext = createContext<TenantPreviewOverrides | null>(null)
 
@@ -91,6 +94,41 @@ export function TenantPreviewOverridesProvider({ children }: PropsWithChildren) 
     window.parent.postMessage({ type: PREVIEW_READY_TYPE }, '*')
 
     return () => window.removeEventListener('message', handler)
+  }, [])
+
+  // Click-to-edit: outline editable zones on hover and, on click, tell the
+  // editor which section was clicked so it can reveal that section's fields.
+  // Only active inside the preview iframe.
+  useEffect(() => {
+    if (!isPreviewMode()) return
+
+    const style = document.createElement('style')
+    style.setAttribute('data-preview-click-to-edit', '')
+    style.textContent = `
+      [data-preview-section] { cursor: pointer; }
+      [data-preview-section]:hover {
+        outline: 2px dashed var(--madina-primary, #6366f1);
+        outline-offset: -4px;
+        transition: outline-color 0.15s ease;
+      }
+    `
+    document.head.appendChild(style)
+
+    // Capture phase so the click is caught even when inner elements stop
+    // propagation; we never preventDefault so the preview stays interactive.
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      const zone = target?.closest('[data-preview-section]') as HTMLElement | null
+      const section = zone?.getAttribute('data-preview-section')
+      if (!section) return
+      window.parent.postMessage({ type: PREVIEW_SECTION_CLICK_TYPE, section }, '*')
+    }
+
+    document.addEventListener('click', onClick, true)
+    return () => {
+      document.removeEventListener('click', onClick, true)
+      style.remove()
+    }
   }, [])
 
   return (

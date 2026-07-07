@@ -11,6 +11,8 @@ import { Navigation, Autoplay } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 
 // Import Swiper styles
 import 'swiper/css'
@@ -47,6 +49,9 @@ interface PublicReview {
 export default function TestimonialsSection({ reviews }: { reviews?: PublicReview[] }) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=testimonials) from the
+  // Site Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const swiperRef = useRef<SwiperType | null>(null)
   const [cardStyle, setCardStyle] = useState<'default' | 'simple'>('default')
   
@@ -183,7 +188,7 @@ export default function TestimonialsSection({ reviews }: { reviews?: PublicRevie
   }
 
   return (
-    <section className="py-20">
+    <section data-preview-section="testimonials" className="py-20">
       <div className="container mx-auto px-4">
         {/* Section Title */}
         <div className="relative text-center mb-16">
@@ -204,7 +209,7 @@ export default function TestimonialsSection({ reviews }: { reviews?: PublicRevie
               }}
             />
             <h2 className="madina-font-heading madina-text-primary relative z-10 text-4xl md:text-5xl font-bold mb-4">
-              {t('sections.testimonials.title', 'آراء عملائنا الكرام')}
+              {pickSiteText(siteTexts, 'testimonials', 'title', t('sections.testimonials.title', 'آراء عملائنا الكرام'), isArabic)}
           </h2>
             <div 
               className="h-6 w-6 hidden md:block"
@@ -228,7 +233,7 @@ export default function TestimonialsSection({ reviews }: { reviews?: PublicRevie
             colorStyle={{ color: 'var(--madina-primary)', opacity: 0.1 }}
           />
           <p className="madina-font madina-text-body relative z-10 text-xl">
-            {t('sections.testimonials.subtitle', 'اكتشف ما يقوله ضيوفنا عن تجربتهم معنا واطلع على تقييماتهم الصادقة')}
+            {pickSiteText(siteTexts, 'testimonials', 'subtitle', t('sections.testimonials.subtitle', 'اكتشف ما يقوله ضيوفنا عن تجربتهم معنا واطلع على تقييماتهم الصادقة'), isArabic)}
           </p>
         </div>
 

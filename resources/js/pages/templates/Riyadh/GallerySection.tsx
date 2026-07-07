@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import { useStorageUrl } from '@/lib/storage'
 import image1 from '@/assets/images/riyadh-template/galary/imag1.png'
 import image2 from '@/assets/images/riyadh-template/galary/imag2.png'
@@ -28,6 +30,9 @@ interface GallerySectionProps {
 export default function GallerySection({ gallery: backendGallery }: GallerySectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=gallery) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const storageUrl = useStorageUrl()
   // Default category with translation
   const defaultCategory = t('sections.gallery.filter_all', 'الكل')
@@ -128,20 +133,20 @@ export default function GallerySection({ gallery: backendGallery }: GallerySecti
       })
 
   return (
-    <section id="gallery" className="py-20 ">
+    <section data-preview-section="gallery" id="gallery" className="py-20 ">
       <div className="container mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-4">
             <img src={leftLine} alt="left line" className="h-6 w-auto hidden md:block line-icon" />
               <h2 className="relative z-10 text-4xl md:text-5xl font-bold riyadh-heading mb-4">
-                {t('sections.gallery.title', 'معرض الصور')}
+                {pickSiteText(siteTexts, 'gallery', 'title', t('sections.gallery.title', 'معرض الصور'), isArabic)}
               </h2>
             <img src={rightLine} alt="right line" className="h-6 w-auto hidden md:block line-icon" />
           </div>
           <BackgroundTitle text={t('sections.gallery.background_title', 'المعرض')} />
           <p className="relative z-10 text-xl riyadh-text-muted max-w-2xl mx-auto">
-            {t('sections.gallery.subtitle', 'اكتشف جمال فندقنا من خلال معرض الصور المتنوع الذي يعرض مرافقنا وخدماتنا المميزة')}
+            {pickSiteText(siteTexts, 'gallery', 'subtitle', t('sections.gallery.subtitle', 'اكتشف جمال فندقنا من خلال معرض الصور المتنوع الذي يعرض مرافقنا وخدماتنا المميزة'), isArabic)}
           </p>
         </div>
 

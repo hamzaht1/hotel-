@@ -23,25 +23,35 @@ import logo8 from '@/assets/images/hotels-icons/logo8.svg'
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import AnimatedParagraph from '@/components/motion/AnimatedParagraph'
 
-// Type definition for hotel logos
-type Logo = { src: string; alt?: string; altKey?: string }
+// Type definition for hotel logos. `width` (px) is an optional per-image size
+// set from the super-admin Gallery page.
+type Logo = { src: string; alt?: string; altKey?: string; width?: number }
 
 /**
  * LogoCard component - Displays a single hotel logo
  * @param src - Logo image source
  * @param alt - Alt text for accessibility
  */
-function LogoCard({ src, alt, altKey }: Logo & HTMLAttributes<HTMLDivElement>) {
+function LogoCard({ src, alt, altKey, width }: Logo & HTMLAttributes<HTMLDivElement>) {
   const { __ } = useLang()
 
   const resolvedAlt = altKey ? __(altKey) : alt || ''
 
   return (
     <div className="flex items-center justify-center">
-      <img src={src} alt={resolvedAlt} loading="lazy" className="max-w-full max-h-full object-contain" />
+      <img
+        src={src}
+        alt={resolvedAlt}
+        loading="lazy"
+        className="max-w-full max-h-full object-contain"
+        style={width ? { width: `${width}px` } : undefined}
+      />
     </div>
   )
 }
+
+// A super-admin managed gallery image (Trusted Hotels group).
+type GalleryImg = { id: number; image_path: string; title: string | null; width: number }
 
 /**
  * Hotels component - Showcases partner hotels with logos
@@ -56,6 +66,9 @@ interface DbPartner {
 
 export default function Hotels({ dbPartners }: { dbPartners?: DbPartner[] }) {
   const storageUrl = useStorageUrl()
+  const page = usePage<{ siteGallery?: { hotels?: GalleryImg[] } }>()
+  // Super-admin curated logos win over auto-collected tenant logos.
+  const galleryHotels = page.props.siteGallery?.hotels ?? []
   // Hotel logo images mapping — bundled fallbacks
   const hotelLogoImages = {
     '@/assets/images/hotels-icons/logo1.svg': logo1,
@@ -68,8 +81,14 @@ export default function Hotels({ dbPartners }: { dbPartners?: DbPartner[] }) {
     '@/assets/images/hotels-icons/logo8.svg': logo8,
   }
 
-  // Prefer DB-sourced active tenant logos, fall back to bundled placeholders.
-  const transformedLogos = (dbPartners && dbPartners.length > 0)
+  // Priority: super-admin gallery → active tenant logos → bundled placeholders.
+  const transformedLogos: Logo[] = (galleryHotels.length > 0)
+    ? galleryHotels.map((g) => ({
+        src: storageUrl(g.image_path) ?? '',
+        alt: g.title ?? '',
+        width: g.width,
+      }))
+    : (dbPartners && dbPartners.length > 0)
     ? dbPartners.map((p) => ({
         src: storageUrl(p.logo) ?? '',
         alt: p.org_name_ar ?? p.name,

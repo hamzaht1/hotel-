@@ -16,6 +16,7 @@ export type PreviewOverrides = {
     site_name_ar: string
     site_name_en: string
     site_logo: string | null
+    site_logo_dark: string | null
     site_favicon: string | null
   }>
   colors?: Partial<{
@@ -78,7 +79,7 @@ export type PreviewOverrides = {
 }
 
 export type ServerSiteSettings = {
-  identity?: { site_name_ar?: string; site_name_en?: string; site_logo?: string | null; site_favicon?: string | null }
+  identity?: { site_name_ar?: string; site_name_en?: string; site_logo?: string | null; site_logo_dark?: string | null; site_favicon?: string | null }
   colors?: { primary_color?: string; secondary_color?: string }
   typography?: { font_family?: string }
   hero?: Record<string, string | null | undefined>

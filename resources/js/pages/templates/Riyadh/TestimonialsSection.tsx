@@ -10,6 +10,8 @@ import leftArrow from '@/assets/images/riyadh-template/left-arrow.png'
 import rightArrow from '@/assets/images/riyadh-template/right-arrow.png'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 
 import leftLine from '@/assets/images/riyadh-template/rooms/left-line.svg'
 import rightLine from '@/assets/images/riyadh-template/rooms/right-line.svg'
@@ -40,6 +42,9 @@ interface PublicReview {
 export default function TestimonialsSection({ reviews }: { reviews?: PublicReview[] }) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=testimonials) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const swiperRef = useRef<SwiperType | null>(null)
 
   // Demo data shown when the tenant has no published reviews yet.
@@ -99,7 +104,7 @@ export default function TestimonialsSection({ reviews }: { reviews?: PublicRevie
   const testimonialsData = realTestimonials.length > 0 ? realTestimonials : mockTestimonials
 
   return (
-    <section className="py-20   ">
+    <section data-preview-section="testimonials" className="py-20   ">
       <div className="container mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
@@ -107,13 +112,13 @@ export default function TestimonialsSection({ reviews }: { reviews?: PublicRevie
           <div className="flex items-center justify-center gap-4 mb-4">
             <img src={leftLine} alt="left line" className="h-6 w-auto hidden md:block line-icon" />
               <h2 className="relative z-10 text-4xl md:text-5xl font-bold riyadh-heading mb-4">
-                {t('sections.testimonials.title', 'آراء عملائنا الكرام')}
+                {pickSiteText(siteTexts, 'testimonials', 'title', t('sections.testimonials.title', 'آراء عملائنا الكرام'), isArabic)}
               </h2>
             <img src={rightLine} alt="right line" className="h-6 w-auto hidden md:block line-icon" />
           </div>
           <BackgroundTitle text={t('sections.testimonials.background_title', 'التقييمات')} />
           <p className="relative z-10 text-xl riyadh-text-muted max-w-2xl mx-auto">
-            {t('sections.testimonials.subtitle', 'اكتشف ما يقوله ضيوفنا عن تجربتهم معنا واطلع على تقييماتهم الصادقة')}
+            {pickSiteText(siteTexts, 'testimonials', 'subtitle', t('sections.testimonials.subtitle', 'اكتشف ما يقوله ضيوفنا عن تجربتهم معنا واطلع على تقييماتهم الصادقة'), isArabic)}
           </p>
         </div>
 

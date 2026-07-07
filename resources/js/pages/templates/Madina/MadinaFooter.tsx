@@ -13,6 +13,7 @@
 import React from 'react'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import { useAppearance } from '@/hooks/use-appearance'
 import {
   useMergedSiteTexts,
   useTenantSiteSettings,
@@ -34,15 +35,18 @@ function FooterLogo() {
   // Live-preview hook merges server settings with iframe edits so the footer
   // logo updates instantly when the tenant uploads a new file.
   const siteSettings = useTenantSiteSettings()
-  const rawLogo = siteSettings?.identity?.site_logo as string | null | undefined
-  const tenantLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('data:')
-    ? rawLogo
-    : storageUrl(rawLogo)
+  const { appearance } = useAppearance()
+  const resolveLogo = (raw: string | null | undefined) =>
+    raw && typeof raw === 'string' && raw.startsWith('data:') ? raw : storageUrl(raw)
+  const tenantLogo = resolveLogo(siteSettings?.identity?.site_logo as string | null | undefined)
+  const tenantLogoDark = resolveLogo(siteSettings?.identity?.site_logo_dark as string | null | undefined)
+  // In dark mode prefer the dedicated dark logo, falling back to the light one.
+  const activeTenantLogo = appearance === 'dark' ? (tenantLogoDark || tenantLogo) : tenantLogo
 
-  if (tenantLogo) {
+  if (activeTenantLogo) {
     return (
       <img
-        src={tenantLogo}
+        src={activeTenantLogo}
         alt="Logo"
         style={{ height: '80px', width: 'auto', maxWidth: '220px', objectFit: 'contain' }}
       />
@@ -68,7 +72,8 @@ export default function MadinaFooter() {
   const footerTitle = pickSiteText(siteTexts, 'footer', 'title', '', isArabic)
 
   return (
-    <footer 
+    <footer
+      data-preview-section="footer"
       className="text-white relative pt-20"
       style={{
         background: 'linear-gradient(to right, var(--madina-primary-light) 0%, var(--madina-primary) 100%)'

@@ -15,6 +15,8 @@ import BookingModal, { BookingType, BookingData, BookingService } from '@/compon
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import { ROOM_AMENITY_ICONS } from '@/lib/room-amenity-icons'
 
 // Shared icon catalogue (same source the admin wizard picks from). A saved
@@ -75,6 +77,9 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const storageUrl = useStorageUrl()
+  // Tenant-editable section title/subtitle (section=rooms) streamed from the
+  // Site Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<BookingService | null>(null)
   const [defaultType, setDefaultType] = useState<BookingType>('غرفة')
@@ -291,7 +296,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
   }
 
   return (
-    <section id="rooms" className="pt-20">
+    <section data-preview-section="rooms" id="rooms" className="pt-20">
       <div className="container max-w-7xl mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
@@ -312,7 +317,7 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
               }}
             />
             <h2 className="madina-font-heading madina-text-primary relative z-10 text-4xl md:text-5xl font-bold">
-              {t('sections.rooms.title', 'ارتقِ بإقامتك إلى مستوى آخر من الفخامة')}
+              {pickSiteText(siteTexts, 'rooms', 'title', t('sections.rooms.title', 'ارتقِ بإقامتك إلى مستوى آخر من الفخامة'), isArabic)}
           </h2>
             <div 
               className="h-6 w-6 hidden md:block"
@@ -336,9 +341,15 @@ export default function RoomsSection({ rooms: backendRooms }: Props) {
             colorStyle={{ color: 'var(--madina-primary)', opacity: 0.1 }}
           />
           <p className="relative z-10 text-xl madina-text-body max-w-4xl mx-auto leading-relaxed">
-            {t(
-              'sections.rooms.subtitle',
-              'نقدم لك أكثر من مجرد إقامة. نحن نقدم تجربة فريدة، حيث تلتقي الفخامة بالضيافة. من غرفنا الأنيقة إلى مرافقنا المتطورة، كل شيء مصمم ليوفر لك الهدوء والرفاهية التي تستحقها.'
+            {pickSiteText(
+              siteTexts,
+              'rooms',
+              'subtitle',
+              t(
+                'sections.rooms.subtitle',
+                'نقدم لك أكثر من مجرد إقامة. نحن نقدم تجربة فريدة، حيث تلتقي الفخامة بالضيافة. من غرفنا الأنيقة إلى مرافقنا المتطورة، كل شيء مصمم ليوفر لك الهدوء والرفاهية التي تستحقها.'
+              ),
+              isArabic,
             )}
           </p>
         </div>

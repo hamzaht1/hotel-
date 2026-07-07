@@ -1,9 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { Save, ShieldCheck, Mail, Phone, Building2, User } from 'lucide-react';
+import { Save, ShieldCheck, Mail, Phone, Building2, User, Plus, Trash2, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useT } from '@/hooks/use-translations';
 
@@ -16,8 +17,22 @@ interface FieldConfig {
     required: boolean;
 }
 
+type CustomType = 'text' | 'textarea' | 'number' | 'email' | 'tel' | 'date' | 'select';
+
+interface CustomFieldConfig {
+    key: string;
+    label_ar: string;
+    label_en: string;
+    type: CustomType;
+    step: 'org' | 'account';
+    required: boolean;
+    enabled: boolean;
+    options: string[];
+}
+
 interface Config {
     fields: Record<string, FieldConfig>;
+    custom_fields: CustomFieldConfig[];
     require_email_verification: boolean;
     require_phone_verification: boolean;
 }
@@ -26,11 +41,26 @@ interface Props {
     config: Config;
 }
 
+// In the editor, options are edited as a single comma-separated string.
+type CustomFieldRow = {
+    key: string;
+    label_ar: string;
+    label_en: string;
+    type: CustomType;
+    step: 'org' | 'account';
+    required: boolean;
+    enabled: boolean;
+    options: string;
+};
+
 type FormShape = {
     require_email_verification: boolean;
     require_phone_verification: boolean;
     fields: Record<string, { enabled: boolean; required: boolean }>;
+    custom_fields: CustomFieldRow[];
 };
+
+const CUSTOM_TYPES: CustomType[] = ['text', 'textarea', 'number', 'email', 'tel', 'date', 'select'];
 
 export default function RegistrationSettings({ config }: Props) {
     const { isArabic } = useT();
@@ -44,7 +74,35 @@ export default function RegistrationSettings({ config }: Props) {
         fields: Object.fromEntries(
             fieldList.map((f) => [f.key, { enabled: f.enabled, required: f.required }]),
         ),
+        custom_fields: (config.custom_fields ?? []).map((f) => ({
+            key: f.key,
+            label_ar: f.label_ar,
+            label_en: f.label_en,
+            type: f.type,
+            step: f.step,
+            required: f.required,
+            enabled: f.enabled,
+            options: (f.options ?? []).join(', '),
+        })),
     });
+
+    function addCustomField() {
+        setData('custom_fields', [
+            ...data.custom_fields,
+            { key: '', label_ar: '', label_en: '', type: 'text', step: 'account', required: false, enabled: true, options: '' },
+        ]);
+    }
+
+    function patchCustomField(index: number, patch: Partial<CustomFieldRow>) {
+        setData(
+            'custom_fields',
+            data.custom_fields.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+        );
+    }
+
+    function removeCustomField(index: number) {
+        setData('custom_fields', data.custom_fields.filter((_, i) => i !== index));
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: isArabic ? 'المشرف' : 'Super admin', href: '/super-admin' },
@@ -162,6 +220,92 @@ export default function RegistrationSettings({ config }: Props) {
 
                 {renderGroup('org', isArabic ? 'بيانات المنشأة' : 'Establishment fields', Building2)}
                 {renderGroup('account', isArabic ? 'بيانات الحساب' : 'Account fields', User)}
+
+                {/* Custom fields */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <ListPlus className="h-4 w-4" /> {isArabic ? 'حقول مخصّصة' : 'Custom fields'}
+                            </CardTitle>
+                            <Button type="button" variant="outline" size="sm" onClick={addCustomField}>
+                                <Plus className="h-4 w-4" /> {isArabic ? 'إضافة حقل' : 'Add field'}
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {isArabic
+                                ? 'أضف حقولاً إضافية تظهر في نموذج التسجيل، وتحكّم في اسم الحقل ونوع الإدخال والخطوة.'
+                                : 'Add extra fields shown in the signup form; control the name, input type and step.'}
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {data.custom_fields.length === 0 && (
+                            <p className="text-sm text-muted-foreground">{isArabic ? 'لا توجد حقول مخصّصة بعد.' : 'No custom fields yet.'}</p>
+                        )}
+                        {data.custom_fields.map((row, i) => (
+                            <div key={i} className="rounded-lg border p-3 space-y-3">
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground">{isArabic ? 'الاسم (عربي)' : 'Name (Arabic)'}</label>
+                                        <Input value={row.label_ar} dir="rtl" onChange={(e) => patchCustomField(i, { label_ar: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground">{isArabic ? 'الاسم (إنجليزي)' : 'Name (English)'}</label>
+                                        <Input value={row.label_en} onChange={(e) => patchCustomField(i, { label_en: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground">{isArabic ? 'نوع الإدخال' : 'Input type'}</label>
+                                        <select
+                                            value={row.type}
+                                            onChange={(e) => patchCustomField(i, { type: e.target.value as CustomType })}
+                                            className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                                        >
+                                            {CUSTOM_TYPES.map((t) => (
+                                                <option key={t} value={t}>{t}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground">{isArabic ? 'الخطوة' : 'Step'}</label>
+                                        <select
+                                            value={row.step}
+                                            onChange={(e) => patchCustomField(i, { step: e.target.value as 'org' | 'account' })}
+                                            className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                                        >
+                                            <option value="org">{isArabic ? 'بيانات المنشأة' : 'Establishment'}</option>
+                                            <option value="account">{isArabic ? 'بيانات الحساب' : 'Account'}</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-end gap-4">
+                                        <label className="flex items-center gap-2 text-sm">
+                                            <Checkbox checked={row.enabled} onCheckedChange={(v) => patchCustomField(i, { enabled: v === true, ...(v === true ? {} : { required: false }) })} />
+                                            {isArabic ? 'ظاهر' : 'Shown'}
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm">
+                                            <Checkbox checked={row.required} disabled={!row.enabled} onCheckedChange={(v) => patchCustomField(i, { required: v === true })} />
+                                            {isArabic ? 'إلزامي' : 'Required'}
+                                        </label>
+                                    </div>
+                                </div>
+                                {row.type === 'select' && (
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground">
+                                            {isArabic ? 'الخيارات (مفصولة بفواصل)' : 'Options (comma-separated)'}
+                                        </label>
+                                        <Input value={row.options} onChange={(e) => patchCustomField(i, { options: e.target.value })} placeholder="A, B, C" />
+                                    </div>
+                                )}
+                                <div className="flex justify-end">
+                                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeCustomField(i)}>
+                                        <Trash2 className="h-4 w-4" /> {isArabic ? 'حذف' : 'Remove'}
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
 
                 <div className="flex justify-end">
                     <Button type="submit" disabled={processing}>

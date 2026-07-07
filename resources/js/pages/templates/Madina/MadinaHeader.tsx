@@ -34,14 +34,17 @@ export const Logo = ({ scrolled = false }: LogoProps) => {
   // useTenantSiteSettings merges server props with live preview overrides so
   // the logo updates in real-time when the editor streams a new upload.
   const siteSettings = useTenantSiteSettings()
-  const rawLogo = siteSettings?.identity?.site_logo as string | null | undefined
+  const { appearance } = useAppearance()
   // The editor sends data: URLs for staged uploads — render them as-is.
   // Persisted paths go through storageUrl for the CDN-aware absolute URL.
-  const tenantLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('data:')
-    ? rawLogo
-    : storageUrl(rawLogo)
-  const logoImage = tenantLogo || defaultLogoImage
-  const isCustomLogo = !!tenantLogo
+  const resolveLogo = (raw: string | null | undefined) =>
+    raw && typeof raw === 'string' && raw.startsWith('data:') ? raw : storageUrl(raw)
+  const tenantLogo = resolveLogo(siteSettings?.identity?.site_logo as string | null | undefined)
+  const tenantLogoDark = resolveLogo(siteSettings?.identity?.site_logo_dark as string | null | undefined)
+  // In dark mode prefer the dedicated dark logo, falling back to the light one.
+  const activeTenantLogo = appearance === 'dark' ? (tenantLogoDark || tenantLogo) : tenantLogo
+  const logoImage = activeTenantLogo || defaultLogoImage
+  const isCustomLogo = !!activeTenantLogo
 
   // Initial / unscrolled: render the image plainly.
   if (!scrolled) {

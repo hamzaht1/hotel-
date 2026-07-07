@@ -27,6 +27,7 @@ class SiteSetting extends Model
                 'site_name_ar' => $settings['site_name_ar'] ?? 'ضيافة',
                 'site_name_en' => $settings['site_name_en'] ?? 'Diyafah',
                 'site_logo' => $settings['site_logo'] ?? null,
+                'site_logo_dark' => $settings['site_logo_dark'] ?? null,
                 'site_favicon' => $settings['site_favicon'] ?? null,
             ],
             'colors' => [

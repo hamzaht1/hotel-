@@ -39,6 +39,7 @@ interface Settings {
         site_name_ar: string;
         site_name_en: string;
         site_logo: string | null;
+        site_logo_dark: string | null;
         site_favicon: string | null;
     };
     colors: {
@@ -130,6 +131,7 @@ type FormData = {
     site_name_ar: string;
     site_name_en: string;
     site_logo: File | null;
+    site_logo_dark: File | null;
     site_favicon: File | null;
     primary_color: string;
     secondary_color: string;
@@ -182,6 +184,7 @@ function buildInitialData(settings: Settings): FormData {
         site_name_ar: settings.identity.site_name_ar ?? '',
         site_name_en: settings.identity.site_name_en ?? '',
         site_logo: null,
+        site_logo_dark: null,
         site_favicon: null,
         primary_color: settings.colors.primary_color ?? '#01004C',
         secondary_color: settings.colors.secondary_color ?? '#5A5ECD',
@@ -257,6 +260,7 @@ export default function SiteSettingsIndex({ settings }: Props) {
     // different origin (the public landing page), and blob: URLs are scoped
     // to the creating origin so the iframe can't read them.
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+    const [logoDarkPreviewUrl, setLogoDarkPreviewUrl] = useState<string | null>(null);
     const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
 
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -277,6 +281,7 @@ export default function SiteSettingsIndex({ settings }: Props) {
                 site_name_ar: data.site_name_ar,
                 site_name_en: data.site_name_en,
                 site_logo: logoPreviewUrl ?? settings.identity.site_logo ?? null,
+                site_logo_dark: logoDarkPreviewUrl ?? settings.identity.site_logo_dark ?? null,
                 site_favicon: faviconPreviewUrl ?? settings.identity.site_favicon ?? null,
             },
             colors: {
@@ -343,7 +348,7 @@ export default function SiteSettingsIndex({ settings }: Props) {
                 social_facebook: data.social_facebook,
             },
         };
-    }, [data, logoPreviewUrl, faviconPreviewUrl, settings.identity.site_logo, settings.identity.site_favicon]);
+    }, [data, logoPreviewUrl, logoDarkPreviewUrl, faviconPreviewUrl, settings.identity.site_logo, settings.identity.site_logo_dark, settings.identity.site_favicon]);
 
     // Reset the captured origin whenever the iframe is force-reloaded so we wait
     // for a fresh READY before broadcasting again.
@@ -401,6 +406,11 @@ export default function SiteSettingsIndex({ settings }: Props) {
         setLogoPreviewUrl(file ? await readAsDataUrl(file) : null);
     };
 
+    const handleLogoDarkChange = async (file: File | null) => {
+        setData('site_logo_dark', file);
+        setLogoDarkPreviewUrl(file ? await readAsDataUrl(file) : null);
+    };
+
     const handleFaviconChange = async (file: File | null) => {
         setData('site_favicon', file);
         setFaviconPreviewUrl(file ? await readAsDataUrl(file) : null);
@@ -423,12 +433,14 @@ export default function SiteSettingsIndex({ settings }: Props) {
             preserveScroll: true,
             onSuccess: () => {
                 setLogoPreviewUrl(null);
+                setLogoDarkPreviewUrl(null);
                 setFaviconPreviewUrl(null);
             },
         });
     };
 
     const savedLogoUrl = storageUrl(settings.identity.site_logo) ?? null;
+    const savedLogoDarkUrl = storageUrl(settings.identity.site_logo_dark) ?? null;
     const savedFaviconUrl = storageUrl(settings.identity.site_favicon) ?? null;
 
     return (
@@ -525,7 +537,7 @@ export default function SiteSettingsIndex({ settings }: Props) {
                                         dir="ltr"
                                     />
                                 </Field>
-                                <Field label="الشعار / Logo" error={errors.site_logo}>
+                                <Field label="الشعار (فاتح) / Logo (light)" error={errors.site_logo}>
                                     {(logoPreviewUrl || savedLogoUrl) && (
                                         <img
                                             src={logoPreviewUrl ?? savedLogoUrl ?? ''}
@@ -538,6 +550,21 @@ export default function SiteSettingsIndex({ settings }: Props) {
                                         accept="image/*"
                                         onChange={(e) => handleLogoChange(e.target.files?.[0] ?? null)}
                                     />
+                                </Field>
+                                <Field label="الشعار (داكن) / Logo (dark)" error={errors.site_logo_dark}>
+                                    {(logoDarkPreviewUrl || savedLogoDarkUrl) && (
+                                        <img
+                                            src={logoDarkPreviewUrl ?? savedLogoDarkUrl ?? ''}
+                                            alt="Logo (dark)"
+                                            className="mb-2 h-16 w-auto rounded border bg-gray-900 object-contain p-1"
+                                        />
+                                    )}
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleLogoDarkChange(e.target.files?.[0] ?? null)}
+                                    />
+                                    <p className="mt-1 text-xs text-muted-foreground">يظهر تلقائياً في الوضع الداكن.</p>
                                 </Field>
                                 <Field label="الأيقونة المفضلة / Favicon" error={errors.site_favicon}>
                                     {(faviconPreviewUrl || savedFaviconUrl) && (

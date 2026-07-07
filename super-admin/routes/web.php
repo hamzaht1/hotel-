@@ -16,6 +16,7 @@ use App\Http\Controllers\SuperAdmin\IntegrationController;
 use App\Http\Controllers\SuperAdmin\PageController;
 use App\Http\Controllers\SuperAdmin\MenuController;
 use App\Http\Controllers\SuperAdmin\SiteSettingController;
+use App\Http\Controllers\SuperAdmin\GalleryController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Locale Switcher ────────────────────────────────────────
@@ -247,6 +248,13 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
             // Client registration form configuration.
             Route::get('registration-settings', [\App\Http\Controllers\SuperAdmin\RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
             Route::put('registration-settings', [\App\Http\Controllers\SuperAdmin\RegistrationSettingsController::class, 'update'])->name('registration-settings.update');
+
+            // Landing-page image galleries (Trusted Hotels strip + footer logos).
+            Route::get('gallery', [GalleryController::class, 'index'])->name('gallery.index');
+            Route::post('gallery', [GalleryController::class, 'store'])->name('gallery.store');
+            // POST (not PUT) so image uploads go through multipart form data.
+            Route::post('gallery/{galleryImage}', [GalleryController::class, 'update'])->name('gallery.update');
+            Route::delete('gallery/{galleryImage}', [GalleryController::class, 'destroy'])->name('gallery.destroy');
         });
 
         // Invoice Settings — unified page (logo, company info, banks, footer, colors,

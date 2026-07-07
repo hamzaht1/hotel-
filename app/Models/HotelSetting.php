@@ -43,6 +43,7 @@ class HotelSetting extends Model
         'license_expiry',
         'municipality_license_number',
         'municipality_license_expiry',
+        'custom_fields',
     ];
 
     protected function casts(): array
@@ -55,6 +56,7 @@ class HotelSetting extends Model
             'license_expiry' => 'date',
             'municipality_license_expiry' => 'date',
             'branches_count' => 'integer',
+            'custom_fields' => 'array',
         ];
     }
 

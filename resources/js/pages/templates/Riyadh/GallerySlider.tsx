@@ -5,6 +5,8 @@ import { FreeMode, Pagination, Navigation } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import { useStorageUrl } from '@/lib/storage'
 
 // Import Swiper styles
@@ -42,6 +44,9 @@ interface GallerySliderProps {
 export default function GallerySlider({ gallery: backendGallery }: GallerySliderProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=gallery) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const storageUrl = useStorageUrl()
   const swiperRef = useRef<SwiperType | null>(null)
   const [sliderStyle, setSliderStyle] = useState<'riyadh' | 'madina'>('riyadh')
@@ -92,7 +97,7 @@ export default function GallerySlider({ gallery: backendGallery }: GallerySlider
   ]
 
   return (
-    <section className="py-20 ">
+    <section data-preview-section="gallery" className="py-20 ">
       <div className="container mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
@@ -115,7 +120,7 @@ export default function GallerySlider({ gallery: backendGallery }: GallerySlider
                   }}
                 />
                 <h2 className="madina-font-heading madina-text-primary relative z-10 text-4xl md:text-5xl font-bold mb-4">
-                  {t('sections.gallery_slider.title', 'جولة افتراضية')}
+                  {pickSiteText(siteTexts, 'gallery', 'title', t('sections.gallery_slider.title', 'جولة افتراضية'), isArabic)}
                 </h2>
                 <div 
                   className="h-6 w-6 hidden md:block"
@@ -137,7 +142,7 @@ export default function GallerySlider({ gallery: backendGallery }: GallerySlider
               <>
                 <img src={leftLine} alt="left line" className="h-6 w-auto hidden md:block line-icon" />
                 <h2 className="relative z-10 text-4xl md:text-5xl font-bold riyadh-heading mb-4">
-                  {t('sections.gallery_slider.title', 'جولة افتراضية')}
+                  {pickSiteText(siteTexts, 'gallery', 'title', t('sections.gallery_slider.title', 'جولة افتراضية'), isArabic)}
                 </h2>
                 <img src={rightLine} alt="right line" className="h-6 w-auto hidden md:block line-icon" />
               </>
@@ -151,7 +156,7 @@ export default function GallerySlider({ gallery: backendGallery }: GallerySlider
             } : {})}
           />
           <p className={`relative z-10 text-xl ${sliderStyle === 'madina' ? 'madina-text-body' : 'riyadh-text-muted'}`}>
-            {t('sections.gallery_slider.subtitle', 'استكشف الفندق بالصور')}
+            {pickSiteText(siteTexts, 'gallery', 'subtitle', t('sections.gallery_slider.subtitle', 'استكشف الفندق بالصور'), isArabic)}
           </p>
         </div>
       </div>

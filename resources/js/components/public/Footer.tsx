@@ -6,6 +6,7 @@ import { SOCIAL_LINKS, PAYMENT_METHODS } from "@/data/public-data";
 import { useLang } from '@/hooks/useLang'
 import { useStorageUrl } from '@/lib/storage'
 import { useSiteSettings } from '@/hooks/use-preview-overrides'
+import { useAppearance } from '@/hooks/use-appearance'
 import footerline from "@/assets/images/icons/footer-line.svg";
 import vision2030 from "@/assets/images/icons/footer-logo-1.svg";
 import khidmah from "@/assets/images/icons/footer-logo-2.svg";
@@ -42,8 +43,16 @@ export default function Footer() {
   const footerText = locale === 'ar' ? siteSettings?.footer?.footer_text_ar : siteSettings?.footer?.footer_text_en;
   const isAr = locale === 'ar'
   const businessNumber = (isAr ? siteSettings?.footer?.footer_business_number_ar : siteSettings?.footer?.footer_business_number_en) || __('messages.footer.business_number')
-  const rawFooterLogo = siteSettings?.identity?.site_logo ?? null;
-  const footerLogo = rawFooterLogo && rawFooterLogo.startsWith('blob:') ? rawFooterLogo : storageUrl(rawFooterLogo);
+  const { appearance } = useAppearance()
+  // In dark mode prefer the dedicated dark logo, falling back to the light one.
+  const rawFooterLogo = (appearance === 'dark'
+    ? (siteSettings?.identity?.site_logo_dark ?? siteSettings?.identity?.site_logo)
+    : siteSettings?.identity?.site_logo) ?? null;
+  const footerLogo = rawFooterLogo && (rawFooterLogo.startsWith('blob:') || rawFooterLogo.startsWith('data:')) ? rawFooterLogo : storageUrl(rawFooterLogo);
+
+  // Super-admin managed footer partner logos (fall back to the bundled trio).
+  type GalleryImg = { id: number; image_path: string; title: string | null; width: number };
+  const footerGallery = (usePage<{ siteGallery?: { footer?: GalleryImg[] } }>().props.siteGallery?.footer) ?? [];
 
   // Social media icons mapping
   const socialIcons = {
@@ -96,9 +105,23 @@ export default function Footer() {
           {/* Partner logos section */}
           <div className="flex flex-col gap-y-4 sm:gap-2 m-4 sm:m-0 sm:items-center  justify-center md:col-span-3">
             <div className="flex flex-col md:flex-row   shadow-md  p-4 rounded-2xl border  md:divide-x md:divide-slate-200 items-center justify-center">
-              <img src={vision2030} alt="رؤية 2030" className="w-32 p-4" />
-              <img src={khidmah} alt="خدمة" className="w-32 p-4" />
-              <img src={sta} alt="الهيئة السعودية للسياحة" className="w-32 p-4" />
+              {footerGallery.length > 0 ? (
+                footerGallery.map((img) => (
+                  <img
+                    key={img.id}
+                    src={storageUrl(img.image_path) ?? ''}
+                    alt={img.title ?? ''}
+                    className="p-4 object-contain"
+                    style={{ width: `${img.width}px`, maxWidth: '100%' }}
+                  />
+                ))
+              ) : (
+                <>
+                  <img src={vision2030} alt="رؤية 2030" className="w-32 p-4" />
+                  <img src={khidmah} alt="خدمة" className="w-32 p-4" />
+                  <img src={sta} alt="الهيئة السعودية للسياحة" className="w-32 p-4" />
+                </>
+              )}
             </div>
             {/* <div className="flex flex-col md:flex-row   shadow-md  p-4 rounded-2xl border  md:divide-x md:divide-slate-200 items-center justify-center">
               <img src={vision2030} alt="" className="w-32 p-4" />

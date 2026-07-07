@@ -3,12 +3,14 @@ import { router, usePage } from "@inertiajs/react";
 import PublicLayout from "@/layouts/public-layout";
 import SetupBanner from "@/components/public/setup/SetupBanner";
 import FormInput from "@/components/public/setup/FormInput";
+import CustomFields, { type CustomFieldCfg } from "@/components/public/setup/CustomFields";
 import AnimatedHeading from '@/components/motion/AnimatedHeading'
 import { useLang } from '@/hooks/useLang'
 
 interface FieldCfg { enabled: boolean; required: boolean }
 interface FormConfig {
   fields: Record<string, FieldCfg>
+  custom_fields?: CustomFieldCfg[]
   require_email_verification: boolean
   require_phone_verification: boolean
 }
@@ -34,6 +36,10 @@ export default function Account({ setup, formConfig }: Props) {
   const [username, setUsername] = useState(setup?.username || "");
   const [email, setEmail] = useState(setup?.email || "");
   const [password, setPassword] = useState("");
+  // Values for admin-defined custom fields (keyed by field key).
+  const [custom, setCustom] = useState<Record<string, string>>(
+    ((setup as unknown as { custom_fields?: Record<string, string> })?.custom_fields) ?? {},
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
 
@@ -69,6 +75,7 @@ export default function Account({ setup, formConfig }: Props) {
       last_name: lastName,
       city,
       phone,
+      custom,
     }, {
       onFinish: () => setProcessing(false),
     });
@@ -164,6 +171,13 @@ export default function Account({ setup, formConfig }: Props) {
                 onChange={setPassword}
                 required
                 error={errors.password ?? serverErrors?.password ?? null}
+              />
+              <CustomFields
+                fields={formConfig?.custom_fields}
+                step="account"
+                values={custom}
+                onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
+                errors={serverErrors}
               />
             </div>
 

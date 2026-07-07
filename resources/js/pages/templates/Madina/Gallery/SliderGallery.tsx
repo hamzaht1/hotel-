@@ -14,6 +14,8 @@ import { FreeMode, Pagination, Navigation } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 
 // Import Swiper styles
 import 'swiper/css'
@@ -45,6 +47,9 @@ interface SliderGalleryProps {
 export default function SliderGallery({ galleryItems }: SliderGalleryProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=gallery) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const swiperRef = useRef<SwiperType | null>(null)
 
   // Use provided galleryItems or fallback to default images
@@ -65,7 +70,7 @@ export default function SliderGallery({ galleryItems }: SliderGalleryProps) {
   ]
 
   return (
-    <section className="py-20">
+    <section data-preview-section="gallery" className="py-20">
       <div className="container mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
@@ -86,7 +91,7 @@ export default function SliderGallery({ galleryItems }: SliderGalleryProps) {
               }}
             />
             <h2 className="madina-font-heading madina-text-primary relative z-10 text-4xl md:text-5xl font-bold mb-4">
-              {t('sections.gallery_slider.title', 'جولة افتراضية')}
+              {pickSiteText(siteTexts, 'gallery', 'title', t('sections.gallery_slider.title', 'جولة افتراضية'), isArabic)}
             </h2>
             <div 
               className="h-6 w-6 hidden md:block"
@@ -110,7 +115,7 @@ export default function SliderGallery({ galleryItems }: SliderGalleryProps) {
             colorStyle={{ color: 'var(--madina-primary)', opacity: 0.1 }}
           />
           <p className="relative z-10 text-xl madina-text-body">
-            {t('sections.gallery_slider.subtitle', 'استكشف الفندق بالصور')}
+            {pickSiteText(siteTexts, 'gallery', 'subtitle', t('sections.gallery_slider.subtitle', 'استكشف الفندق بالصور'), isArabic)}
           </p>
         </div>
       </div>

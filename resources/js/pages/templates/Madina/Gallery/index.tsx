@@ -12,6 +12,8 @@ import { useState, useEffect } from 'react'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import leftLine from '../images/rooms/left-line.svg'
 import rightLine from '../images/rooms/right-line.svg'
 import CircularGallery from './CircularGallery'
@@ -31,6 +33,9 @@ export default function Gallery({ gallery }: Props) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
   const storageUrl = useStorageUrl()
+  // Tenant-editable section title/subtitle (section=gallery) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   // Backend galleries are served from cross-origin storage (R2). The riyadh
   // style uses WebGL which needs CORS headers on every image; without them
   // textures fail and the gallery is empty. Force the Swiper-based madina
@@ -90,7 +95,7 @@ export default function Gallery({ gallery }: Props) {
   
   // Default style (riyadh) - Circular Gallery
   return (
-    <section className="pb-10">
+    <section data-preview-section="gallery" className="pb-10">
       <div className=" mx- px-4">
         {/* Title */}
         <div className="relative text-center ">
@@ -111,7 +116,7 @@ export default function Gallery({ gallery }: Props) {
               }}
             />
             <h2 className="madina-font-heading madina-text-primary relative z-10 text-4xl md:text-5xl font-bold mb-4">
-              {t('sections.gallery_slider.title', 'جولة افتراضية')}
+              {pickSiteText(siteTexts, 'gallery', 'title', t('sections.gallery_slider.title', 'جولة افتراضية'), isArabic)}
           </h2>
             <div 
               className="h-6 w-6 hidden md:block"
@@ -135,7 +140,7 @@ export default function Gallery({ gallery }: Props) {
             colorStyle={{ color: 'var(--madina-primary)', opacity: 0.1 }}
           />
           <p className="relative z-10 text-xl madina-text-body">
-            {t('sections.gallery_slider.subtitle', 'جولة بصرية… صور تحكي قصتنا')}
+            {pickSiteText(siteTexts, 'gallery', 'subtitle', t('sections.gallery_slider.subtitle', 'جولة بصرية… صور تحكي قصتنا'), isArabic)}
           </p>
         </div>
 

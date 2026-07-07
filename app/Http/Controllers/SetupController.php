@@ -127,6 +127,8 @@ class SetupController extends Controller
         foreach (['commercial_activity', 'branches_count', 'manager_type', 'responsible_position', 'cr_number', 'vat_number', 'license_number', 'license_expiry', 'municipality_license_number', 'municipality_license_expiry'] as $f) {
             $setup[$f] = $data[$f] ?? null;
         }
+        // Admin-defined custom fields for this step (posted under `custom.<key>`).
+        $setup['custom_fields'] = array_merge($setup['custom_fields'] ?? [], $data['custom'] ?? []);
         $setup['slug'] = $slug;
         $setup['site_url'] = "www.{$slug}.com";
         session(['setup' => $setup]);
@@ -163,6 +165,8 @@ class SetupController extends Controller
         foreach (['first_name', 'last_name', 'city', 'phone'] as $f) {
             $setup[$f] = $data[$f] ?? null;
         }
+        // Admin-defined custom fields for this step (posted under `custom.<key>`).
+        $setup['custom_fields'] = array_merge($setup['custom_fields'] ?? [], $data['custom'] ?? []);
 
         $requireEmail = (bool) $config['require_email_verification'];
         // Phone verification only applies when a phone number was actually provided.
@@ -623,6 +627,8 @@ class SetupController extends Controller
             'license_expiry' => $setup['license_expiry'] ?? null,
             'municipality_license_number' => $setup['municipality_license_number'] ?? null,
             'municipality_license_expiry' => $setup['municipality_license_expiry'] ?? null,
+            // Values captured for admin-defined custom registration fields.
+            'custom_fields' => !empty($setup['custom_fields']) ? $setup['custom_fields'] : null,
         ]);
 
         // Create default contact settings

@@ -16,6 +16,9 @@ class RegistrationForm
 {
     public const SETTING_KEY = 'registration_form_config';
 
+    /** Input types an admin can pick for a custom field. */
+    public const CUSTOM_TYPES = ['text', 'textarea', 'number', 'email', 'tel', 'date', 'select'];
+
     /**
      * Configurable fields, grouped by wizard step. Core account fields
      * (username, email, password) and the org name are always required and are
@@ -96,6 +99,51 @@ class RegistrationForm
         return $config;
     }
 
+    /**
+     * Super-admin-defined custom fields, keyed by their stable `custom_*` key.
+     * Read straight from the stored blob (they don't have code-level defaults).
+     *
+     * @return array<string, array{key:string,label_ar:string,label_en:string,type:string,step:string,required:bool,enabled:bool,options:array<int,string>}>
+     */
+    public static function customFields(): array
+    {
+        $raw = SiteSetting::get(self::SETTING_KEY);
+        $stored = is_string($raw) ? json_decode($raw, true) : $raw;
+        $list = is_array($stored) && is_array($stored['custom_fields'] ?? null) ? $stored['custom_fields'] : [];
+
+        $out = [];
+        foreach ($list as $f) {
+            if (!is_array($f)) {
+                continue;
+            }
+            $key = is_string($f['key'] ?? null) ? $f['key'] : '';
+            if (!preg_match('/^custom_[a-z0-9_]+$/', $key)) {
+                continue;
+            }
+            $type = in_array($f['type'] ?? '', self::CUSTOM_TYPES, true) ? $f['type'] : 'text';
+            $step = in_array($f['step'] ?? '', ['org', 'account'], true) ? $f['step'] : 'account';
+            $options = [];
+            if ($type === 'select' && is_array($f['options'] ?? null)) {
+                $options = array_values(array_filter(array_map(
+                    fn ($o) => is_string($o) ? trim($o) : '',
+                    $f['options'],
+                ), fn ($o) => $o !== ''));
+            }
+            $out[$key] = [
+                'key' => $key,
+                'label_ar' => (string) ($f['label_ar'] ?? ''),
+                'label_en' => (string) ($f['label_en'] ?? ''),
+                'type' => $type,
+                'step' => $step,
+                'required' => (bool) ($f['required'] ?? false),
+                'enabled' => (bool) ($f['enabled'] ?? true),
+                'options' => $options,
+            ];
+        }
+
+        return $out;
+    }
+
     /** Config plus field metadata (labels/step), for the setup UI and admin editor. */
     public static function withMeta(): array
     {
@@ -112,6 +160,7 @@ class RegistrationForm
 
         return [
             'fields' => $fields,
+            'custom_fields' => array_values(self::customFields()),
             'require_email_verification' => $config['require_email_verification'],
             'require_phone_verification' => $config['require_phone_verification'],
         ];
@@ -140,6 +189,28 @@ class RegistrationForm
             $rules[$key] = ($field['required'] ? 'required' : 'nullable') . '|' . $meta['rule'];
         }
 
+        // Custom fields are posted under a `custom.<key>` namespace.
+        foreach (self::customFields() as $key => $f) {
+            if ($f['step'] !== $step || !$f['enabled']) {
+                continue;
+            }
+            $rules["custom.$key"] = ($f['required'] ? 'required' : 'nullable') . '|' . self::customRule($f);
+        }
+
         return $rules;
+    }
+
+    /** Base validation rule derived from a custom field's input type. */
+    private static function customRule(array $f): string
+    {
+        return match ($f['type']) {
+            'number' => 'numeric',
+            'email' => 'email|max:255',
+            'tel' => 'string|max:30',
+            'date' => 'date',
+            'textarea' => 'string|max:5000',
+            'select' => count($f['options'] ?? []) ? 'in:' . implode(',', $f['options']) : 'string|max:255',
+            default => 'string|max:1000',
+        };
     }
 }

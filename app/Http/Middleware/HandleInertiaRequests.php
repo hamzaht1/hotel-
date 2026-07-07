@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SiteGalleryImage;
 use App\Models\SiteSetting;
 use App\Models\TenantSiteSetting;
 use Illuminate\Foundation\Inspiring;
@@ -76,6 +77,15 @@ class HandleInertiaRequests extends Middleware
             'siteSettings' => fn () => app()->bound('current_tenant_id')
                 ? TenantSiteSetting::getAllGrouped()
                 : SiteSetting::getAllGrouped(),
+            // Super-admin managed landing-page images (Trusted Hotels + footer logos).
+            // Only relevant to the Diyafah landing (non-tenant), so skip the query
+            // on tenant/admin pages.
+            'siteGallery' => fn () => app()->bound('current_tenant_id')
+                ? ['hotels' => [], 'footer' => []]
+                : [
+                    'hotels' => SiteGalleryImage::forGroup('hotels'),
+                    'footer' => SiteGalleryImage::forGroup('footer'),
+                ],
             'showReviewPopup' => fn () => $this->shouldShowReviewPopup($user),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

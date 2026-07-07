@@ -183,7 +183,7 @@ export default function HeroSection({ siteTexts }: HeroSectionProps = {}) {
 
   const isMobile = windowWidth > 0 && windowWidth < 768
   return (
-    <section id="home" className="relative w-full max-w-full overflow-hidden min-h-[60vh] h-[60vh] md:min-h-screen md:h-screen p-0 m-0">
+    <section data-preview-section="hero" id="home" className="relative w-full max-w-full overflow-hidden min-h-[60vh] h-[60vh] md:min-h-screen md:h-screen p-0 m-0">
       <Swiper
         key={`hero-slider-${sliderStyle}-${sliderEffect}`}
         modules={swiperModules}

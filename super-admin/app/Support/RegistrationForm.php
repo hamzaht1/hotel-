@@ -13,6 +13,9 @@ class RegistrationForm
 {
     public const SETTING_KEY = 'registration_form_config';
 
+    /** Input types an admin can pick for a custom field. */
+    public const CUSTOM_TYPES = ['text', 'textarea', 'number', 'email', 'tel', 'date', 'select'];
+
     public const FIELDS = [
         'commercial_activity'          => ['step' => 'org',     'label_ar' => 'النشاط التجاري',            'label_en' => 'Commercial activity'],
         'branches_count'               => ['step' => 'org',     'label_ar' => 'عدد الفروع',                'label_en' => 'Branches count'],
@@ -74,6 +77,50 @@ class RegistrationForm
         return $config;
     }
 
+    /**
+     * Super-admin-defined custom fields, keyed by their stable `custom_*` key.
+     *
+     * @return array<string, array{key:string,label_ar:string,label_en:string,type:string,step:string,required:bool,enabled:bool,options:array<int,string>}>
+     */
+    public static function customFields(): array
+    {
+        $raw = SiteSetting::get(self::SETTING_KEY);
+        $stored = is_string($raw) ? json_decode($raw, true) : $raw;
+        $list = is_array($stored) && is_array($stored['custom_fields'] ?? null) ? $stored['custom_fields'] : [];
+
+        $out = [];
+        foreach ($list as $f) {
+            if (!is_array($f)) {
+                continue;
+            }
+            $key = is_string($f['key'] ?? null) ? $f['key'] : '';
+            if (!preg_match('/^custom_[a-z0-9_]+$/', $key)) {
+                continue;
+            }
+            $type = in_array($f['type'] ?? '', self::CUSTOM_TYPES, true) ? $f['type'] : 'text';
+            $step = in_array($f['step'] ?? '', ['org', 'account'], true) ? $f['step'] : 'account';
+            $options = [];
+            if ($type === 'select' && is_array($f['options'] ?? null)) {
+                $options = array_values(array_filter(array_map(
+                    fn ($o) => is_string($o) ? trim($o) : '',
+                    $f['options'],
+                ), fn ($o) => $o !== ''));
+            }
+            $out[$key] = [
+                'key' => $key,
+                'label_ar' => (string) ($f['label_ar'] ?? ''),
+                'label_en' => (string) ($f['label_en'] ?? ''),
+                'type' => $type,
+                'step' => $step,
+                'required' => (bool) ($f['required'] ?? false),
+                'enabled' => (bool) ($f['enabled'] ?? true),
+                'options' => $options,
+            ];
+        }
+
+        return $out;
+    }
+
     public static function withMeta(): array
     {
         $config = self::config();
@@ -89,6 +136,7 @@ class RegistrationForm
 
         return [
             'fields' => $fields,
+            'custom_fields' => array_values(self::customFields()),
             'require_email_verification' => $config['require_email_verification'],
             'require_phone_verification' => $config['require_phone_verification'],
         ];

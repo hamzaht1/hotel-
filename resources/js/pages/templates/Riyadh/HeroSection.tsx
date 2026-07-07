@@ -115,7 +115,7 @@ export default function HeroSection({ hotelSettings, siteTexts }: HeroSectionPro
   const nextRef = useRef<HTMLButtonElement | null>(null)
 
   return (
-    <section id="home" className="relative">
+    <section data-preview-section="hero" id="home" className="relative">
       <Swiper
         modules={[Autoplay, Navigation]}
         loop

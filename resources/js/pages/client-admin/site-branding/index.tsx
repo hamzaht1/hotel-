@@ -50,6 +50,20 @@ interface Props {
 
 const PREVIEW_MESSAGE_TYPE = 'tenant-site-branding-preview'
 const PREVIEW_READY_TYPE = 'tenant-site-branding-preview-ready'
+const PREVIEW_SECTION_CLICK_TYPE = 'tenant-site-branding-section-click'
+
+// Maps a clicked preview zone (data-preview-section) to the editor block — or
+// generic text-group — that holds its fields, so we can scroll to it.
+const SECTION_TO_EDITOR_ID: Record<string, string> = {
+    hero: 'sec-hero',
+    services: 'sec-services',
+    additional_services: 'sec-additional-services',
+    footer: 'sec-footer',
+    contact: 'sec-contact',
+    rooms: 'sec-text-rooms',
+    testimonials: 'sec-text-testimonials',
+    gallery: 'sec-text-gallery',
+}
 
 type Viewport = 'desktop' | 'tablet' | 'mobile'
 const VIEWPORT_WIDTHS: Record<Viewport, string> = { desktop: '100%', tablet: '768px', mobile: '375px' }
@@ -85,6 +99,7 @@ export default function SiteBranding() {
 
     const { data, setData, post, processing } = useForm({
         site_logo: null as File | null,
+        site_logo_dark: null as File | null,
         hero_image: null as File | null,
         hero_image_2: null as File | null,
         additional_service_1_image: null as File | null,
@@ -134,6 +149,7 @@ export default function SiteBranding() {
     // Data URLs for staged image uploads — sent to the iframe so the live
     // preview shows the new image before it's actually persisted.
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
+    const [logoDarkPreviewUrl, setLogoDarkPreviewUrl] = useState<string | null>(null)
     const [heroImagePreviewUrl, setHeroImagePreviewUrl] = useState<string | null>(null)
     const [heroImage2PreviewUrl, setHeroImage2PreviewUrl] = useState<string | null>(null)
     // Per-item preview URLs for the 4 Additional Services slots. Keyed 1..4 to
@@ -208,6 +224,7 @@ export default function SiteBranding() {
         return {
             identity: {
                 site_logo: logoPreviewUrl ?? settings.identity.site_logo ?? null,
+                site_logo_dark: logoDarkPreviewUrl ?? settings.identity.site_logo_dark ?? null,
             },
             media: {
                 hero_image: heroImagePreviewUrl ?? settings.media.hero_image ?? null,
@@ -231,7 +248,7 @@ export default function SiteBranding() {
             },
             siteTexts: siteTextsMap,
         }
-    }, [data, logoPreviewUrl, heroImagePreviewUrl, heroImage2PreviewUrl, additionalServicePreviewUrls, servicesItemPreviewUrls, settings.identity.site_logo, settings.media])
+    }, [data, logoPreviewUrl, logoDarkPreviewUrl, heroImagePreviewUrl, heroImage2PreviewUrl, additionalServicePreviewUrls, servicesItemPreviewUrls, settings.identity.site_logo, settings.identity.site_logo_dark, settings.media])
 
     useEffect(() => { setIframeOrigin(null) }, [iframeNonce])
 
@@ -245,9 +262,23 @@ export default function SiteBranding() {
     useEffect(() => {
         const handler = (event: MessageEvent) => {
             if (event.source !== iframeRef.current?.contentWindow) return
-            const data = event.data as { type?: string } | null
-            if (!data || data.type !== PREVIEW_READY_TYPE) return
-            setIframeOrigin(event.origin)
+            const data = event.data as { type?: string; section?: string } | null
+            if (!data) return
+            if (data.type === PREVIEW_READY_TYPE) {
+                setIframeOrigin(event.origin)
+            } else if (data.type === PREVIEW_SECTION_CLICK_TYPE && data.section) {
+                // Click-to-edit: scroll the matching editor block into view and
+                // flash a highlight so the user immediately sees its fields.
+                const id = SECTION_TO_EDITOR_ID[data.section]
+                const el = id ? document.getElementById(id) : null
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    el.classList.add('ring-2', 'ring-primary')
+                    const firstField = el.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea')
+                    firstField?.focus({ preventScroll: true })
+                    window.setTimeout(() => el.classList.remove('ring-2', 'ring-primary'), 1800)
+                }
+            }
         }
         window.addEventListener('message', handler)
         return () => window.removeEventListener('message', handler)
@@ -259,6 +290,12 @@ export default function SiteBranding() {
         const file = e.target.files?.[0] ?? null
         setData('site_logo', file)
         setLogoPreviewUrl(file ? await fileToDataUrl(file) : null)
+    }
+
+    const onLogoDarkChange = async (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null
+        setData('site_logo_dark', file)
+        setLogoDarkPreviewUrl(file ? await fileToDataUrl(file) : null)
     }
 
     const onHeroImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -296,6 +333,7 @@ export default function SiteBranding() {
             preserveScroll: true,
             onSuccess: () => {
                 setLogoPreviewUrl(null)
+                setLogoDarkPreviewUrl(null)
                 setHeroImagePreviewUrl(null)
                 setHeroImage2PreviewUrl(null)
                 setAdditionalServicePreviewUrls({ 1: null, 2: null, 3: null, 4: null })
@@ -326,14 +364,23 @@ export default function SiteBranding() {
                     <div className="space-y-4 overflow-y-auto p-3">
                         <Section title="الشعار">
                             <FileField
-                                label="ارفع شعار جديد"
+                                label="الشعار (الوضع الفاتح) · Logo (light)"
                                 accept="image/*"
                                 onChange={onLogoChange}
                                 preview={logoPreviewUrl ?? storageUrl(settings.identity.site_logo) ?? null}
                             />
+                            <FileField
+                                label="الشعار (الوضع الداكن) · Logo (dark)"
+                                accept="image/*"
+                                onChange={onLogoDarkChange}
+                                preview={logoDarkPreviewUrl ?? storageUrl(settings.identity.site_logo_dark) ?? null}
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                ⓘ يظهر الشعار الداكن تلقائياً عند تفعيل الوضع الداكن في الموقع.
+                            </p>
                         </Section>
 
-                        <Section title="الـ Hero — الشريحة الأولى">
+                        <Section id="sec-hero" title="الـ Hero — الشريحة الأولى">
                             <FileField
                                 label="صورة الشريحة 1"
                                 accept="image/*"
@@ -359,7 +406,7 @@ export default function SiteBranding() {
                             <TextField label="Subtitle (EN)" value={getSlideText('subtitle_2', 'value_en')} onChange={(v) => setSlideText('subtitle_2', 'value_en', v)} />
                         </Section>
 
-                        <Section title="الخدمات الأخرى · Additional Services">
+                        <Section id="sec-additional-services" title="الخدمات الأخرى · Additional Services">
                             <TextField label="عنوان القسم (عربي)" value={getAddSvcText('title', 'value_ar')} onChange={(v) => setAddSvcText('title', 'value_ar', v)} dir="rtl" />
                             <TextField label="Section title (EN)" value={getAddSvcText('title', 'value_en')} onChange={(v) => setAddSvcText('title', 'value_en', v)} />
                             <TextField label="وصف القسم (عربي)" value={getAddSvcText('description', 'value_ar')} onChange={(v) => setAddSvcText('description', 'value_ar', v)} dir="rtl" />
@@ -382,7 +429,7 @@ export default function SiteBranding() {
                             ))}
                         </Section>
 
-                        <Section title="المساج · Services">
+                        <Section id="sec-services" title="المساج · Services">
                             <TextField label="عنوان القسم (عربي)" value={getSvcText('title', 'value_ar')} onChange={(v) => setSvcText('title', 'value_ar', v)} dir="rtl" />
                             <TextField label="Section title (EN)" value={getSvcText('title', 'value_en')} onChange={(v) => setSvcText('title', 'value_en', v)} />
                             <TextField label="العنوان الفرعي (عربي)" value={getSvcText('subtitle', 'value_ar')} onChange={(v) => setSvcText('subtitle', 'value_ar', v)} dir="rtl" />
@@ -411,7 +458,7 @@ export default function SiteBranding() {
                             ))}
                         </Section>
 
-                        <Section title="التذييل · Footer">
+                        <Section id="sec-footer" title="التذييل · Footer">
                             <TextField label="العنوان (عربي)" value={getFooterText('title', 'value_ar')} onChange={(v) => setFooterText('title', 'value_ar', v)} dir="rtl" />
                             <TextField label="Title (EN)" value={getFooterText('title', 'value_en')} onChange={(v) => setFooterText('title', 'value_en', v)} />
                             <TextField label="الوصف (عربي)" value={getFooterText('description', 'value_ar')} onChange={(v) => setFooterText('description', 'value_ar', v)} dir="rtl" />
@@ -425,7 +472,7 @@ export default function SiteBranding() {
                             <TextField label="Facebook" value={data.social_facebook} onChange={(v) => setData('social_facebook', v)} />
                         </Section>
 
-                        <Section title="معلومات الاتصال · Contact">
+                        <Section id="sec-contact" title="معلومات الاتصال · Contact">
                             <TextField label="WhatsApp" value={data.contact.whatsapp} onChange={(v) => setContact({ whatsapp: v })} />
                             <TextField label="الهاتف · Phone" value={data.contact.phone} onChange={(v) => setContact({ phone: v })} />
                             <TextField label="البريد · Email" type="email" value={data.contact.email} onChange={(v) => setContact({ email: v })} />
@@ -441,7 +488,7 @@ export default function SiteBranding() {
 
                         <Section title="نصوص الصفحة (حسب القسم)">
                             {Object.entries(textsByGroup).map(([section, rows]) => (
-                                <div key={section} className="rounded-md border p-2">
+                                <div key={section} id={`sec-text-${section}`} className="rounded-md border p-2 scroll-mt-2 transition-shadow duration-300">
                                     <div className="mb-2 flex items-center justify-between">
                                         <div className="text-xs font-bold uppercase text-muted-foreground">{section}</div>
                                         <button
@@ -489,6 +536,9 @@ export default function SiteBranding() {
                             <ViewportButton current={viewport} value="tablet" onClick={setViewport} Icon={Tablet} />
                             <ViewportButton current={viewport} value="mobile" onClick={setViewport} Icon={Smartphone} />
                         </div>
+                        <span className="hidden text-[11px] text-muted-foreground md:inline">
+                            ✏️ انقر على أي منطقة في المعاينة لفتح حقولها
+                        </span>
                         <button
                             type="button"
                             onClick={() => setIframeNonce((n) => n + 1)}
@@ -521,9 +571,9 @@ export default function SiteBranding() {
 
 // ─── UI bits ────────────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
     return (
-        <div className="space-y-2 rounded-md border bg-background p-3">
+        <div id={id} className="space-y-2 rounded-md border bg-background p-3 scroll-mt-2 transition-shadow duration-300">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
             <div className="space-y-2">{children}</div>
         </div>

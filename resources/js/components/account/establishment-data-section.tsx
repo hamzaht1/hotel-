@@ -49,6 +49,14 @@ export interface EstablishmentDocument {
     created_at: string | null;
 }
 
+// A value captured for a super-admin-defined custom registration field.
+export interface CustomFieldValue {
+    key: string;
+    label_ar: string;
+    label_en: string;
+    value: string;
+}
+
 /**
  * "Establishment data & documentation" tab. Defaults to a polished read-only
  * view (official data + uploaded documents); the "Edit" button reveals the
@@ -58,17 +66,19 @@ export default function EstablishmentDataSection({
     settings,
     documents = [],
     contactEmail,
+    customFields = [],
 }: {
     settings: HotelSettings;
     documents?: EstablishmentDocument[];
     contactEmail?: string | null;
+    customFields?: CustomFieldValue[];
 }) {
     const [editing, setEditing] = useState(false);
 
     if (editing) {
         return <EstablishmentEditForm settings={settings} documents={documents} onDone={() => setEditing(false)} />;
     }
-    return <OfficialDataView settings={settings} documents={documents} contactEmail={contactEmail} onEdit={() => setEditing(true)} />;
+    return <OfficialDataView settings={settings} documents={documents} contactEmail={contactEmail} customFields={customFields} onEdit={() => setEditing(true)} />;
 }
 
 // ─────────────────────────────── Read-only view ───────────────────────────────
@@ -92,11 +102,13 @@ function OfficialDataView({
     settings,
     documents,
     contactEmail,
+    customFields = [],
     onEdit,
 }: {
     settings: HotelSettings;
     documents: EstablishmentDocument[];
     contactEmail?: string | null;
+    customFields?: CustomFieldValue[];
     onEdit: () => void;
 }) {
     const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
@@ -164,6 +176,28 @@ function OfficialDataView({
                     ))}
                 </div>
             </div>
+
+            {/* Admin-defined custom fields captured at registration */}
+            {customFields.length > 0 && (
+                <div className="vuexy-card overflow-hidden">
+                    <div className="border-b bg-muted/30 px-5 py-4">
+                        <h3 className="text-base font-semibold">{isArabic ? 'حقول إضافية' : 'Additional fields'}</h3>
+                    </div>
+                    <div className="grid gap-px bg-border p-px sm:grid-cols-2 lg:grid-cols-3">
+                        {customFields.map((f) => (
+                            <div key={f.key} className="flex items-start justify-between gap-3 bg-background p-4">
+                                <div className="min-w-0 text-end">
+                                    <p className="text-xs text-muted-foreground">{(isArabic ? f.label_ar : f.label_en) || f.label_en || f.label_ar}</p>
+                                    <p className="mt-1 truncate font-semibold" title={f.value} dir="auto">{f.value}</p>
+                                </div>
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                    <FileText className="h-4 w-4" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Uploaded documents */}
             <div>

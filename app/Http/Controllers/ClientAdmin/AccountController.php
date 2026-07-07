@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Plan;
 use App\Models\RenewalRequest;
 use App\Models\Tenant;
+use App\Support\RegistrationForm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -35,6 +36,24 @@ class AccountController extends Controller
 
         // --- Establishment data + compliance documents ---
         $settings = HotelSetting::first() ?? new HotelSetting();
+
+        // Values captured for admin-defined custom registration fields, paired
+        // with their labels (falling back to the raw key if a field was removed).
+        $customValues = is_array($settings->custom_fields) ? $settings->custom_fields : [];
+        $customDefs = RegistrationForm::customFields();
+        $customFields = [];
+        foreach ($customValues as $key => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $def = $customDefs[$key] ?? null;
+            $customFields[] = [
+                'key' => $key,
+                'label_ar' => $def['label_ar'] ?? $key,
+                'label_en' => $def['label_en'] ?? $key,
+                'value' => is_array($value) ? implode(', ', $value) : (string) $value,
+            ];
+        }
         $documents = EstablishmentDocument::where('tenant_id', $tenantId)
             ->latest()
             ->get()
@@ -137,6 +156,7 @@ class AccountController extends Controller
         return Inertia::render('client-admin/account/index', array_merge(
             [
                 'settings' => $settings,
+                'customFields' => $customFields,
                 'contactEmail' => $tenant->email ?: $request->user()?->email,
                 'documents' => $documents,
                 'subscription' => $subscription,

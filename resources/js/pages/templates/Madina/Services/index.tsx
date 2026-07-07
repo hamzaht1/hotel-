@@ -425,7 +425,8 @@ export default function ServicesSection({ services: backendServices }: ServicesS
 
   return (
     <section
-      id="services" 
+      data-preview-section="services"
+      id="services"
       className="py-20 relative"
       style={{
         backgroundColor: 'var(--madina-primary)',

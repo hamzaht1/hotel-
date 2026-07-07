@@ -6,6 +6,8 @@ import React, { useMemo, useState } from 'react'
 import BookingModal, { BookingType, BookingData } from '@/components/templates/BookingModal'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import { useStorageUrl } from '@/lib/storage'
 import { riyadhRoomsData } from '@/data/templates/riyadh/rooms-data'
 import { TemplateRoom } from '@/types/template-types'
@@ -74,6 +76,9 @@ interface RoomsSectionProps {
 export default function RoomsSection({ rooms: backendRooms }: RoomsSectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=rooms) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const storageUrl = useStorageUrl()
   const [modalOpen, setModalOpen] = useState(false)
   const [defaultType, setDefaultType] = useState<BookingType>('غرفة')
@@ -119,22 +124,28 @@ export default function RoomsSection({ rooms: backendRooms }: RoomsSectionProps)
   }
 
   return (
-  <section id="rooms" className="py-20  ">
+  <section data-preview-section="rooms" id="rooms" className="py-20  ">
       <div className="container mx-auto px-4">
         {/* Title */}
         <div className="relative text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-4">
             <img src={leftLine} alt="left line" className="h-6 w-auto hidden md:block line-icon" />
             <h2 className="relative z-10 text-4xl md:text-5xl font-bold riyadh-heading">
-              {t('sections.rooms.title', 'ارتقِ بإقامتك إلى مستوى آخر من الفخامة')}
+              {pickSiteText(siteTexts, 'rooms', 'title', t('sections.rooms.title', 'ارتقِ بإقامتك إلى مستوى آخر من الفخامة'), isArabic)}
             </h2>
             <img src={rightLine} alt="right line" className="h-6 w-auto hidden md:block line-icon" />
           </div>
           <BackgroundTitle text={t('sections.rooms.background_title', 'الأجنحة')} />
           <p className="relative z-10 text-xl riyadh-text-muted max-w-4xl mx-auto leading-relaxed">
-            {t(
-              'sections.rooms.subtitle',
-              'نقدم لك أكثر من مجرد إقامة. نحن نقدم تجربة فريدة، حيث تلتقي الفخامة بالضيافة. من غرفنا الأنيقة إلى مرافقنا المتطورة، كل شيء مصمم ليوفر لك الهدوء والرفاهية التي تستحقها.'
+            {pickSiteText(
+              siteTexts,
+              'rooms',
+              'subtitle',
+              t(
+                'sections.rooms.subtitle',
+                'نقدم لك أكثر من مجرد إقامة. نحن نقدم تجربة فريدة، حيث تلتقي الفخامة بالضيافة. من غرفنا الأنيقة إلى مرافقنا المتطورة، كل شيء مصمم ليوفر لك الهدوء والرفاهية التي تستحقها.'
+              ),
+              isArabic,
             )}
           </p>
         </div>

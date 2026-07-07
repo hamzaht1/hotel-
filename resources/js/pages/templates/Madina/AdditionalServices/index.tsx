@@ -145,8 +145,9 @@ export default function AdditionalServicesSection() {
   })
 
   return (
-    <section 
-      id="additional-services" 
+    <section
+      data-preview-section="additional_services"
+      id="additional-services"
       className="py-20 relative"
       style={{
         paddingTop: '5rem',

@@ -6,6 +6,7 @@ import footerBackground from '@/assets/images/riyadh-template/footer/footer-fram
 import paymentLogos from '@/assets/images/riyadh-template/footer/payment-logos.svg'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
+import { useAppearance } from '@/hooks/use-appearance'
 import {
   useMergedSiteTexts,
   useTenantSiteSettings,
@@ -22,10 +23,13 @@ export default function TemplateFooter() {
   const storageUrl = useStorageUrl()
   // Live-preview hook: logo + footer texts update instantly while editing.
   const siteSettings = useTenantSiteSettings()
-  const rawLogo = siteSettings?.identity?.site_logo as string | null | undefined
-  const logo = (rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('data:'))
-    ? rawLogo
-    : (storageUrl(rawLogo) || defaultLogo)
+  const { appearance } = useAppearance()
+  const resolveLogo = (raw: string | null | undefined) =>
+    raw && typeof raw === 'string' && raw.startsWith('data:') ? raw : storageUrl(raw)
+  const tenantLogo = resolveLogo(siteSettings?.identity?.site_logo as string | null | undefined)
+  const tenantLogoDark = resolveLogo(siteSettings?.identity?.site_logo_dark as string | null | undefined)
+  // In dark mode prefer the dedicated dark logo, falling back to the light one.
+  const logo = (appearance === 'dark' ? (tenantLogoDark || tenantLogo) : tenantLogo) || defaultLogo
   const siteTexts = useMergedSiteTexts()
   const footerDescription = pickSiteText(
     siteTexts,
@@ -99,7 +103,8 @@ export default function TemplateFooter() {
 </div>
 
 
-      <footer 
+      <footer
+        data-preview-section="footer"
         className="text-white relative mt-1 bg-[#020151f5]"
         style={{
           backgroundImage: `url(${footerBackground})`,

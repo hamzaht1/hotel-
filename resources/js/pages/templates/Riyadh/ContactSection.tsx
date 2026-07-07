@@ -8,6 +8,8 @@ import { LiaPhoneVolumeSolid } from "react-icons/lia"
 import line from '@/assets/images/riyadh-template/contact-line.svg'
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 
 // Bilingual form field interface
 interface BilingualFormField {
@@ -36,6 +38,9 @@ interface ContactSectionProps {
 export default function ContactSection({ contactSettings, tenant }: ContactSectionProps) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title (section=contact) from the Site Branding
+  // editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   // Bilingual contact form fields configuration
   const CONTACT_FORM_FIELDS: BilingualFormField[] = [
     { 
@@ -117,7 +122,7 @@ export default function ContactSection({ contactSettings, tenant }: ContactSecti
   ]
 
   return (
-    <section id="contact" className="py-20 ">
+    <section data-preview-section="contact" id="contact" className="py-20 ">
       <div className="container mx-auto px-4">
         {/* Section title */}
         <div className="relative text-center mb-12">
@@ -125,7 +130,7 @@ export default function ContactSection({ contactSettings, tenant }: ContactSecti
           <div className="flex items-center justify-center gap-4 mb-4">
             <img src={leftLine} alt="left line" className="h-6 w-auto hidden md:block line-icon" />
               <h2 className="relative z-10 text-4xl md:text-5xl font-bold riyadh-heading ">
-                <span className="">{t('sections.contact.title', 'تواصل معنا')}</span>
+                <span className="">{pickSiteText(siteTexts, 'contact', 'title', t('sections.contact.title', 'تواصل معنا'), isArabic)}</span>
               </h2>
             <img src={rightLine} alt="right line" className="h-6 w-auto hidden md:block line-icon" />
           </div>

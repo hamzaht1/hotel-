@@ -16,6 +16,8 @@ import { MapPin, Mail } from 'lucide-react'
 import { LiaPhoneVolumeSolid } from "react-icons/lia"
 import BackgroundTitle from '@/components/templates/BackgroundTitle'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
+import { useMergedSiteTexts } from '@/hooks/use-tenant-preview-overrides'
+import { pickSiteText } from '@/lib/site-texts'
 import SimpleContactForm from './SimpleContactForm'
 
 // Import images from template folder
@@ -44,6 +46,9 @@ interface Props {
 export default function ContactSection({ contactSettings, tenant }: Props = {}) {
   const t = useTemplateT()
   const { isArabic } = useTemplateLanguage()
+  // Tenant-editable section title/subtitle (section=contact) from the Site
+  // Branding editor; falls back to the bundled translation.
+  const siteTexts = useMergedSiteTexts()
   const [formStyle, setFormStyle] = useState<'default' | 'simple'>('default')
 
   // Load contact form style from localStorage
@@ -173,9 +178,10 @@ export default function ContactSection({ contactSettings, tenant }: Props = {}) 
   ]
   
   return (
-    <section 
-      id="contact" 
-      className="pt-20 relative" 
+    <section
+      data-preview-section="contact"
+      id="contact"
+      className="pt-20 relative"
     >
       {/* Tree/background image - color follows primary in light mode */}
       <div
@@ -216,7 +222,7 @@ export default function ContactSection({ contactSettings, tenant }: Props = {}) 
               }}
             />
             <h2 className="madina-font-heading madina-text-primary relative z-10 text-4xl md:text-5xl font-bold">
-              <span>{t('sections.contact.title', 'تواصل معنا')}</span>
+              <span>{pickSiteText(siteTexts, 'contact', 'title', t('sections.contact.title', 'تواصل معنا'), isArabic)}</span>
           </h2>
             <div 
               className="h-6 w-6 hidden md:block"
@@ -253,7 +259,7 @@ export default function ContactSection({ contactSettings, tenant }: Props = {}) 
               
               {/* Subtitle */}
               <p className="madina-text-secondary text-lg mb-8">
-                {t('sections.contact.contact_info_subtitle', 'فريقنا يسعد بالاستماع إليك!')}
+                {pickSiteText(siteTexts, 'contact', 'subtitle', t('sections.contact.contact_info_subtitle', 'فريقنا يسعد بالاستماع إليك!'), isArabic)}
               </p>
 
               {/* Contact methods list */}

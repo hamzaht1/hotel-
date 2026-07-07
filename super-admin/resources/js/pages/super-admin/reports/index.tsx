@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
-    Plus, Download, Pencil, Search, Users, CreditCard, TrendingUp,
+    Plus, Download, Search, Users, CreditCard, TrendingUp,
     Printer, Settings2, FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -166,11 +166,6 @@ export default function ReportsIndex({ tab, kpis, rows, available_columns, filte
         return val !== null && val !== undefined && val !== '' ? String(val) : <span className="text-muted-foreground">—</span>;
     }
 
-    function editHref(row: Record<string, unknown>): string {
-        if (tab === 'invoices') return `/super-admin/invoices/${row.id}/edit`;
-        return `/super-admin/tenants/${row.id}/edit`;
-    }
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isArabic ? 'التقارير' : 'Reports'} />
@@ -331,12 +326,11 @@ export default function ReportsIndex({ tab, kpis, rows, available_columns, filte
                                     {available_columns.filter((c) => visibleCols.includes(c.key)).map((col) => (
                                         <th key={col.key} className="px-3 py-3 text-start">{isArabic ? col.label_ar : col.label_en}</th>
                                     ))}
-                                    <th className="px-3 py-3 text-start">{isArabic ? 'إجراء' : 'Actions'}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.data.length === 0 && (
-                                    <tr><td colSpan={visibleCols.length + 1} className="px-4 py-10 text-center text-muted-foreground">{isArabic ? 'لا توجد بيانات' : 'No data'}</td></tr>
+                                    <tr><td colSpan={visibleCols.length} className="px-4 py-10 text-center text-muted-foreground">{isArabic ? 'لا توجد بيانات' : 'No data'}</td></tr>
                                 )}
                                 {rows.data.map((row) => (
                                     <tr key={row.id as number} className="border-b last:border-0 hover:bg-muted/30">
@@ -345,11 +339,6 @@ export default function ReportsIndex({ tab, kpis, rows, available_columns, filte
                                                 {renderCell(row, col)}
                                             </td>
                                         ))}
-                                        <td className="px-3 py-2">
-                                            <Button size="sm" variant="outline" asChild>
-                                                <Link href={editHref(row)}><Pencil className="h-3 w-3" /> {isArabic ? 'تعديل' : 'Edit'}</Link>
-                                            </Button>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

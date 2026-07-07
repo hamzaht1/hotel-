@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import EstablishmentDataSection, { type HotelSettings, type EstablishmentDocument } from '@/components/account/establishment-data-section';
+import EstablishmentDataSection, { type HotelSettings, type EstablishmentDocument, type CustomFieldValue } from '@/components/account/establishment-data-section';
 import RenewalSection, { type RenewalProps } from '@/components/account/renewal-section';
 import InvoicesSection, { type PaginatedInvoices } from '@/components/account/invoices-section';
 import SubscriptionOverviewSection, { type SubscriptionInfo } from '@/components/account/subscription-overview-section';
@@ -12,6 +12,7 @@ import { useState } from 'react';
 
 interface Props {
     settings: HotelSettings;
+    customFields: CustomFieldValue[];
     contactEmail: string | null;
     documents: EstablishmentDocument[];
     subscription: SubscriptionInfo;
@@ -36,6 +37,7 @@ const TAB_KEYS: TabKey[] = ['overview', 'profile', 'renewal', 'domain', 'invoice
  */
 export default function AccountIndex({
     settings,
+    customFields,
     contactEmail,
     documents,
     subscription,
@@ -119,7 +121,7 @@ export default function AccountIndex({
 
                 {/* Active tab body */}
                 {activeTab === 'overview' && <SubscriptionOverviewSection subscription={subscription} />}
-                {activeTab === 'profile' && <EstablishmentDataSection settings={settings} documents={documents} contactEmail={contactEmail} />}
+                {activeTab === 'profile' && <EstablishmentDataSection settings={settings} documents={documents} contactEmail={contactEmail} customFields={customFields} />}
                 {activeTab === 'renewal' && (
                     <RenewalSection
                         tenant={tenant}
