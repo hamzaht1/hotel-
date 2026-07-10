@@ -10,14 +10,11 @@ import {
     LayoutGrid,
     BedDouble,
     Image,
-    FileText,
     ToggleRight,
-    Phone,
     Settings,
     MessageSquare,
     Users,
     Shield,
-    Layers,
     Sparkles,
     Star,
     Building2,
@@ -46,16 +43,13 @@ export function AppSidebar() {
     const managementGroup = buildGroup([
         { item: { title: t('rooms'), href: '/client-admin/rooms', icon: BedDouble }, permission: 'rooms.view' },
         { item: { title: t('gallery'), href: '/client-admin/gallery', icon: Image }, permission: 'gallery.view' },
-        { item: { title: t('site_texts'), href: '/client-admin/site-texts', icon: FileText }, permission: 'site_texts.view' },
         { item: { title: t('sections'), href: '/client-admin/site-sections', icon: ToggleRight }, permission: 'site_sections.view' },
-        { item: { title: t('contact'), href: '/client-admin/contact-settings', icon: Phone }, permission: 'contact.view' },
     ], can);
 
     // ⚙️ النظام — system identity, services, integrations
     const systemGroup = buildGroup([
         { item: { title: isArabic ? 'تخصيص الموقع' : 'Site Branding', href: '/client-admin/site-branding', icon: Settings }, permission: 'hotel_settings.edit' },
         { item: { title: isArabic ? 'الخدمات' : 'Services', href: '/client-admin/services', icon: Sparkles }, permission: 'services.view' },
-        { item: { title: isArabic ? 'أقسام الخدمات' : 'Service Categories', href: '/client-admin/service-categories', icon: Layers }, permission: 'services.view' },
         { item: { title: isArabic ? 'التكاملات' : 'Integrations', href: '/client-admin/integrations', icon: Plug } },
     ], can);
 
