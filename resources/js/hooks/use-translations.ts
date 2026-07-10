@@ -148,6 +148,8 @@ const translations: Record<string, Record<string, string>> = {
     'rooms_desc': { ar: 'أنواع الغرف والأسعار', en: 'Room types and pricing' },
     'services': { ar: 'الخدمات', en: 'Services' },
     'services_desc': { ar: 'خدمات الفندق', en: 'Hotel services' },
+    'additional_services': { ar: 'خدمات إضافية', en: 'Additional Services' },
+    'additional_services_desc': { ar: 'قسم الخدمات الإضافية', en: 'Additional services section' },
     'gallery_section': { ar: 'المعرض', en: 'Gallery' },
     'gallery_desc': { ar: 'معرض الصور', en: 'Photo gallery' },
     'testimonials': { ar: 'آراء العملاء', en: 'Testimonials' },

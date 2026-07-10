@@ -56,7 +56,6 @@ export default function Plan({ setup, plans }: Props) {
     iconAlt: p.name_en,
     price: Number(p.price).toLocaleString(),
     period: p.billing_cycle === 'yearly' ? 'سنوياً' : 'شهرياً',
-    vatNote: 'شامل ضريبة القيمة المضافة',
     features: p.features_ar || [],
     variant: (p.variant as PlanType['variant']) || 'light',
   }))

@@ -29,6 +29,7 @@ export default function SiteSectionsIndex({ sections, availableToAdd }: Props) {
         hero: { name: t('hero_banner'), desc: t('hero_desc') },
         rooms: { name: t('rooms_section'), desc: t('rooms_desc') },
         services: { name: t('services'), desc: t('services_desc') },
+        additional_services: { name: t('additional_services'), desc: t('additional_services_desc') },
         gallery: { name: t('gallery_section'), desc: t('gallery_desc') },
         testimonials: { name: t('testimonials'), desc: t('testimonials_desc') },
         partners: { name: t('partners'), desc: t('partners_desc') },

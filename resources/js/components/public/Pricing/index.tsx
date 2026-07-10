@@ -54,7 +54,6 @@ const Pricing: React.FC<Props> = ({ dbPlans }) => {
         iconAlt: p.name_en,
         price: Number(p.price).toLocaleString(),
         period: p.billing_cycle === 'yearly' ? 'سنوياً' : 'شهرياً',
-        vatNote: 'شامل ضريبة القيمة المضافة',
         features: p.features_ar || [],
         variant: (p.variant as Plan['variant']) || 'light',
         comingSoon: !!p.is_coming_soon,
@@ -91,7 +90,7 @@ const Pricing: React.FC<Props> = ({ dbPlans }) => {
   };
 
   return (
-    <section id="pricing" className="bg-white">
+    <section id="pricing" className="bg-white py-16 sm:py-24">
       <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <header className="mx-auto mb-10 max-w-2xl text-center">

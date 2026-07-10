@@ -19,8 +19,6 @@ export const plans: Plan[] = [
     price: "820",
     period: "سنوياً",
     periodKey: "messages.pricing.plans.starter.period",
-    vatNote: "شامل ضريبة القيمة المضافة",
-    vatNoteKey: "messages.pricing.plans.starter.vat_note",
     features: [
         "ميزة تجريبية أولى",
         "ميزة تجريبية ثانية",
@@ -46,8 +44,6 @@ export const plans: Plan[] = [
     price: "3,150",
     period: "سنوياً",
     periodKey: "messages.pricing.plans.premium.period",
-    vatNote: "شامل ضريبة القيمة المضافة",
-    vatNoteKey: "messages.pricing.plans.premium.vat_note",
     features: [
         "ميزة ميزة ميزة ميزة ميزة ميزة ميزة ميزة ميزة  ",
         "ميزة تجريبية ثانية",
@@ -71,8 +67,6 @@ export const plans: Plan[] = [
     price: "1,950",
     period: "سنوياً",
     periodKey: "messages.pricing.plans.growth.period",
-    vatNote: "شامل ضريبة القيمة المضافة",
-    vatNoteKey: "messages.pricing.plans.growth.vat_note",
     features: [
         "ميزة تجريبية أولى",
         "ميزة تجريبية ثانية",

@@ -74,6 +74,7 @@ function MadinaInner({ tenant, hotelSettings, contactSettings, rooms, services, 
     hero: heroBlock,
     rooms: <RoomsSection rooms={rooms} />,
     services: <ServicesSection services={services} />,
+    additional_services: <AdditionalServicesSection />,
     partners: <PartnersSection />,
     testimonials: <TestimonialsSection reviews={reviews} />,
     gallery: <GallerySlider gallery={gallery} />,
@@ -92,7 +93,6 @@ function MadinaInner({ tenant, hotelSettings, contactSettings, rooms, services, 
           {activeSections!.map((name, i) =>
             sectionMap[name] ? <Fragment key={`${name}-${i}`}>{sectionMap[name]}</Fragment> : null
           )}
-          <AdditionalServicesSection />
         </>
       ) : (
         <>

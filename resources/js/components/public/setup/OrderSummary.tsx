@@ -9,12 +9,11 @@ type Props = {
   onApplyCoupon: () => void;
   discount: number;
   total: number;
-  vatNoteValue: number;
 };
 
 export default function OrderSummary({
   planName, price, coupon, onCouponChange, onApplyCoupon,
-  discount, total, vatNoteValue,
+  discount, total,
 }: Props) {
   const { __ } = useLang()
   // order summary card
@@ -64,10 +63,6 @@ export default function OrderSummary({
         <div className="flex items-center justify-between">
           <span className="text-start font-bold text-slate-900">{__("messages.setup.order.total_label")}</span>
           <span className="text-end font-extrabold">{total.toLocaleString("en-US")} {__("messages.common.currency")}</span>
-        </div>
-
-        <div className="text-start text-[12px] text-slate-600">
-          {__("messages.setup.order.vat_note", { value: vatNoteValue.toLocaleString("en-US"), currency: __("messages.common.currency") })}
         </div>
       </div>
     </div>

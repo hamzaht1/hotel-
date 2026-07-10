@@ -99,7 +99,8 @@ class RenewalController extends Controller
                 'amount' => $resolved['amount'],
                 'price' => $price,
                 'net' => $net,
-                'total_with_tax' => round($net * 1.15, 2),
+                // No VAT applied — total equals the net amount.
+                'total_with_tax' => round($net, 2),
             ],
         ]);
     }

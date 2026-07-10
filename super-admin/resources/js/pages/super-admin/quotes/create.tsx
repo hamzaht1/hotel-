@@ -76,7 +76,7 @@ export default function CreateQuote({ tenants, salesReps, nextNumber }: Props) {
         type: 'subscription',
         issue_date: new Date().toISOString().slice(0, 10),
         valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        tax_rate: 15,
+        tax_rate: 0,
         tax_rate_2: 0,
         discount: 0,
         discount_percent: 0,

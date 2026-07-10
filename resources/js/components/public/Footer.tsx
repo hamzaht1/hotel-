@@ -85,12 +85,14 @@ export default function Footer() {
             {/* Company logo */}
             <img src={footerLogo || brandMark} alt="ضيافة" className="h-32 sm:h-24" />
 
-            {/* Login and privacy policy links */}
-            <div className="flex items-center gap-2 text-md">
-              <a href="/login" className="hover:text-slate-900 focus:outline-none focus:ring">
+            {/* Login button and privacy policy link */}
+            <div className="flex items-center gap-3 text-md">
+              <a
+                href="/login"
+                className="inline-flex items-center rounded-lg bg-public-primary px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors duration-300 hover:bg-public-button focus:outline-none focus:ring-2 focus:ring-public-primary/60"
+              >
                 {__("messages.footer.login")}
               </a>
-              <span aria-hidden>•</span>
               <a href="/Privacy" className="hover:text-slate-900 focus:outline-none focus:ring">
                 {__("messages.footer.privacy")}
               </a>

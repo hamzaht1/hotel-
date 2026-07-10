@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 
@@ -12,19 +13,20 @@ test('setup plan page loads', function () {
 });
 
 test('can store plan choice in session', function () {
-    $this->post('/setup/plan', [
-        'plan_key' => 'starter',
-        'plan_name' => 'Diyafah Starter',
-    ])->assertRedirect('/setup/template');
+    $plan = Plan::create([
+        'slug' => 'starter', 'name_ar' => 'انطلاقة', 'name_en' => 'Starter',
+        'price' => 820, 'billing_cycle' => 'yearly', 'is_active' => true, 'sort_order' => 1,
+    ]);
+
+    $this->post('/setup/plan', ['plan_id' => $plan->id])
+        ->assertRedirect('/setup/template');
 
     expect(session('setup.plan_key'))->toBe('starter');
 });
 
-test('plan validation rejects invalid plan key', function () {
-    $this->post('/setup/plan', [
-        'plan_key' => 'invalid_plan',
-        'plan_name' => 'Test',
-    ])->assertSessionHasErrors('plan_key');
+test('plan validation rejects invalid plan id', function () {
+    $this->post('/setup/plan', ['plan_id' => 999999])
+        ->assertSessionHasErrors('plan_id');
 });
 
 // ─── Template Step ─────────────────────────────────────────
@@ -78,6 +80,11 @@ test('can store account info and generate OTP', function () {
         'username' => 'testuser',
         'email' => 'test@example.com',
         'password' => 'password123',
+        // first_name/last_name/city/phone are required by the default form config.
+        'first_name' => 'Sara',
+        'last_name' => 'Owner',
+        'city' => 'Riyadh',
+        'phone' => '0500000000',
     ])->assertRedirect('/setup/verify-otp');
 
     expect(session('setup.email'))->toBe('test@example.com');

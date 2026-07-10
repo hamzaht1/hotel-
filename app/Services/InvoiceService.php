@@ -30,9 +30,10 @@ class InvoiceService
         $amount = (float) $plan->price;
         $discount = max(0.0, min($discount, $amount));
         $net = round($amount - $discount, 2);
-        $taxRate = 15.00;
-        $taxAmount = round($net * ($taxRate / 100), 2);
-        $total = round($net + $taxAmount, 2);
+        // Diyafah is not VAT-registered — subscription invoices carry no tax.
+        $taxRate = 0.00;
+        $taxAmount = 0.00;
+        $total = $net;
 
         return Invoice::create([
             'tenant_id' => $tenant->id,

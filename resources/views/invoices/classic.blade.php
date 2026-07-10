@@ -86,7 +86,7 @@
         @if($invoice->discount > 0)
         <tr><td class="label">{{ $L('Discount:', 'الخصم:') }}</td><td style="text-align: {{ $rtl ? 'left' : 'right' }};">-{{ number_format($invoice->discount, 2) }} {{ $currency }}</td></tr>
         @endif
-        <tr><td class="label">{{ $L('VAT', 'ض. القيمة المضافة') }} ({{ $invoice->tax_rate }}%):</td><td style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ number_format($invoice->tax_amount, 2) }} {{ $currency }}</td></tr>
+        @if((float) $invoice->tax_rate > 0)<tr><td class="label">{{ $L('VAT', 'ض. القيمة المضافة') }} ({{ $invoice->tax_rate }}%):</td><td style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ number_format($invoice->tax_amount, 2) }} {{ $currency }}</td></tr>@endif
         <tr class="grand-total"><td class="label">{{ $L('Grand total:', 'الإجمالي الكلي:') }}</td><td style="text-align: {{ $rtl ? 'left' : 'right' }};">{{ number_format($invoice->total, 2) }} {{ $currency }}</td></tr>
     </table>
 

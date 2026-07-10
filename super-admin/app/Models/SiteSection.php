@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SiteSection extends Model
 {
-    public const AVAILABLE = ['hero', 'rooms', 'services', 'gallery', 'testimonials', 'partners', 'contact'];
+    public const AVAILABLE = ['hero', 'rooms', 'services', 'additional_services', 'gallery', 'testimonials', 'partners', 'contact'];
 
     protected $fillable = [
         'tenant_id',

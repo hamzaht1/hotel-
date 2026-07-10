@@ -21,12 +21,12 @@ export default function TemplateCard({
 
   return (
     <div className="group relative flex flex-col items-center text-center">
-      <div className="relative w-full overflow-hidden rounded-xl transition-colors duration-300 shadow-md">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl transition-colors duration-300 shadow-md">
         {/* Image */}
         <img
           src={item.src}
           alt={item.title ?? ''}
-          className={`h-auto w-full object-cover transition-transform duration-300 ${item.comingSoon ? 'grayscale opacity-60' : 'group-hover:scale-[1.03]'}`}
+          className={`h-full w-full object-cover transition-transform duration-300 ${item.comingSoon ? 'grayscale opacity-60' : 'group-hover:scale-[1.03]'}`}
           loading="lazy"
           decoding="async"
         />

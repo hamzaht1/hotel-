@@ -28,7 +28,7 @@ test('approving a tenant payment creates a subscription invoice', function () {
     expect($invoice->type)->toBe('subscription');
     expect($invoice->status)->toBe('paid');
     expect((float) $invoice->amount)->toBe(1000.0);
-    expect((float) $invoice->total)->toBe(1150.0); // +15% tax
+    expect((float) $invoice->total)->toBe(1000.0); // VAT removed app-wide
 });
 
 test('approving the same tenant twice does not create a duplicate invoice', function () {

@@ -23,7 +23,10 @@ class ClientController extends Controller
     public function index(Request $request)
     {
         // ─── Time range filter ─────────────────────────────────
-        [$from, $to, $rangeKey] = $this->resolveRange($request->input('range', 'this_month'));
+        // Default to "all" so the clients directory lists every client on load.
+        // A month-scoped default silently hid clients registered in earlier months
+        // (e.g. approved requests), making the page look empty.
+        [$from, $to, $rangeKey] = $this->resolveRange($request->input('range', 'all'));
 
         $base = Tenant::query()->with(['planModel:id,name_ar,name_en,slug']);
 

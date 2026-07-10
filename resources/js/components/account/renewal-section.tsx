@@ -393,13 +393,9 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                                     <span>−{applied.amount.toLocaleString()} SAR</span>
                                 </div>
                             )}
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">{isArabic ? 'ض. القيمة المضافة (15%)' : 'VAT (15%)'}</span>
-                                <span>{(netAmount * 0.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR</span>
-                            </div>
                             <div className="flex justify-between border-t pt-1.5 text-base font-bold">
                                 <span>{isArabic ? 'الإجمالي' : 'Total'}</span>
-                                <span>{(netAmount * 1.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR</span>
+                                <span>{netAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR</span>
                             </div>
                         </div>
 
@@ -449,8 +445,8 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                                 <Button type="button" onClick={payOnline} disabled={payLoading || !moyasarPublishableKey} className="w-full">
                                     {payLoading ? <Loader2 className="h-4 w-4 me-2 animate-spin" /> : <CreditCard className="h-4 w-4 me-2" />}
                                     {isArabic
-                                        ? `ادفع ${(netAmount * 1.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} ريال`
-                                        : `Pay ${(netAmount * 1.15).toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR`}
+                                        ? `ادفع ${netAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ريال`
+                                        : `Pay ${netAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR`}
                                 </Button>
                                 {!moyasarPublishableKey && (
                                     <p className="text-xs text-amber-600">
