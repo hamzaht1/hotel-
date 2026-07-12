@@ -82,12 +82,12 @@ class Tenant extends Model
             return 'https://' . ltrim($this->custom_domain, '/');
         }
 
-        $base = trim(env('TENANT_BASE_DOMAIN', ''), '/');
+        $base = config('app.tenant_base_domain');
         if ($this->subdomain && $base) {
             return "https://{$this->subdomain}.{$base}";
         }
 
-        $main = rtrim(env('MAIN_APP_URL', env('APP_URL', '')), '/');
+        $main = config('app.main_app_url');
         return "{$main}/hotel/{$this->slug}";
     }
 

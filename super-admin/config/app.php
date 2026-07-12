@@ -56,6 +56,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Main Public App URL
+    |--------------------------------------------------------------------------
+    |
+    | Base URL of the public/client app (e.g. https://diafa.cloud). Used for
+    | cross-app previews (site-branding iframe) and public storage links.
+    | Kept in config (not read via env() at runtime) so it survives
+    | `php artisan config:cache` — env() outside config files returns null
+    | once the config is cached.
+    |
+    */
+
+    'main_app_url' => rtrim(env('MAIN_APP_URL', env('APP_URL', 'http://localhost')), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tenant Base Domain
+    |--------------------------------------------------------------------------
+    |
+    | When set (e.g. diafa.cloud), tenant public URLs use real subdomain
+    | routing: https://{subdomain}.{base}. Empty falls back to path routing
+    | under main_app_url. Kept in config so it survives config:cache.
+    |
+    */
+
+    'tenant_base_domain' => trim(env('TENANT_BASE_DOMAIN', ''), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
