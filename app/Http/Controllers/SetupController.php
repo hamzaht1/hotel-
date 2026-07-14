@@ -318,6 +318,13 @@ class SetupController extends Controller
 
         $plan = Plan::find($setup['plan_id'] ?? null);
 
+        // No valid plan → the summary would show 0 SAR and the checkout would
+        // create a tenant with no plan and no invoice. Send the user back to pick one.
+        if (!$plan) {
+            return redirect()->route('setup.plan')
+                ->withErrors(['plan_id' => 'يرجى اختيار باقة أولاً.']);
+        }
+
         return Inertia::render('public/setup/Review', [
             'setup' => $setup,
             'plan' => $plan ? [
@@ -344,6 +351,12 @@ class SetupController extends Controller
         }
 
         $plan = Plan::find($setup['plan_id'] ?? null);
+
+        // Guard against a missing plan so we never present a 0 SAR payment.
+        if (!$plan) {
+            return redirect()->route('setup.plan')
+                ->withErrors(['plan_id' => 'يرجى اختيار باقة أولاً.']);
+        }
 
         return Inertia::render('public/setup/PaymentMethod', [
             'setup' => $setup,
@@ -375,6 +388,13 @@ class SetupController extends Controller
 
         if (empty($setup['otp_verified']) || empty($setup['email'])) {
             return redirect()->route('setup.account');
+        }
+
+        // A valid plan is required so the tenant is linked to one and an invoice
+        // can be issued on approval. Without it, block before creating anything.
+        if (!Plan::find($setup['plan_id'] ?? null)) {
+            return redirect()->route('setup.plan')
+                ->withErrors(['plan_id' => 'يرجى اختيار باقة أولاً.']);
         }
 
         $receiptPath = $request->file('receipt')->store('bank-receipts', 'public');

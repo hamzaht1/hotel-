@@ -385,6 +385,7 @@ return [
             'selected_template_label' => 'Selected template:',
             'no_template_placeholder' => '—',
             'choose_plan_prompt' => 'Please choose a suitable plan',
+            'unavailable' => 'This plan is currently unavailable. Please try again later or contact support.',
         ],
         'org' => [
             'title' => 'Organization information',

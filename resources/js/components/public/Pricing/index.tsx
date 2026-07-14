@@ -35,14 +35,6 @@ const iconMap: Record<string, string> = {
  */
 const Pricing: React.FC<Props> = ({ dbPlans }) => {
   const { __ } = useLang()
-  const { template_id, template_title } = useMemo(() => {
-    if (typeof window === "undefined") return { template_id: "", template_title: "" };
-    const qs = new URLSearchParams(window.location.search);
-    return {
-      template_id: qs.get("template_id") ?? "",
-      template_title: qs.get("template_title") ?? "",
-    };
-  }, []);
 
   // Convert DB plans to PlanCard format, or use fallback
   const plans: Plan[] = useMemo(() => {
@@ -64,29 +56,21 @@ const Pricing: React.FC<Props> = ({ dbPlans }) => {
 
   const handleSubscribe = (plan: Plan) => {
     if (plan.comingSoon) return;
-    // If we have DB plans, find the ID for the setup flow
+    // A subscription MUST carry a real DB plan id — otherwise the setup flow has
+    // no price and produces a 0 SAR order with no invoice. If the card is only a
+    // hardcoded fallback (no matching DB plan), block instead of starting a
+    // broken checkout.
     const dbPlan = dbPlans?.find((p) => p.slug === plan.key);
-
-    if (dbPlan) {
-      // New flow: go to setup with plan_id
-      router.visit("/setup/plan", {
-        method: "post",
-        data: { plan_id: dbPlan.id },
-        preserveScroll: true,
-      });
-    } else {
-      // Legacy flow
-      router.visit("/setup/template", {
-        method: "get",
-        data: {
-          plan_key: plan.key,
-          plan_name: plan.name,
-          template_id,
-          template_title,
-        },
-        preserveScroll: true,
-      });
+    if (!dbPlan) {
+      alert(__("messages.setup.plan.unavailable"));
+      return;
     }
+
+    router.visit("/setup/plan", {
+      method: "post",
+      data: { plan_id: dbPlan.id },
+      preserveScroll: true,
+    });
   };
 
   return (

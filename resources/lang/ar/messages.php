@@ -402,6 +402,7 @@ return [
             'selected_template_label' => 'القالب المختار:',
             'no_template_placeholder' => '—',
             'choose_plan_prompt' => 'برجاء اختيار الباقة المناسبة',
+            'unavailable' => 'هذه الباقة غير متاحة حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم.',
         ],
         'org' => [
             'title' => 'معلومات المنظمة',
