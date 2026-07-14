@@ -593,6 +593,10 @@ class SetupController extends Controller
             'subdomain' => $slug,
             'template' => $this->resolveTemplateSlug($setup['template_id'] ?? 'madina'),
             'email' => $setup['email'],
+            // Persist contact/region on the tenant so the admin panel (which reads
+            // tenant.phone / tenant.city) shows them — not just hotel_settings.
+            'phone' => $setup['phone'] ?? null,
+            'city' => $setup['city'] ?? null,
             'plan_id' => $setup['plan_id'] ?? null,
             'plan' => $setup['plan_key'] ?? 'basic',
             'is_active' => false,
@@ -660,6 +664,7 @@ class SetupController extends Controller
         $user = User::create([
             'name' => $setup['username'],
             'email' => $setup['email'],
+            'phone' => $setup['phone'] ?? null,
             'password' => Hash::make($setup['password']),
             'role' => 'client_admin',
             'tenant_id' => $tenant->id,

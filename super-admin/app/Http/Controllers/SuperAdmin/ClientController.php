@@ -143,6 +143,7 @@ class ClientController extends Controller
             ->where('tenant_id', $tenant->id)
             ->first([
                 'hotel_name_ar', 'hotel_name_en', 'first_name', 'last_name',
+                'phone', 'city',
                 'responsible_position', 'commercial_activity', 'branches_count',
                 'cr_number', 'cr_expiry', 'vat_number',
                 'license_number', 'license_expiry',

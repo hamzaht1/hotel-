@@ -22,6 +22,7 @@ class Tenant extends Model
         'logo',
         'email',
         'phone',
+        'city',
         'subscription_starts_at',
         'subscription_ends_at',
         'plan',

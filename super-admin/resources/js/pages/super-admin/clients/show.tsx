@@ -93,6 +93,8 @@ interface Establishment {
     hotel_name_en: string | null;
     first_name: string | null;
     last_name: string | null;
+    phone: string | null;
+    city: string | null;
     responsible_position: string | null;
     commercial_activity: string | null;
     branches_count: number | null;
@@ -440,9 +442,9 @@ export default function ClientShow({ tenant, primary_user, establishment, invoic
                                 <InfoRow label={isArabic ? 'الرقم التعريفي' : 'ID'} value={`#${tenant.id}`} />
                                 <InfoRow label={isArabic ? 'اسم المستخدم' : 'Username'} value={primary_user?.name ?? '—'} />
                                 <InfoRow label={isArabic ? 'الإيميل' : 'Email'} value={primary_user?.email ?? tenant.email ?? '—'} />
-                                <InfoRow label={isArabic ? 'رقم الجوال' : 'Phone'} value={tenant.phone ?? '—'} />
+                                <InfoRow label={isArabic ? 'رقم الجوال' : 'Phone'} value={tenant.phone ?? primary_user?.phone ?? establishment?.phone ?? '—'} />
                                 <InfoRow label={isArabic ? 'الدولة' : 'Country'} value={tenant.country === 'SA' ? (isArabic ? 'السعودية' : 'Saudi Arabia') : (tenant.country ?? '—')} />
-                                <InfoRow label={isArabic ? 'المنطقة' : 'Region'} value={tenant.city ?? tenant.template} />
+                                <InfoRow label={isArabic ? 'المنطقة' : 'Region'} value={tenant.city ?? establishment?.city ?? tenant.template} />
                             </CardContent>
                         </Card>
 
