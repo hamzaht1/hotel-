@@ -47,8 +47,23 @@ export default function DomainIndex({ tenant, platformHost, registrars }: Props)
 
     const [copied, setCopied] = useState<string | null>(null);
 
+    // Mirror the server-side rule so the user gets instant feedback and a
+    // clear message before a round-trip. The field is optional, so an empty
+    // value is valid (it clears the custom domain).
+    const DOMAIN_RE = /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+    const trimmedDomain = data.custom_domain.trim();
+    const localDomainError = !trimmedDomain
+        ? null
+        : /^https?:\/\//i.test(trimmedDomain)
+            ? 'أدخل النطاق فقط بدون http:// أو https:// — Enter the domain only, without http:// or https://'
+            : !DOMAIN_RE.test(trimmedDomain)
+                ? 'صيغة النطاق غير صحيحة (مثال: www.yourhotel.com) — Invalid domain format (e.g. www.yourhotel.com)'
+                : null;
+    const domainError = errors.custom_domain ?? localDomainError;
+
     function save(e: React.FormEvent) {
         e.preventDefault();
+        if (localDomainError) return;
         post('/client-admin/domain', { preserveScroll: true });
     }
 
@@ -91,10 +106,11 @@ export default function DomainIndex({ tenant, platformHost, registrars }: Props)
                                     onChange={(e) => setData('custom_domain', e.target.value)}
                                     placeholder="www.yourhotel.com"
                                     className="vuexy-input"
+                                    aria-invalid={domainError ? true : undefined}
                                 />
-                                {errors.custom_domain && <p className="text-xs text-destructive">{errors.custom_domain}</p>}
+                                {domainError && <p className="text-xs text-destructive">{domainError}</p>}
                             </div>
-                            <Button type="submit" disabled={processing}>Save</Button>
+                            <Button type="submit" disabled={processing || !!localDomainError}>Save</Button>
                         </form>
 
                         {tenant.custom_domain && (
