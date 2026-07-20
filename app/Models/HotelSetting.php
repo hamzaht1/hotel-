@@ -52,9 +52,12 @@ class HotelSetting extends Model
             'primary_color' => 'array',
             'secondary_color' => 'array',
             'meta_tags' => 'array',
-            'cr_expiry' => 'date',
-            'license_expiry' => 'date',
-            'municipality_license_expiry' => 'date',
+            // Serialize as plain Y-m-d so the front-end <input type="date">
+            // fields can read them back; a full ISO datetime would render the
+            // inputs blank and silently wipe the stored dates on the next save.
+            'cr_expiry' => 'date:Y-m-d',
+            'license_expiry' => 'date:Y-m-d',
+            'municipality_license_expiry' => 'date:Y-m-d',
             'branches_count' => 'integer',
             'custom_fields' => 'array',
         ];

@@ -245,6 +245,12 @@ function EstablishmentEditForm({
     const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
     const [otpOpen, setOtpOpen] = useState(false);
 
+    // <input type="date"> only accepts a bare YYYY-MM-DD. Values may arrive as
+    // a full ISO datetime (e.g. from a cached serialization), so normalise to
+    // the date part; otherwise the input renders blank and a save wipes it.
+    const toDateInput = (value: string | null | undefined): string =>
+        value ? value.slice(0, 10) : '';
+
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
         hotel_name_ar: settings.hotel_name_ar || '',
@@ -267,12 +273,12 @@ function EstablishmentEditForm({
         manager_type: settings.manager_type || '',
         responsible_position: settings.responsible_position || '',
         cr_number: settings.cr_number || '',
-        cr_expiry: settings.cr_expiry || '',
+        cr_expiry: toDateInput(settings.cr_expiry),
         vat_number: settings.vat_number || '',
         license_number: settings.license_number || '',
-        license_expiry: settings.license_expiry || '',
+        license_expiry: toDateInput(settings.license_expiry),
         municipality_license_number: settings.municipality_license_number || '',
-        municipality_license_expiry: settings.municipality_license_expiry || '',
+        municipality_license_expiry: toDateInput(settings.municipality_license_expiry),
     });
 
     function handleSubmit(e: React.FormEvent) {
