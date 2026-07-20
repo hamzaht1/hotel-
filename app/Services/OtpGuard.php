@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Mail\SetupOtpMail;
+use App\Services\AuthenticaOtp;
 use App\Support\ActivityLogger;
 use App\Support\Mailer;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,12 @@ class OtpGuard
             'expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES)->toIso8601String(),
             'passed_until' => null,
         ]);
+
+        // Deliver over SMS when we have a phone, and always e-mail as a fallback
+        // channel. Both are best-effort — the code stays valid regardless.
+        if ($user?->phone) {
+            AuthenticaOtp::send($user->phone, $code, context: "OTP {$action}");
+        }
 
         if ($user?->email) {
             Mailer::sendIfConfigured(

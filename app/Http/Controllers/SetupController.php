@@ -7,6 +7,7 @@ use App\Models\Plan;
 use App\Models\Template;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\AuthenticaOtp;
 use App\Services\InvoiceService;
 use App\Services\MoyasarPaymentService;
 use App\Support\Mailer;
@@ -186,8 +187,7 @@ class SetupController extends Controller
             $phoneOtp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $setup['phone_otp_code'] = $phoneOtp;
             $setup['phone_otp_expires_at'] = now()->addMinutes(10)->toISOString();
-            // SMS gateway not wired yet — log the code so it can be delivered/tested.
-            Log::info('Setup phone OTP (SMS integration pending)', ['phone' => $setup['phone'], 'code' => $phoneOtp]);
+            AuthenticaOtp::send($setup['phone'], $phoneOtp, context: 'setup phone OTP');
         } else {
             unset($setup['phone_otp_code'], $setup['phone_otp_expires_at']);
         }
@@ -297,7 +297,7 @@ class SetupController extends Controller
             $phoneOtp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $setup['phone_otp_code'] = $phoneOtp;
             $setup['phone_otp_expires_at'] = now()->addMinutes(10)->toISOString();
-            Log::info('Setup phone OTP resend (SMS integration pending)', ['phone' => $setup['phone'] ?? null, 'code' => $phoneOtp]);
+            AuthenticaOtp::send($setup['phone'] ?? '', $phoneOtp, context: 'setup phone OTP resend');
         }
 
         session(['setup' => $setup]);
