@@ -20,6 +20,7 @@ import {
     Building2,
     RefreshCw,
     Plug,
+    FileText,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -68,6 +69,7 @@ export function AppSidebar() {
     // subscription renewal and invoices
     const accountGroup = buildGroup([
         { item: { title: isArabic ? 'حساب المنشأة' : 'Establishment Account', href: '/client-admin/account', icon: Building2 }, permission: 'hotel_settings.view' },
+        { item: { title: isArabic ? 'عروض الأسعار' : 'My Quotes', href: '/client-admin/quotes', icon: FileText }, permission: 'hotel_settings.view' },
     ], can);
 
     // 💬 الرسائل والدعم

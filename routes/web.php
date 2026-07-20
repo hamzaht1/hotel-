@@ -17,6 +17,7 @@ use App\Http\Controllers\ClientAdmin\SystemSettingController;
 use App\Http\Controllers\ClientAdmin\SiteBrandingController;
 use App\Http\Controllers\ClientAdmin\ReportController;
 use App\Http\Controllers\ClientAdmin\InvoiceController;
+use App\Http\Controllers\ClientAdmin\QuoteController;
 use App\Http\Controllers\ClientAdmin\ServiceCategoryController;
 use App\Http\Controllers\ClientAdmin\ServiceController;
 use App\Http\Controllers\ClientAdmin\StaffController;
@@ -308,6 +309,14 @@ Route::middleware(['auth', 'verified', 'role:client_admin,staff', 'tenant'])
         Route::post('domain', [DomainController::class, 'save'])->name('domain.save');
         Route::post('domain/verify', [DomainController::class, 'verify'])->name('domain.verify');
         Route::post('domain/subdomain', [DomainController::class, 'updateSubdomain'])->name('domain.subdomain');
+
+        // Quotes (read-only for client, + accept / refuse + PDF)
+        Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
+        Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
+        Route::get('quotes/{quote}/pdf', [QuoteController::class, 'downloadPdf'])->name('quotes.pdf');
+        Route::get('quotes/{quote}/preview', [QuoteController::class, 'preview'])->name('quotes.preview');
+        Route::post('quotes/{quote}/accept', [QuoteController::class, 'accept'])->name('quotes.accept');
+        Route::post('quotes/{quote}/refuse', [QuoteController::class, 'refuse'])->name('quotes.refuse');
 
         // Invoices (read-only for client, + receipt upload + template picker)
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
