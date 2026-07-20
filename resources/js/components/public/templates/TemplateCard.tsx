@@ -3,6 +3,14 @@ import { Eye, Clock } from 'lucide-react'
 import type { TemplateItem } from './constants'
 import { useLang } from '@/hooks/useLang'
 
+// Template slugs that have a live front-end landing page (/template/{slug}).
+// Key variants are mapped so both DB keys and the static fallbacks resolve.
+const PREVIEW_ROUTES: Record<string, string> = {
+  madina: '/template/madina',
+  madinah: '/template/madina',
+  riyadh: '/template/riyadh',
+}
+
 export default function TemplateCard({
   item,
   onPreview,
@@ -12,10 +20,19 @@ export default function TemplateCard({
 }) {
   const { __ } = useLang()
   const title = item.titleKey ? __(item.titleKey) : item.title
+
+  // Landing page for this template, if one exists for its slug.
+  const previewHref = item.templateSlug ? PREVIEW_ROUTES[item.templateSlug.toLowerCase()] : undefined
+
   const handlePreview = (e: React.MouseEvent) => {
     e.preventDefault()
-    if (!item.comingSoon) {
-      onPreview?.(item)
+    if (item.comingSoon) return
+    // A custom handler wins if provided; otherwise open the template's
+    // landing page in a new tab so the visitor keeps the marketing page.
+    if (onPreview) {
+      onPreview(item)
+    } else if (previewHref) {
+      window.open(previewHref, '_blank', 'noopener,noreferrer')
     }
   }
 
