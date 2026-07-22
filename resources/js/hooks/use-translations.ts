@@ -121,12 +121,8 @@ const translations: Record<string, Record<string, string>> = {
     'delete_image_confirm': { ar: 'هل تريد حذف هذه الصورة؟', en: 'Delete this image?' },
 
     // === GALLERY CATEGORIES ===
-    'cat_general': { ar: 'عام', en: 'General' },
-    'cat_rooms': { ar: 'الغرف', en: 'Rooms' },
-    'cat_lobby': { ar: 'الردهة', en: 'Lobby' },
-    'cat_restaurant': { ar: 'المطعم', en: 'Restaurant' },
-    'cat_pool': { ar: 'المسبح', en: 'Pool' },
-    'cat_exterior': { ar: 'الخارجي', en: 'Exterior' },
+    'cat_hotels': { ar: 'فنادق', en: 'Hotels' },
+    'cat_footer': { ar: 'التذييل', en: 'Footer' },
 
     // === SITE TEXTS ===
     'save_all': { ar: 'حفظ الكل', en: 'Save All' },

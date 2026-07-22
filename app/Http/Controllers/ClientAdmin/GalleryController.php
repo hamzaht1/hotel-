@@ -21,7 +21,7 @@ class GalleryController extends Controller
         return Inertia::render('client-admin/gallery/index', [
             'images' => $images,
             'filters' => $request->only(['category']),
-            'categories' => ['general', 'rooms', 'lobby', 'restaurant', 'pool', 'exterior'],
+            'categories' => ['hotels', 'footer'],
         ]);
     }
 
@@ -30,7 +30,7 @@ class GalleryController extends Controller
         $request->validate([
             'title_ar' => 'nullable|string|max:255',
             'title_en' => 'nullable|string|max:255',
-            'category' => 'required|in:general,rooms,lobby,restaurant,pool,exterior',
+            'category' => 'required|in:hotels,footer',
             'images' => 'required|array|min:1',
             'images.*' => 'file|image|max:5120|dimensions:min_width=600,min_height=400,max_width=4000,max_height=3000',
         ], [
@@ -61,7 +61,7 @@ class GalleryController extends Controller
         $validated = $request->validate([
             'title_ar' => 'nullable|string|max:255',
             'title_en' => 'nullable|string|max:255',
-            'category' => 'required|in:general,rooms,lobby,restaurant,pool,exterior',
+            'category' => 'required|in:hotels,footer',
             'is_active' => 'boolean',
         ]);
 
