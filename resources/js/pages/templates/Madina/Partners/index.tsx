@@ -16,7 +16,14 @@ import { useTemplateT } from '@/hooks/useTemplateTranslations'
 import partnerLogo from '../images/partners/logo-2.png'
 import starIcon from '../images/partners/star.svg'
 
-export default function PartnersSection() {
+interface PartnerLogo {
+  id: number
+  title_ar?: string | null
+  title_en?: string | null
+  url?: string | null
+}
+
+export default function PartnersSection({ partnerLogos }: { partnerLogos?: PartnerLogo[] }) {
   const t = useTemplateT()
   const [partnersStyle, setPartnersStyle] = useState<'carousel' | 'grid'>('carousel')
   
@@ -46,8 +53,18 @@ export default function PartnersSection() {
     }
   }, [])
   
-  // Build repeated logos array for infinite marquee
-  const logos = Array(20).fill(partnerLogo)
+  // Build repeated logos array for infinite marquee. Prefer the tenant's own
+  // uploaded "hotels" gallery images; fall back to the bundled demo logo
+  // when the client hasn't added any yet.
+  const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
+  const uploaded = (partnerLogos ?? []).filter((p) => p.url)
+  const REPEAT_COUNT = 20
+  const logos = uploaded.length > 0
+    ? Array.from({ length: REPEAT_COUNT }, (_, i) => {
+        const p = uploaded[i % uploaded.length]
+        return { src: p.url as string, alt: (isArabic ? p.title_ar : p.title_en) || `Partner logo ${i + 1}` }
+      })
+    : Array.from({ length: REPEAT_COUNT }, (_, i) => ({ src: partnerLogo, alt: `Partner logo ${i + 1}` }))
 
   return (
     <section id="partners" className="py-0 relative">
@@ -72,9 +89,9 @@ export default function PartnersSection() {
                   <React.Fragment key={`group-${groupIndex}-${index}`}>
                     {/* Logo */}
                     <div className="flex items-center justify-center px-8 py-4 flex-shrink-0">
-                      <img 
-                        src={logo} 
-                        alt={`Partner logo ${index + 1}`}
+                      <img
+                        src={logo.src}
+                        alt={logo.alt}
                         className="h-32 w-auto object-contain opacity-80 hover:opacity-100 dark:opacity-90 dark:hover:opacity-100 transition duration-300"
                       />
                     </div>
@@ -120,9 +137,9 @@ export default function PartnersSection() {
                     key={`group-${groupIndex}-${index}`}
                     className="flex items-center justify-center px-8 py-4 flex-shrink-0"
                   >
-                    <img 
-                      src={logo} 
-                      alt={`Partner logo ${index + 1}`}
+                    <img
+                      src={logo.src}
+                      alt={logo.alt}
                       className="h-24 w-auto object-contain opacity-90 hover:opacity-100 transition duration-300 filter brightness-0 invert"
                     />
                   </div>

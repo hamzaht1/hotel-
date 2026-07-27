@@ -32,6 +32,9 @@ class TenantSiteController extends Controller
         $services = Service::where('is_active', true)->with('category:id,name_ar,name_en', 'images', 'features')->orderBy('sort_order')->get();
         $serviceCategories = ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'type', 'icon']);
         $gallery = GalleryImage::where('is_active', true)->orderBy('sort_order')->get();
+        // Partner/trusted-hotels logos shown in the public "Partners" strip —
+        // the tenant's own gallery images tagged with the "hotels" category.
+        $partnerLogos = GalleryImage::where('is_active', true)->where('category', 'hotels')->orderBy('sort_order')->get();
         $siteTexts = SiteText::all()->groupBy('section')->map(fn ($items) => $items->keyBy('key'));
         $sections = SiteSection::where('is_active', true)->orderBy('sort_order')->pluck('section_name');
 
@@ -71,6 +74,7 @@ class TenantSiteController extends Controller
             'services' => $services,
             'serviceCategories' => $serviceCategories,
             'gallery' => $gallery,
+            'partnerLogos' => $partnerLogos,
             'reviews' => $reviews,
             'siteTexts' => $siteTexts,
             'activeSections' => $sections,

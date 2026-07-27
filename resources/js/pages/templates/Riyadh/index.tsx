@@ -21,6 +21,7 @@ interface Props {
   rooms?: any[];
   services?: any[];
   gallery?: any[];
+  partnerLogos?: any[];
   reviews?: any[];
   siteTexts?: Record<string, any>;
   activeSections?: string[];
@@ -40,7 +41,7 @@ export default function Riyadh(props: Props) {
   )
 }
 
-function RiyadhInner({ tenant, hotelSettings, contactSettings, rooms, services, gallery, reviews, activeSections, locale }: Props) {
+function RiyadhInner({ tenant, hotelSettings, contactSettings, rooms, services, gallery, partnerLogos, reviews, activeSections, locale }: Props) {
   const t = useTemplateT()
   const mergedTexts = useMergedSiteTexts()
 
@@ -48,7 +49,7 @@ function RiyadhInner({ tenant, hotelSettings, contactSettings, rooms, services, 
     hero: <HeroSection hotelSettings={hotelSettings} siteTexts={mergedTexts} />,
     rooms: <RoomsSection rooms={rooms} />,
     services: <ServicesSection services={services} />,
-    partners: <PartnersSection />,
+    partners: <PartnersSection partnerLogos={partnerLogos} />,
     testimonials: <TestimonialsSection reviews={reviews} />,
     gallery: <GallerySection gallery={gallery} />,
     contact: <ContactSection contactSettings={contactSettings} tenant={tenant} />,
