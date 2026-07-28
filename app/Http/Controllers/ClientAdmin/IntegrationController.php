@@ -70,10 +70,14 @@ class IntegrationController extends Controller
     public function saveGoogleAnalytics(Request $request)
     {
         $data = $request->validate([
-            'measurement_id' => ['nullable', 'string', 'regex:/^G-[A-Z0-9]+$/'],
+            // GA4 measurement ids look like "G-XXXXXXXXXX". Accept lowercase too
+            // and normalise below, so a pasted lowercase id isn't rejected.
+            'measurement_id' => ['nullable', 'string', 'regex:/^G-[A-Za-z0-9]+$/'],
         ]);
 
         $tenantId = app('current_tenant_id');
+
+        $measurementId = $data['measurement_id'] ? strtoupper($data['measurement_id']) : null;
 
         $setting = IntegrationSetting::firstOrNew([
             'tenant_id' => $tenantId,
@@ -82,11 +86,11 @@ class IntegrationController extends Controller
 
         $setting->type = 'analytics';
         $existing = $setting->settings ?? [];
-        $existing['measurement_id'] = $data['measurement_id'] ?? null;
+        $existing['measurement_id'] = $measurementId;
         $setting->settings = $existing;
-        if (!$setting->exists) {
-            $setting->is_active = false;
-        }
+        // Activate automatically when a valid id is present, and switch off when
+        // it is cleared — so saving an id is enough to start tracking.
+        $setting->is_active = (bool) $measurementId;
         $setting->save();
 
         return back()->with('success', 'تم حفظ معرف Google Analytics / Google Analytics ID saved');

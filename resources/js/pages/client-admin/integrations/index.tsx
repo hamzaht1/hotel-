@@ -1,9 +1,11 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import { CreditCard, MessageSquare, CheckCircle, XCircle, Power, BarChart3 } from 'lucide-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { CreditCard, MessageSquare, CheckCircle, XCircle, Power, BarChart3, Save, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useT } from '@/hooks/use-translations';
 
@@ -14,9 +16,15 @@ interface IntegrationSetting {
     is_active: boolean;
 }
 
+interface GoogleAnalyticsData {
+    measurement_id: string;
+    is_active: boolean;
+}
+
 interface Props {
     globalIntegrations: IntegrationSetting[];
     tenantIntegrations: Record<string, IntegrationSetting>;
+    googleAnalytics: GoogleAnalyticsData;
 }
 
 const PROVIDER_LABELS: Record<string, { en: string; ar: string }> = {
@@ -25,7 +33,7 @@ const PROVIDER_LABELS: Record<string, { en: string; ar: string }> = {
     unifonic: { en: 'Unifonic', ar: 'يونيفونك' },
 };
 
-export default function IntegrationsIndex({ globalIntegrations, tenantIntegrations }: Props) {
+export default function IntegrationsIndex({ globalIntegrations, tenantIntegrations, googleAnalytics }: Props) {
     const { t } = useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
 
@@ -152,7 +160,7 @@ export default function IntegrationsIndex({ globalIntegrations, tenantIntegratio
                         التحليلات / Analytics
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <GoogleAnalyticsCard />
+                        <GoogleAnalyticsCard googleAnalytics={googleAnalytics} />
                     </div>
                 </div>
 
@@ -198,10 +206,21 @@ export default function IntegrationsIndex({ globalIntegrations, tenantIntegratio
     );
 }
 
-// Google Analytics integration card. UI-only for now; persistence will be
-// wired through integration_settings (provider="google_analytics", type="analytics")
-// once the backend exposes a save endpoint.
-function GoogleAnalyticsCard() {
+// Google Analytics integration card. Wired to the backend: saving a valid
+// GA4 measurement id (provider="google_analytics", type="analytics")
+// activates tracking automatically; clearing it disables tracking.
+function GoogleAnalyticsCard({ googleAnalytics }: { googleAnalytics: GoogleAnalyticsData }) {
+    const { data, setData, post, processing } = useForm({
+        measurement_id: googleAnalytics.measurement_id ?? '',
+    });
+
+    const isActive = googleAnalytics.is_active && !!googleAnalytics.measurement_id;
+
+    function save(e: React.FormEvent) {
+        e.preventDefault();
+        post('/client-admin/integrations/google-analytics', { preserveScroll: true });
+    }
+
     return (
         <Card className="overflow-hidden">
             <CardHeader className="pb-3">
@@ -215,33 +234,60 @@ function GoogleAnalyticsCard() {
                         </div>
                     </div>
                     <Badge
-                        variant="secondary"
-                        className="rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400"
+                        variant={isActive ? 'default' : 'secondary'}
+                        className={`rounded-full ${isActive ? '' : 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400'}`}
                     >
-                        تحليلات / Analytics
+                        {isActive ? 'مفعل / Active' : 'تحليلات / Analytics'}
                     </Badge>
                 </div>
             </CardHeader>
 
-            <CardContent className="pt-0 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                    تتبع زوار موقعك وعرض الإحصائيات في لوحة التحكم.
-                    <br />
-                    Track site visitors and display statistics on the dashboard.
-                </p>
-                <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="rounded-full">
-                        قريباً / Coming soon
-                    </Badge>
-                </div>
-            </CardContent>
+            <form onSubmit={save}>
+                <CardContent className="pt-0 space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        تتبع زوار موقعك عبر Google Analytics 4.
+                        <br />
+                        Track your site visitors with Google Analytics 4.
+                    </p>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="ga_measurement_id">معرّف القياس / Measurement ID</Label>
+                        <Input
+                            id="ga_measurement_id"
+                            value={data.measurement_id}
+                            onChange={(e) => setData('measurement_id', e.target.value)}
+                            placeholder="G-XXXXXXXXXX"
+                            dir="ltr"
+                            className="font-mono"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            {isActive ? (
+                                <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                                    <CheckCircle className="h-3.5 w-3.5" /> التتبع مفعّل على موقعك / Tracking is live on your site
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1">
+                                    <XCircle className="h-3.5 w-3.5 text-muted-foreground" /> اترك الحقل فارغاً لإيقاف التتبع / Leave empty to disable
+                                </span>
+                            )}
+                        </p>
+                        <a
+                            href="https://support.google.com/analytics/answer/9539598"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                            أين أجد المعرّف؟ / Where do I find my ID? <ExternalLink className="h-3 w-3" />
+                        </a>
+                    </div>
+                </CardContent>
 
-            <CardFooter className="border-t px-6 py-3 flex items-center justify-end">
-                <Button variant="outline" size="sm" disabled>
-                    <Power className="h-3.5 w-3.5 me-1" />
-                    تفعيل / Enable
-                </Button>
-            </CardFooter>
+                <CardFooter className="border-t px-6 py-3 flex items-center justify-end">
+                    <Button type="submit" size="sm" disabled={processing}>
+                        <Save className="h-3.5 w-3.5 me-1" />
+                        {processing ? 'جاري الحفظ… / Saving…' : 'حفظ / Save'}
+                    </Button>
+                </CardFooter>
+            </form>
         </Card>
     );
 }
