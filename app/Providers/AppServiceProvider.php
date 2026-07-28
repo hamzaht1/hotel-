@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\PaymentGatewayManager;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -11,7 +12,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Singleton so the active-gateway lookup hits the DB once per request.
+        $this->app->singleton(PaymentGatewayManager::class);
     }
 
     public function boot(): void

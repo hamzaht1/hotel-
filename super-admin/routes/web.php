@@ -278,6 +278,7 @@ Route::middleware(['auth', 'verified', 'role:super_admin,staff'])
         Route::middleware('permission:integrations.manage')->group(function () {
             Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
             Route::put('integrations/{provider}', [IntegrationController::class, 'update'])->name('integrations.update');
+            Route::post('integrations/{provider}/test', [IntegrationController::class, 'test'])->name('integrations.test');
         });
 
         // Renewals

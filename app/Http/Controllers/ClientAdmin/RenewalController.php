@@ -7,7 +7,7 @@ use App\Models\DiscountCode;
 use App\Models\Plan;
 use App\Models\RenewalRequest;
 use App\Services\InvoiceService;
-use App\Services\MoyasarPaymentService;
+use App\Services\PaymentGatewayManager;
 use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +56,7 @@ class RenewalController extends Controller
             'renewals' => $renewals,
             'invoices' => $invoices,
             'canRenew' => !$hasPendingRequest,
-            'moyasarPublishableKey' => config('moyasar.publishable_key') ?: null,
+            'paymentGateway' => app(PaymentGatewayManager::class)->frontendProps(),
             'paymentCallbackUrl' => route('client-admin.renewal.payment.callback'),
             'bankDetails' => [
                 'bank_name_ar' => 'البنك الأهلي السعودي',
@@ -189,11 +189,18 @@ class RenewalController extends Controller
     }
 
     /**
-     * Initiate a Moyasar invoice for renewal payment.
+     * Start an online renewal payment on whichever gateway the super-admin has
+     * activated (see App\Services\PaymentGatewayManager).
      */
     public function initiatePayment(Request $request)
     {
         $tenant = app('current_tenant');
+        $gateway = app(PaymentGatewayManager::class)->gateway();
+
+        if (!$gateway || !$gateway->isConfigured()) {
+            return back()->with('error', 'بوابة الدفع غير مُهيأة. تواصل مع الدعم.');
+        }
+
         $planModel = $tenant->plan_id ? \App\Models\Plan::find($tenant->plan_id) : null;
 
         if (!$planModel) {
@@ -223,13 +230,11 @@ class RenewalController extends Controller
             'base_amount' => $planModel->price,
             'discount_amount' => $discount['amount'],
             'status' => 'pending',
-            'payment_method' => 'moyasar',
+            'payment_method' => $gateway->provider(),
             'requested_at' => now(),
         ]);
 
-        $moyasar = new MoyasarPaymentService();
-
-        $result = $moyasar->createCharge([
+        $result = $gateway->createCharge([
             'amount' => $netAmount,
             'description' => "Diyafah - Renewal - {$planModel->name_en}",
             'customer_name' => $tenant->name,
@@ -256,14 +261,17 @@ class RenewalController extends Controller
     }
 
     /**
-     * Handle Moyasar redirect callback after renewal payment.
-     * The inline JS form posts the payment directly to Moyasar's API and we
-     * receive only the payment ID via the redirect, so the renewal record is
-     * created (or upgraded) here on a confirmed payment.
+     * Handle the gateway redirect callback after a renewal payment.
+     * The Moyasar inline JS form posts the payment directly to Moyasar's API and
+     * we receive only the payment ID via the redirect, so the renewal record is
+     * created (or upgraded) here on a confirmed payment. Tap sends its charge id
+     * back as `tap_id`.
      */
     public function paymentCallback(Request $request)
     {
-        $paymentId = $request->query('id') ?? $request->query('invoice_id');
+        $paymentId = $request->query('id')
+            ?? $request->query('tap_id')
+            ?? $request->query('invoice_id');
         $tenant = app('current_tenant');
 
         if (!$paymentId) {
@@ -271,29 +279,32 @@ class RenewalController extends Controller
                 ->with('error', 'عملية الدفع غير صالحة');
         }
 
-        // Idempotent: if this payment ID has already been processed, do nothing.
-        $alreadyApproved = RenewalRequest::where('payment_charge_id', $paymentId)
+        // Either an existing pending record (redirect flow) or none yet (inline
+        // form flow). Read it first so the charge is verified against the
+        // gateway that actually created it.
+        $renewal = RenewalRequest::where('payment_charge_id', $paymentId)
             ->where('tenant_id', $tenant->id)
-            ->where('status', 'approved')
-            ->exists();
-        if ($alreadyApproved) {
+            ->first();
+
+        // Idempotent: if this payment ID has already been processed, do nothing.
+        if ($renewal && $renewal->status === 'approved') {
             return redirect()->route('client-admin.renewal.index')
                 ->with('success', 'تم تجديد الاشتراك بنجاح عبر الدفع الإلكتروني');
         }
 
-        $moyasar = new MoyasarPaymentService();
-        $charge = $moyasar->retrieveCharge($paymentId);
+        $gateway = app(PaymentGatewayManager::class)->for($renewal?->payment_method);
+
+        if (!$gateway) {
+            return redirect()->route('client-admin.renewal.index')
+                ->with('error', 'بوابة الدفع غير مُهيأة. تواصل مع الدعم.');
+        }
+
+        $charge = $gateway->retrieveCharge($paymentId);
 
         if (!$charge['success'] || $charge['status'] !== 'paid') {
             return redirect()->route('client-admin.renewal.index')
                 ->with('error', 'لم يتم إكمال الدفع. حاول مرة أخرى.');
         }
-
-        // Either upgrade an existing pending record (legacy redirect flow) or
-        // create one now (inline form flow).
-        $renewal = RenewalRequest::where('payment_charge_id', $paymentId)
-            ->where('tenant_id', $tenant->id)
-            ->first();
 
         if ($renewal) {
             $renewal->update([
@@ -306,7 +317,7 @@ class RenewalController extends Controller
                 'tenant_id' => $tenant->id,
                 'plan_id' => $tenant->plan_id,
                 'status' => 'approved',
-                'payment_method' => 'moyasar',
+                'payment_method' => $gateway->provider(),
                 'payment_charge_id' => $paymentId,
                 'payment_transaction_id' => $charge['transaction_id'],
                 'requested_at' => now(),
@@ -329,7 +340,7 @@ class RenewalController extends Controller
 
         $this->markDiscountUsed($renewal);
 
-        ActivityLogger::log('renewal.paid', 'Subscription renewed via Moyasar', [
+        ActivityLogger::log('renewal.paid', "Subscription renewed via {$gateway->label()}", [
             'renewal_id' => $renewal->id,
             'payment_id' => $paymentId,
         ], $renewal);
@@ -358,14 +369,19 @@ class RenewalController extends Controller
         $invoiceId = $data['invoice_id'] ?? $data['id'] ?? null;
         $status = $data['status'] ?? null;
 
-        Log::info('Moyasar renewal webhook', ['invoice_id' => $invoiceId, 'status' => $status]);
+        Log::info('Renewal payment webhook', ['invoice_id' => $invoiceId, 'status' => $status]);
 
-        if ($status === 'paid' && $invoiceId) {
+        if ($invoiceId) {
             $renewal = RenewalRequest::where('payment_charge_id', $invoiceId)
                 ->where('status', 'pending')
                 ->first();
 
-            if ($renewal) {
+            // Each gateway spells "paid" differently (Tap says CAPTURED), so the
+            // status is normalised by the gateway that created the charge.
+            $gateway = app(PaymentGatewayManager::class)->for($renewal?->payment_method);
+            $isPaid = $gateway && $gateway->normalizeStatus($status) === 'paid';
+
+            if ($renewal && $isPaid) {
                 $renewal->update([
                     'status' => 'approved',
                     'processed_at' => now(),

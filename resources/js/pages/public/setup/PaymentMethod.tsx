@@ -4,8 +4,9 @@ import PublicLayout from "@/layouts/public-layout";
 import SetupBanner from "@/components/public/setup/SetupBanner";
 import AnimatedHeading from '@/components/motion/AnimatedHeading';
 import { useLang } from '@/hooks/useLang';
-import { Upload, Building2, Copy, CheckCircle2, CreditCard, Landmark } from "lucide-react";
+import { Upload, Building2, Copy, CheckCircle2, CreditCard, Landmark, Loader2, AlertTriangle } from "lucide-react";
 import MoyasarForm from "@/components/MoyasarForm";
+import type { PaymentGatewayInfo } from "@/types/payment";
 
 interface BankDetails {
   bank_name_ar: string;
@@ -20,17 +21,23 @@ interface Props {
   setup: Record<string, string>;
   bankDetails: BankDetails;
   planPrice: number;
-  moyasarPublishableKey: string | null;
+  paymentGateway: PaymentGatewayInfo;
   paymentCallbackUrl: string;
 }
 
-type PaymentMode = 'moyasar' | 'bank_transfer';
+type PaymentMode = 'online' | 'bank_transfer';
 
-export default function PaymentMethod({ setup, bankDetails, planPrice, moyasarPublishableKey, paymentCallbackUrl }: Props) {
+export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGateway, paymentCallbackUrl }: Props) {
   const { __ } = useLang();
   const serverErrors = usePage().props.errors as Record<string, string>;
 
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('moyasar');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('online');
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Only Moyasar ships an embedded card form; every other gateway (Tap) takes
+  // the customer to its own hosted page.
+  const useInlineForm = paymentGateway.supports_inline && !!paymentGateway.publishable_key;
+  const gatewayLabel = paymentGateway.label ?? '';
   const [receipt, setReceipt] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
@@ -71,7 +78,12 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, moyasarPu
     });
   };
 
-  // Inline Moyasar form handles its own submission; no manual click handler needed.
+  // The inline Moyasar form handles its own submission. Redirect gateways need
+  // a server round-trip that creates the charge and sends us to the hosted page.
+  const startHostedPayment = () => {
+    setRedirecting(true);
+    router.post("/setup/payment", {}, { onFinish: () => setRedirecting(false) });
+  };
 
   const goPrev = () => router.visit("/setup/review");
 
@@ -111,9 +123,9 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, moyasarPu
             <div className="mx-auto mb-8 flex max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <button
                 type="button"
-                onClick={() => setPaymentMode('moyasar')}
+                onClick={() => setPaymentMode('online')}
                 className={`flex flex-1 items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-all ${
-                  paymentMode === 'moyasar'
+                  paymentMode === 'online'
                     ? 'bg-public-primary text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
@@ -142,18 +154,27 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, moyasarPu
               </div>
             )}
 
-            {/* ─── ONLINE PAYMENT (Moyasar) ─── */}
-            {paymentMode === 'moyasar' && (
+            {/* ─── ONLINE PAYMENT (active gateway) ─── */}
+            {paymentMode === 'online' && (
               <div className="mx-auto max-w-lg">
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm text-center">
                   <div className="mx-auto grid size-16 place-items-center rounded-full bg-blue-50 mb-4">
                     <CreditCard className="size-8 text-blue-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">الدفع الإلكتروني عبر Moyasar</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    {gatewayLabel ? `الدفع الإلكتروني عبر ${gatewayLabel}` : 'الدفع الإلكتروني'}
+                  </h3>
                   <p className="text-sm text-slate-600 mb-6">
                     ادفع بأمان باستخدام بطاقة مدى أو فيزا أو ماستركارد أو Apple Pay.
                     سيتم تفعيل حسابك فوراً بعد إتمام الدفع.
                   </p>
+
+                  {paymentGateway.test_mode && (
+                    <div className="mb-6 flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      <AlertTriangle className="size-4" />
+                      وضع الاختبار — لن يتم خصم أي مبلغ فعلي
+                    </div>
+                  )}
 
                   {/* Amount */}
                   <div className="mb-6 rounded-2xl border-2 border-dashed border-public-active/30 bg-public-active/5 p-4">
@@ -172,22 +193,42 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, moyasarPu
                     </p>
                   </div>
 
-                  <div className="text-start">
-                    <MoyasarForm
-                      amount={price}
-                      description={`Diyafah — ${planName} — ${setup?.org_name_ar ?? ''}`}
-                      publishableKey={moyasarPublishableKey}
-                      callbackUrl={paymentCallbackUrl}
-                      // Apple Pay requires a registered merchant ID + server-side
-                      // validate_merchant_url; enable once that infrastructure is in place.
-                      methods={['creditcard', 'stcpay']}
-                      metadata={{
-                        type: 'setup',
-                        plan_id: setup?.plan_id ?? '',
-                        email: setup?.email ?? '',
-                      }}
-                    />
-                  </div>
+                  {!paymentGateway.configured && (
+                    <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+                      بوابة الدفع غير مُهيأة حالياً. يمكنك الدفع بالتحويل البنكي أو التواصل مع الدعم.
+                    </div>
+                  )}
+
+                  {paymentGateway.configured && useInlineForm && (
+                    <div className="text-start">
+                      <MoyasarForm
+                        amount={price}
+                        description={`Diyafah — ${planName} — ${setup?.org_name_ar ?? ''}`}
+                        publishableKey={paymentGateway.publishable_key}
+                        callbackUrl={paymentCallbackUrl}
+                        // Apple Pay requires a registered merchant ID + server-side
+                        // validate_merchant_url; enable once that infrastructure is in place.
+                        methods={['creditcard', 'stcpay']}
+                        metadata={{
+                          type: 'setup',
+                          plan_id: setup?.plan_id ?? '',
+                          email: setup?.email ?? '',
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {paymentGateway.configured && !useInlineForm && (
+                    <button
+                      type="button"
+                      onClick={startHostedPayment}
+                      disabled={redirecting}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-public-primary px-6 py-3.5 text-sm font-bold text-white transition-colors hover:opacity-90 disabled:opacity-60"
+                    >
+                      {redirecting ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}
+                      {`ادفع ${price.toLocaleString("en-US")} ر.س`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

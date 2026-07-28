@@ -114,7 +114,7 @@ class AccountController extends Controller
             ],
             'renewals' => $renewals,
             'canRenew' => !$hasPendingRequest,
-            'moyasarPublishableKey' => config('moyasar.publishable_key') ?: null,
+            'paymentGateway' => app(\App\Services\PaymentGatewayManager::class)->frontendProps(),
             'paymentCallbackUrl' => route('client-admin.renewal.payment.callback'),
             'bankDetails' => [
                 'bank_name_ar' => 'البنك الأهلي السعودي',

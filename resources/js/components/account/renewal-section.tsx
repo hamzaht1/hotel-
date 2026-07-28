@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Clock, CheckCircle, XCircle, AlertTriangle, CreditCard, Landmark, Building2, Copy, CheckCircle2, Tag, Loader2 } from 'lucide-react';
 import { FormEventHandler, useMemo, useState } from 'react';
+import type { PaymentGatewayInfo } from '@/types/payment';
 
 interface AppliedDiscount {
     code: string;
@@ -60,22 +61,22 @@ export interface RenewalProps {
     renewals: RenewalRequest[];
     canRenew: boolean;
     bankDetails: BankDetails;
-    moyasarPublishableKey: string | null;
+    paymentGateway: PaymentGatewayInfo;
     paymentCallbackUrl: string;
 }
 
-type PaymentMode = 'moyasar' | 'bank_transfer';
+type PaymentMode = 'online' | 'bank_transfer';
 
 /**
  * Body of the Renewal screen. Extracted from `renewal/index.tsx` so it
  * can also live as a tab inside the unified Establishment Account page.
  */
-export default function RenewalSection({ tenant, renewals, canRenew, bankDetails, moyasarPublishableKey }: RenewalProps) {
+export default function RenewalSection({ tenant, renewals, canRenew, bankDetails, paymentGateway }: RenewalProps) {
     useT();
     const flash = usePage().props.flash as { success?: string; error?: string } | undefined;
     const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
 
-    const [paymentMode, setPaymentMode] = useState<PaymentMode>('moyasar');
+    const [paymentMode, setPaymentMode] = useState<PaymentMode>('online');
     const [copied, setCopied] = useState<string | null>(null);
 
     // Discount code state (server-validated via /renewal/apply-discount).
@@ -402,9 +403,9 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                         <div className="mb-6 flex overflow-hidden rounded-xl border bg-muted/30">
                             <button
                                 type="button"
-                                onClick={() => setPaymentMode('moyasar')}
+                                onClick={() => setPaymentMode('online')}
                                 className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all ${
-                                    paymentMode === 'moyasar'
+                                    paymentMode === 'online'
                                         ? 'bg-primary text-primary-foreground shadow-sm'
                                         : 'text-muted-foreground hover:bg-muted'
                                 }`}
@@ -426,7 +427,7 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                             </button>
                         </div>
 
-                        {paymentMode === 'moyasar' && (
+                        {paymentMode === 'online' && (
                             <div className="space-y-4 text-center">
                                 <p className="text-sm text-muted-foreground">
                                     {isArabic
@@ -442,16 +443,29 @@ export default function RenewalSection({ tenant, renewals, canRenew, bankDetails
                                     </p>
                                 </div>
 
-                                <Button type="button" onClick={payOnline} disabled={payLoading || !moyasarPublishableKey} className="w-full">
+                                {paymentGateway.test_mode && (
+                                    <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        {isArabic ? 'وضع الاختبار — لن يتم خصم أي مبلغ فعلي' : 'Test mode — no real charge will be made'}
+                                    </div>
+                                )}
+
+                                <Button type="button" onClick={payOnline} disabled={payLoading || !paymentGateway.configured} className="w-full">
                                     {payLoading ? <Loader2 className="h-4 w-4 me-2 animate-spin" /> : <CreditCard className="h-4 w-4 me-2" />}
                                     {isArabic
                                         ? `ادفع ${netAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ريال`
                                         : `Pay ${netAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} SAR`}
                                 </Button>
-                                {!moyasarPublishableKey && (
+                                {!paymentGateway.configured ? (
                                     <p className="text-xs text-amber-600">
                                         {isArabic ? 'بوابة الدفع غير مُهيأة حالياً' : 'Payment gateway is not configured'}
                                     </p>
+                                ) : (
+                                    paymentGateway.label && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {isArabic ? `الدفع الآمن عبر ${paymentGateway.label}` : `Secure payment via ${paymentGateway.label}`}
+                                        </p>
+                                    )
                                 )}
                             </div>
                         )}

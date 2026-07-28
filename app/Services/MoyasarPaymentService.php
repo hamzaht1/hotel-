@@ -11,31 +11,40 @@ use Illuminate\Support\Facades\Log;
  * Moyasar redirects back to `callback_url` with `id`/`status` query params,
  * and also fires a webhook with the payment payload.
  *
- * Public surface kept compatible with the previous TapPaymentService so
- * controllers only need to map the returned status string.
+ * Credentials come from the super-admin integration settings when one is
+ * configured, and fall back to `config/moyasar.php` (.env) otherwise — see
+ * {@see PaymentGatewayManager}.
  */
-class MoyasarPaymentService
+class MoyasarPaymentService implements PaymentGateway
 {
     protected string $secretKey;
+    protected ?string $publishableKey;
     protected string $baseUrl;
     protected string $currency;
 
-    public function __construct()
+    /**
+     * @param array{secret_key?: string, publishable_key?: string, base_url?: string, currency?: string} $credentials
+     */
+    public function __construct(array $credentials = [])
     {
-        $this->secretKey = config('moyasar.secret_key');
-        $this->baseUrl = config('moyasar.base_url');
-        $this->currency = config('moyasar.currency');
+        $this->secretKey = (string) ($credentials['secret_key'] ?? config('moyasar.secret_key'));
+        $this->publishableKey = ($credentials['publishable_key'] ?? config('moyasar.publishable_key')) ?: null;
+        $this->baseUrl = (string) ($credentials['base_url'] ?? config('moyasar.base_url'));
+        $this->currency = (string) ($credentials['currency'] ?? config('moyasar.currency'));
+    }
+
+    public function provider(): string
+    {
+        return 'moyasar';
+    }
+
+    public function label(): string
+    {
+        return 'Moyasar';
     }
 
     /**
      * Create a Moyasar invoice (hosted payment page) and return a redirect URL.
-     *
-     * Required keys in $params:
-     *   - amount (float, in major units of the currency, e.g. SAR)
-     *   - description (string)
-     *   - redirect_url (string) — Moyasar's "callback_url"
-     * Optional:
-     *   - reference, order_id, customer_name, customer_email, metadata, webhook_url
      */
     public function createCharge(array $params): array
     {
@@ -71,7 +80,7 @@ class MoyasarPaymentService
             'success' => true,
             'charge_id' => $data['id'] ?? null,
             'redirect_url' => $data['url'] ?? null,
-            'status' => $data['status'] ?? null,
+            'status' => $this->normalizeStatus($data['status'] ?? null),
         ];
     }
 
@@ -112,7 +121,7 @@ class MoyasarPaymentService
             return [
                 'success' => true,
                 'charge_id' => $data['id'] ?? null,
-                'status' => $data['status'] ?? null,
+                'status' => $this->normalizeStatus($data['status'] ?? null),
                 'transaction_id' => $latest['id'] ?? ($data['id'] ?? null),
                 'amount' => isset($data['amount']) ? ($data['amount'] / 100) : null,
                 'payment_method' => $latest['source']['type'] ?? null,
@@ -123,7 +132,7 @@ class MoyasarPaymentService
         return [
             'success' => true,
             'charge_id' => $data['id'] ?? null,
-            'status' => $data['status'] ?? null,
+            'status' => $this->normalizeStatus($data['status'] ?? null),
             'transaction_id' => $data['id'] ?? null,
             'amount' => isset($data['amount']) ? ($data['amount'] / 100) : null,
             'payment_method' => $data['source']['type'] ?? null,
@@ -131,12 +140,77 @@ class MoyasarPaymentService
         ];
     }
 
-    /**
-     * Was this invoice fully paid?
-     */
     public function isChargeCaptured(string $invoiceId): bool
     {
         $result = $this->retrieveCharge($invoiceId);
         return $result['success'] && ($result['status'] === 'paid');
+    }
+
+    /**
+     * Moyasar already speaks our vocabulary; this only lowercases and maps the
+     * few statuses that differ.
+     */
+    public function normalizeStatus(?string $status): string
+    {
+        return match (strtolower((string) $status)) {
+            'paid', 'captured' => 'paid',
+            'failed', 'voided', 'abandoned' => 'failed',
+            'refunded' => 'refunded',
+            'initiated', 'pending', 'authorized' => 'initiated',
+            default => 'unknown',
+        };
+    }
+
+    public function publishableKey(): ?string
+    {
+        return $this->publishableKey;
+    }
+
+    public function supportsInlineForm(): bool
+    {
+        // The Moyasar JS SDK (see resources/js/components/MoyasarForm.tsx) lets
+        // the customer pay without leaving our page, but only with a
+        // publishable key on top of the secret key.
+        return (bool) $this->publishableKey;
+    }
+
+    public function isTestMode(): bool
+    {
+        return str_contains($this->secretKey, '_test');
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->secretKey !== '';
+    }
+
+    public function testConnection(): array
+    {
+        if (!$this->isConfigured()) {
+            return ['success' => false, 'message' => 'المفتاح السري غير مُعرَّف / Secret key is missing'];
+        }
+
+        // Listing one payment is the cheapest authenticated read Moyasar offers.
+        $response = Http::withBasicAuth($this->secretKey, '')
+            ->acceptJson()
+            ->get("{$this->baseUrl}/payments", ['page' => 1, 'per' => 1]);
+
+        if ($response->status() === 401) {
+            return ['success' => false, 'message' => 'المفتاح السري مرفوض / Secret key rejected (401)'];
+        }
+
+        if ($response->failed()) {
+            return [
+                'success' => false,
+                'message' => "تعذر الاتصال / Connection failed (HTTP {$response->status()})",
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => $this->isTestMode()
+                ? 'الاتصال ناجح — مفاتيح اختبار / Connected — test keys'
+                : 'الاتصال ناجح — مفاتيح إنتاج / Connected — live keys',
+        ];
     }
 }

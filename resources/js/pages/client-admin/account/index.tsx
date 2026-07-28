@@ -22,7 +22,7 @@ interface Props {
     renewals: RenewalProps['renewals'];
     canRenew: boolean;
     bankDetails: RenewalProps['bankDetails'];
-    moyasarPublishableKey: string | null;
+    paymentGateway: RenewalProps['paymentGateway'];
     paymentCallbackUrl: string;
 }
 
@@ -47,7 +47,7 @@ export default function AccountIndex({
     renewals,
     canRenew,
     bankDetails,
-    moyasarPublishableKey,
+    paymentGateway,
     paymentCallbackUrl,
 }: Props) {
     const { t } = useT();
@@ -128,7 +128,7 @@ export default function AccountIndex({
                         renewals={renewals}
                         canRenew={canRenew}
                         bankDetails={bankDetails}
-                        moyasarPublishableKey={moyasarPublishableKey}
+                        paymentGateway={paymentGateway}
                         paymentCallbackUrl={paymentCallbackUrl}
                     />
                 )}

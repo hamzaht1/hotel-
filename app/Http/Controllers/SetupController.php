@@ -9,7 +9,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\AuthenticaOtp;
 use App\Services\InvoiceService;
-use App\Services\MoyasarPaymentService;
+use App\Services\PaymentGatewayManager;
 use App\Support\Mailer;
 use App\Support\RegistrationForm;
 use Illuminate\Http\RedirectResponse;
@@ -361,7 +361,7 @@ class SetupController extends Controller
         return Inertia::render('public/setup/PaymentMethod', [
             'setup' => $setup,
             'planPrice' => $plan ? (float) $plan->price : 0,
-            'moyasarPublishableKey' => config('moyasar.publishable_key') ?: null,
+            'paymentGateway' => app(PaymentGatewayManager::class)->frontendProps(),
             'paymentCallbackUrl' => route('setup.payment.callback'),
             'bankDetails' => [
                 'bank_name_ar' => 'البنك الأهلي السعودي',
@@ -414,7 +414,8 @@ class SetupController extends Controller
     }
 
     /**
-     * Initiate a Moyasar invoice (hosted payment page) for the setup checkout.
+     * Initiate a hosted payment page for the setup checkout, on whichever
+     * gateway the super-admin has activated.
      */
     public function initiatePayment(Request $request)
     {
@@ -429,9 +430,12 @@ class SetupController extends Controller
             return back()->withErrors(['payment' => 'الباقة غير موجودة']);
         }
 
-        $moyasar = new MoyasarPaymentService();
+        $gateway = app(PaymentGatewayManager::class)->gateway();
+        if (!$gateway || !$gateway->isConfigured()) {
+            return back()->withErrors(['payment' => 'بوابة الدفع غير مُهيأة. تواصل مع الدعم.']);
+        }
 
-        $result = $moyasar->createCharge([
+        $result = $gateway->createCharge([
             'amount' => (float) $plan->price,
             'description' => "Diyafah - {$plan->name_en} Plan Subscription",
             'customer_name' => $setup['username'] ?? '',
@@ -451,20 +455,24 @@ class SetupController extends Controller
             return back()->withErrors(['payment' => 'فشل في بدء عملية الدفع. حاول مرة أخرى.']);
         }
 
-        // Store charge ID in session for verification on callback.
+        // Store charge ID + provider in session so the callback verifies against
+        // the same gateway even if the active one changes mid-checkout.
         $setup['payment_charge_id'] = $result['charge_id'];
+        $setup['payment_provider'] = $gateway->provider();
         session(['setup' => $setup]);
 
         return Inertia::location($result['redirect_url']);
     }
 
     /**
-     * Handle redirect back from Moyasar after the customer completes (or fails) payment.
-     * Moyasar appends `id` and `status` query parameters to the callback URL.
+     * Handle the redirect back from the gateway after the customer completes
+     * (or fails) payment. Moyasar appends `id`/`status`, Tap appends `tap_id`.
      */
     public function paymentCallback(Request $request)
     {
-        $invoiceId = $request->query('id') ?? $request->query('invoice_id');
+        $invoiceId = $request->query('id')
+            ?? $request->query('tap_id')
+            ?? $request->query('invoice_id');
         $setup = session('setup', []);
 
         if (!$invoiceId || empty($setup['otp_verified'])) {
@@ -472,8 +480,13 @@ class SetupController extends Controller
                 ->withErrors(['payment' => 'عملية الدفع غير صالحة']);
         }
 
-        $moyasar = new MoyasarPaymentService();
-        $charge = $moyasar->retrieveCharge($invoiceId);
+        $gateway = app(PaymentGatewayManager::class)->for($setup['payment_provider'] ?? null);
+        if (!$gateway) {
+            return redirect()->route('setup.paymentMethod')
+                ->withErrors(['payment' => 'بوابة الدفع غير مُهيأة. تواصل مع الدعم.']);
+        }
+
+        $charge = $gateway->retrieveCharge($invoiceId);
 
         if (!$charge['success'] || $charge['status'] !== 'paid') {
             return redirect()->route('setup.paymentMethod')
@@ -489,10 +502,10 @@ class SetupController extends Controller
         }
 
         try {
-            $tenant = DB::transaction(function () use ($setup, $charge) {
+            $tenant = DB::transaction(function () use ($setup, $charge, $gateway) {
                 $tenant = $this->createTenantFromSetup($setup, [
                     'payment_status' => 'approved',
-                    'payment_method' => 'moyasar',
+                    'payment_method' => $gateway->provider(),
                     'payment_charge_id' => $charge['charge_id'],
                     'payment_transaction_id' => $charge['transaction_id'],
                     'is_active' => true,
@@ -504,7 +517,7 @@ class SetupController extends Controller
 
                 $plan = Plan::find($tenant->plan_id);
                 if ($plan) {
-                    app(InvoiceService::class)->createInitialInvoice($tenant, $plan, 'moyasar');
+                    app(InvoiceService::class)->createInitialInvoice($tenant, $plan, $gateway->provider());
                 }
 
                 return $tenant;
@@ -543,14 +556,19 @@ class SetupController extends Controller
         $invoiceId = $data['invoice_id'] ?? $data['id'] ?? null;
         $status = $data['status'] ?? null;
 
-        Log::info('Moyasar webhook received', ['invoice_id' => $invoiceId, 'status' => $status]);
+        Log::info('Setup payment webhook received', ['invoice_id' => $invoiceId, 'status' => $status]);
 
-        if ($status === 'paid' && $invoiceId) {
+        if ($invoiceId) {
             $tenant = Tenant::where('payment_charge_id', $invoiceId)
                 ->where('payment_status', 'pending')
                 ->first();
 
-            if ($tenant) {
+            // Each gateway spells "paid" differently (Tap says CAPTURED), so the
+            // status is normalised by the gateway that created the charge.
+            $gateway = app(PaymentGatewayManager::class)->for($tenant?->payment_method);
+            $isPaid = $gateway && $gateway->normalizeStatus($status) === 'paid';
+
+            if ($tenant && $isPaid) {
                 $tenant->update([
                     'payment_status' => 'approved',
                     'is_active' => true,

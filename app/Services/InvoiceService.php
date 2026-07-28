@@ -12,8 +12,11 @@ class InvoiceService
     public function createRenewalInvoice(Tenant $tenant, RenewalRequest $renewal, Plan $plan): Invoice
     {
         $paymentMethod = $renewal->payment_method ?? 'bank_transfer';
-        $notes = $paymentMethod === 'moyasar'
-            ? "Renewal #{$renewal->id} via Moyasar (invoice {$renewal->payment_charge_id})"
+        // Online gateways carry a charge reference worth keeping on the invoice;
+        // anything else is a manual/bank payment.
+        $gatewayLabels = ['moyasar' => 'Moyasar', 'tap' => 'Tap'];
+        $notes = isset($gatewayLabels[$paymentMethod])
+            ? "Renewal #{$renewal->id} via {$gatewayLabels[$paymentMethod]} (charge {$renewal->payment_charge_id})"
             : "Renewal #{$renewal->id} via bank transfer";
 
         return $this->createSubscriptionInvoice($tenant, $plan, $paymentMethod, $notes, (float) $renewal->discount_amount);

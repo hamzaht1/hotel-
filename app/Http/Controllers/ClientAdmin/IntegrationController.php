@@ -13,10 +13,20 @@ class IntegrationController extends Controller
     {
         $tenantId = app('current_tenant_id');
 
-        $globalIntegrations = IntegrationSetting::whereNull('tenant_id')->get();
-        $tenantIntegrations = IntegrationSetting::where('tenant_id', $tenantId)->get()->keyBy('provider');
+        // Never ship `credentials` to the tenant browser: the cast decrypts it,
+        // so returning whole models would hand every client admin the platform's
+        // gateway secret keys. The page only needs identity + status.
+        $publicFields = ['id', 'provider', 'type', 'is_active'];
 
-        $analytics = $tenantIntegrations->get('google_analytics');
+        $globalIntegrations = IntegrationSetting::whereNull('tenant_id')
+            ->get()
+            ->map(fn (IntegrationSetting $setting) => $setting->only($publicFields))
+            ->values();
+
+        $tenantSettings = IntegrationSetting::where('tenant_id', $tenantId)->get()->keyBy('provider');
+        $tenantIntegrations = $tenantSettings->map(fn (IntegrationSetting $setting) => $setting->only($publicFields));
+
+        $analytics = $tenantSettings->get('google_analytics');
 
         return Inertia::render('client-admin/integrations/index', [
             'globalIntegrations' => $globalIntegrations,
