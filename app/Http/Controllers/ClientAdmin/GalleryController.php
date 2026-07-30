@@ -10,6 +10,15 @@ use Inertia\Inertia;
 
 class GalleryController extends Controller
 {
+    /**
+     * Each category feeds exactly one section of the public template, so an
+     * image never shows up in two places at once:
+     *   photos   → the gallery carousel
+     *   partners → the partner-logos strip
+     *   footer   → the logo row in the footer
+     */
+    public const CATEGORIES = ['photos', 'partners', 'footer'];
+
     public function index(Request $request)
     {
         $images = GalleryImage::query()
@@ -21,7 +30,7 @@ class GalleryController extends Controller
         return Inertia::render('client-admin/gallery/index', [
             'images' => $images,
             'filters' => $request->only(['category']),
-            'categories' => ['hotels', 'footer'],
+            'categories' => self::CATEGORIES,
         ]);
     }
 
@@ -30,7 +39,7 @@ class GalleryController extends Controller
         $request->validate([
             'title_ar' => 'nullable|string|max:255',
             'title_en' => 'nullable|string|max:255',
-            'category' => 'required|in:hotels,footer',
+            'category' => 'required|in:' . implode(',', self::CATEGORIES),
             'images' => 'required|array|min:1',
             'images.*' => 'file|image|max:5120|dimensions:min_width=600,min_height=400,max_width=4000,max_height=3000',
         ], [
@@ -61,7 +70,7 @@ class GalleryController extends Controller
         $validated = $request->validate([
             'title_ar' => 'nullable|string|max:255',
             'title_en' => 'nullable|string|max:255',
-            'category' => 'required|in:hotels,footer',
+            'category' => 'required|in:' . implode(',', self::CATEGORIES),
             'is_active' => 'boolean',
         ]);
 

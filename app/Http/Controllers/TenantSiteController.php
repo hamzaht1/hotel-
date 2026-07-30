@@ -31,10 +31,16 @@ class TenantSiteController extends Controller
         $rooms = Room::where('is_active', true)->with('images', 'amenities')->orderBy('sort_order')->get();
         $services = Service::where('is_active', true)->with('category:id,name_ar,name_en', 'images', 'features')->orderBy('sort_order')->get();
         $serviceCategories = ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name_ar', 'name_en', 'type', 'icon']);
-        $gallery = GalleryImage::where('is_active', true)->orderBy('sort_order')->get();
-        // Partner/trusted-hotels logos shown in the public "Partners" strip —
-        // the tenant's own gallery images tagged with the "hotels" category.
-        $partnerLogos = GalleryImage::where('is_active', true)->where('category', 'hotels')->orderBy('sort_order')->get();
+        // Each gallery category feeds exactly one section, so an image never
+        // appears in two places: `photos` in the carousel, `partners` in the
+        // logo strip (and `footer` in the footer, shared via Inertia props).
+        $galleryByCategory = GalleryImage::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->groupBy('category');
+
+        $gallery = $galleryByCategory->get('photos', collect())->values();
+        $partnerLogos = $galleryByCategory->get('partners', collect())->values();
         $siteTexts = SiteText::all()->groupBy('section')->map(fn ($items) => $items->keyBy('key'));
         $sections = SiteSection::where('is_active', true)->orderBy('sort_order')->pluck('section_name');
 

@@ -45,7 +45,7 @@ export default function GalleryIndex({ images, filters, categories }: Props) {
     const { data, setData, post, processing, reset } = useForm({
         title_ar: '',
         title_en: '',
-        category: 'hotels',
+        category: 'photos',
         images: [] as File[],
     });
 

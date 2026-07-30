@@ -54,7 +54,7 @@ export default function PartnersSection({ partnerLogos }: { partnerLogos?: Partn
   }, [])
   
   // Build repeated logos array for infinite marquee. Prefer the tenant's own
-  // uploaded "hotels" gallery images; fall back to the bundled demo logo
+  // gallery images tagged "partners"; fall back to the bundled demo logo
   // when the client hasn't added any yet.
   const isArabic = typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
   const uploaded = (partnerLogos ?? []).filter((p) => p.url)

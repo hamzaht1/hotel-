@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\GalleryImage;
 use App\Models\SiteGalleryImage;
 use App\Models\SiteSetting;
 use App\Models\TenantSiteSetting;
@@ -86,6 +87,15 @@ class HandleInertiaRequests extends Middleware
                     'hotels' => SiteGalleryImage::forGroup('hotels'),
                     'footer' => SiteGalleryImage::forGroup('footer'),
                 ],
+            // The tenant's own gallery, for template chrome that lives in the
+            // layout rather than the page (the footer logo row) and so cannot be
+            // handed props by TenantSiteController.
+            'tenantGallery' => fn () => app()->bound('current_tenant_id')
+                ? ['footer' => GalleryImage::where('is_active', true)
+                    ->where('category', 'footer')
+                    ->orderBy('sort_order')
+                    ->get(['id', 'title_ar', 'title_en', 'path'])]
+                : ['footer' => []],
             'showReviewPopup' => fn () => $this->shouldShowReviewPopup($user),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

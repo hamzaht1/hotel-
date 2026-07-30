@@ -11,6 +11,7 @@
  * - Copyright information
  */
 import React from 'react'
+import { usePage } from '@inertiajs/react'
 import { useTemplateT, useTemplateLanguage } from '@/hooks/useTemplateTranslations'
 import { useStorageUrl } from '@/lib/storage'
 import { useAppearance } from '@/hooks/use-appearance'
@@ -54,6 +55,40 @@ function FooterLogo() {
   }
 
   return <HeaderLogo scrolled={false} />
+}
+
+interface FooterGalleryImage {
+  id: number
+  title_ar?: string | null
+  title_en?: string | null
+  url?: string | null
+}
+
+/**
+ * Logo row above the copyright line. Shows the tenant's own gallery images
+ * tagged `footer` (managed in client-admin → Gallery) and falls back to the
+ * template's bundled payment-methods strip while none have been uploaded.
+ */
+function FooterLogoRow({ isArabic }: { isArabic: boolean }) {
+  const { tenantGallery } = usePage().props as { tenantGallery?: { footer?: FooterGalleryImage[] } }
+  const logos = (tenantGallery?.footer ?? []).filter((img) => img.url)
+
+  if (logos.length === 0) {
+    return <img src={paymentLogos} alt="Payment Methods" className="h-8 w-auto" />
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      {logos.map((logo) => (
+        <img
+          key={logo.id}
+          src={logo.url as string}
+          alt={(isArabic ? logo.title_ar : logo.title_en) || ''}
+          className="h-8 w-auto object-contain opacity-90 transition duration-300 hover:opacity-100"
+        />
+      ))}
+    </div>
+  )
 }
 
 export default function MadinaFooter() {
@@ -246,13 +281,9 @@ export default function MadinaFooter() {
         {/* Copyright */}
         <div className="border-t border-white mt-8 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Payment Logos */}
+            {/* Tenant footer logos, or the bundled payment strip as fallback */}
             <div className="order-2 md:order-1">
-              <img 
-                src={paymentLogos} 
-                alt="Payment Methods" 
-                className="h-8 w-auto"
-              />
+              <FooterLogoRow isArabic={isArabic} />
             </div>
             {/* Copyright Text */}
             <div className="text-center text-white order-1 md:order-2">

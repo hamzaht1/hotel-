@@ -121,8 +121,11 @@ const translations: Record<string, Record<string, string>> = {
     'delete_image_confirm': { ar: 'هل تريد حذف هذه الصورة؟', en: 'Delete this image?' },
 
     // === GALLERY CATEGORIES ===
-    'cat_hotels': { ar: 'فنادق', en: 'Hotels' },
-    'cat_footer': { ar: 'التذييل', en: 'Footer' },
+    // One label per public section the category feeds, so the client can tell
+    // where an upload will show up.
+    'cat_photos': { ar: 'صور المعرض', en: 'Gallery photos' },
+    'cat_partners': { ar: 'شعارات الشركاء', en: 'Partner logos' },
+    'cat_footer': { ar: 'شعارات التذييل', en: 'Footer logos' },
 
     // === SITE TEXTS ===
     'save_all': { ar: 'حفظ الكل', en: 'Save All' },
