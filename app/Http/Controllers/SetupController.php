@@ -125,9 +125,6 @@ class SetupController extends Controller
         $setup = session('setup', []);
         $setup['org_name_ar'] = $data['org_name_ar'];
         $setup['org_name_en'] = $data['org_name_en'];
-        foreach (['commercial_activity', 'branches_count', 'manager_type', 'responsible_position', 'cr_number', 'vat_number', 'license_number', 'license_expiry', 'municipality_license_number', 'municipality_license_expiry'] as $f) {
-            $setup[$f] = $data[$f] ?? null;
-        }
         // Admin-defined custom fields for this step (posted under `custom.<key>`).
         $setup['custom_fields'] = array_merge($setup['custom_fields'] ?? [], $data['custom'] ?? []);
         $setup['slug'] = $slug;
@@ -360,6 +357,7 @@ class SetupController extends Controller
 
         return Inertia::render('public/setup/PaymentMethod', [
             'setup' => $setup,
+            'formConfig' => RegistrationForm::withMeta(),
             'planPrice' => $plan ? (float) $plan->price : 0,
             'paymentGateway' => app(PaymentGatewayManager::class)->frontendProps(),
             'paymentCallbackUrl' => route('setup.payment.callback'),
@@ -375,20 +373,45 @@ class SetupController extends Controller
     }
 
     /**
+     * Persist the official establishment data collected on the payment page.
+     *
+     * The inline card form submits straight to the gateway, so the values have
+     * to be in the session before the customer starts paying — the page posts
+     * them here as the client fills the section in.
+     */
+    public function storeEstablishment(Request $request): RedirectResponse
+    {
+        $setup = session('setup', []);
+
+        if (empty($setup['otp_verified']) || empty($setup['email'])) {
+            return redirect()->route('setup.account');
+        }
+
+        $data = $request->validate(RegistrationForm::rulesForStep('payment'));
+
+        session(['setup' => $this->rememberEstablishmentData($data, $setup)]);
+
+        return back();
+    }
+
+    /**
      * Store payment via bank transfer (manual).
      */
     public function storePayment(Request $request): RedirectResponse
     {
-        $request->validate([
+        $data = $request->validate(array_merge([
             'receipt' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'payment_notes' => 'nullable|string|max:500',
-        ]);
+        ], RegistrationForm::rulesForStep('payment')));
 
         $setup = session('setup', []);
 
         if (empty($setup['otp_verified']) || empty($setup['email'])) {
             return redirect()->route('setup.account');
         }
+
+        $setup = $this->rememberEstablishmentData($data, $setup);
+        session(['setup' => $setup]);
 
         // A valid plan is required so the tenant is linked to one and an invoice
         // can be issued on approval. Without it, block before creating anything.
@@ -424,6 +447,12 @@ class SetupController extends Controller
         if (empty($setup['otp_verified']) || empty($setup['email'])) {
             return redirect()->route('setup.account');
         }
+
+        // The establishment section sits on this page, so the values ride along
+        // with the request that starts the charge.
+        $data = $request->validate(RegistrationForm::rulesForStep('payment'));
+        $setup = $this->rememberEstablishmentData($data, $setup);
+        session(['setup' => $setup]);
 
         $plan = Plan::find($setup['plan_id'] ?? null);
         if (!$plan) {
@@ -625,6 +654,22 @@ class SetupController extends Controller
         ], $paymentFields));
 
         return $tenant;
+    }
+
+    /**
+     * Copy the official establishment data out of a validated payload into the
+     * setup session. Disabled fields carry no validation rule, so a stale page
+     * posting one is ignored rather than stored.
+     */
+    private function rememberEstablishmentData(array $validated, array $setup): array
+    {
+        foreach (RegistrationForm::ESTABLISHMENT_FIELDS as $field) {
+            if (array_key_exists($field, $validated)) {
+                $setup[$field] = $validated[$field];
+            }
+        }
+
+        return $setup;
     }
 
     private function uniqueTenantSlug(?string $candidate): string

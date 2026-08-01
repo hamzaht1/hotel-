@@ -27,23 +27,42 @@ class RegistrationForm
      * `rule` is the base validation (after required/nullable is prepended).
      */
     public const FIELDS = [
-        // Organization step
-        'commercial_activity'          => ['step' => 'org',     'rule' => 'string|max:255',            'label_ar' => 'النشاط التجاري',            'label_en' => 'Commercial activity'],
-        'branches_count'               => ['step' => 'org',     'rule' => 'integer|min:0|max:9999',    'label_ar' => 'عدد الفروع',                'label_en' => 'Branches count'],
-        'manager_type'                 => ['step' => 'org',     'rule' => 'in:owner,manager',          'label_ar' => 'صفة مقدم الطلب',            'label_en' => 'Manager type'],
-        'responsible_position'         => ['step' => 'org',     'rule' => 'string|max:100',            'label_ar' => 'المنصب',                    'label_en' => 'Responsible position'],
-        'cr_number'                    => ['step' => 'org',     'rule' => 'string|max:50',             'label_ar' => 'السجل التجاري',             'label_en' => 'Commercial registration'],
-        'vat_number'                   => ['step' => 'org',     'rule' => 'string|max:50',             'label_ar' => 'الرقم الضريبي',             'label_en' => 'VAT number'],
-        'license_number'               => ['step' => 'org',     'rule' => 'string|max:50',             'label_ar' => 'رخصة السياحة',              'label_en' => 'Tourism licence'],
-        'license_expiry'               => ['step' => 'org',     'rule' => 'date',                      'label_ar' => 'انتهاء رخصة السياحة',       'label_en' => 'Licence expiry'],
-        'municipality_license_number'  => ['step' => 'org',     'rule' => 'string|max:50',             'label_ar' => 'رخصة البلدية',              'label_en' => 'Municipality licence'],
-        'municipality_license_expiry'  => ['step' => 'org',     'rule' => 'date',                      'label_ar' => 'انتهاء رخصة البلدية',       'label_en' => 'Municipality expiry'],
+        // Payment step — official establishment data, see ESTABLISHMENT_FIELDS
+        'commercial_activity'          => ['step' => 'payment', 'rule' => 'string|max:255',            'label_ar' => 'النشاط التجاري',            'label_en' => 'Commercial activity'],
+        'branches_count'               => ['step' => 'payment', 'rule' => 'integer|min:0|max:9999',    'label_ar' => 'عدد الفروع',                'label_en' => 'Branches count'],
+        'manager_type'                 => ['step' => 'payment', 'rule' => 'in:owner,manager',          'label_ar' => 'صفة مقدم الطلب',            'label_en' => 'Manager type'],
+        'responsible_position'         => ['step' => 'payment', 'rule' => 'string|max:100',            'label_ar' => 'المنصب',                    'label_en' => 'Responsible position'],
+        'cr_number'                    => ['step' => 'payment', 'rule' => 'string|max:50',             'label_ar' => 'السجل التجاري',             'label_en' => 'Commercial registration'],
+        'vat_number'                   => ['step' => 'payment', 'rule' => 'string|max:50',             'label_ar' => 'الرقم الضريبي',             'label_en' => 'VAT number'],
+        'license_number'               => ['step' => 'payment', 'rule' => 'string|max:50',             'label_ar' => 'رخصة السياحة',              'label_en' => 'Tourism licence'],
+        'license_expiry'               => ['step' => 'payment', 'rule' => 'date',                      'label_ar' => 'انتهاء رخصة السياحة',       'label_en' => 'Licence expiry'],
+        'municipality_license_number'  => ['step' => 'payment', 'rule' => 'string|max:50',             'label_ar' => 'رخصة البلدية',              'label_en' => 'Municipality licence'],
+        'municipality_license_expiry'  => ['step' => 'payment', 'rule' => 'date',                      'label_ar' => 'انتهاء رخصة البلدية',       'label_en' => 'Municipality expiry'],
 
         // Account step
         'first_name'                   => ['step' => 'account', 'rule' => 'string|max:100',            'label_ar' => 'الاسم الأول',               'label_en' => 'First name'],
         'last_name'                    => ['step' => 'account', 'rule' => 'string|max:100',            'label_ar' => 'اسم العائلة',               'label_en' => 'Last name'],
         'city'                         => ['step' => 'account', 'rule' => 'string|max:100',            'label_ar' => 'المدينة',                   'label_en' => 'City'],
         'phone'                        => ['step' => 'account', 'rule' => 'string|max:30',             'label_ar' => 'رقم الجوال',                'label_en' => 'Phone'],
+    ];
+
+    /**
+     * Official establishment data ("بيانات المنشأة الرسمية"). Asked for on the
+     * payment step — the client fills them in while paying rather than being
+     * held up by paperwork at the org step — and copied onto hotel_settings
+     * when the tenant is created.
+     */
+    public const ESTABLISHMENT_FIELDS = [
+        'commercial_activity',
+        'branches_count',
+        'manager_type',
+        'responsible_position',
+        'cr_number',
+        'vat_number',
+        'license_number',
+        'license_expiry',
+        'municipality_license_number',
+        'municipality_license_expiry',
     ];
 
     /**

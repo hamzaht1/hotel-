@@ -6,6 +6,13 @@ import AnimatedHeading from '@/components/motion/AnimatedHeading';
 import { useLang } from '@/hooks/useLang';
 import { Upload, Building2, Copy, CheckCircle2, CreditCard, Landmark, Loader2, AlertTriangle } from "lucide-react";
 import MoyasarForm from "@/components/MoyasarForm";
+import EstablishmentFields, {
+  establishmentValuesFrom,
+  hasEstablishmentFields,
+  missingRequiredEstablishment,
+  type EstablishmentKey,
+  type FieldCfg,
+} from "@/components/public/setup/EstablishmentFields";
 import type { PaymentGatewayInfo } from "@/types/payment";
 
 interface BankDetails {
@@ -23,11 +30,12 @@ interface Props {
   planPrice: number;
   paymentGateway: PaymentGatewayInfo;
   paymentCallbackUrl: string;
+  formConfig: { fields: Record<string, FieldCfg> };
 }
 
 type PaymentMode = 'online' | 'bank_transfer';
 
-export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGateway, paymentCallbackUrl }: Props) {
+export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGateway, paymentCallbackUrl, formConfig }: Props) {
   const { __ } = useLang();
   const serverErrors = usePage().props.errors as Record<string, string>;
 
@@ -43,6 +51,41 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
   const [notes, setNotes] = useState("");
   const [processing, setProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Official establishment data, collected here rather than on the org step.
+  // The inline card form posts straight to the gateway, so these values are
+  // pushed to the setup session on blur — by the time the callback creates the
+  // tenant they are already stored. The bank-transfer and hosted-gateway paths
+  // hit the server themselves and carry the values along with their own POST.
+  const establishmentConfig = formConfig?.fields ?? {};
+  const showEstablishment = hasEstablishmentFields(establishmentConfig);
+  const [establishment, setEstablishment] = useState(() => establishmentValuesFrom(setup ?? {}));
+  const [savedEstablishment, setSavedEstablishment] = useState(() => JSON.stringify(establishmentValuesFrom(setup ?? {})));
+  const [savingEstablishment, setSavingEstablishment] = useState(false);
+
+  const missingRequired = missingRequiredEstablishment(establishmentConfig, establishment);
+  const establishmentDirty = JSON.stringify(establishment) !== savedEstablishment;
+  // Required data still missing blocks every payment path — the tenant is
+  // created straight from the session and there is no later chance to ask.
+  const establishmentBlocking = showEstablishment && missingRequired.length > 0;
+
+  const setEstablishmentField = (key: EstablishmentKey, value: string) =>
+    setEstablishment((prev) => ({ ...prev, [key]: value }));
+
+  // Skipped while a required field is empty, otherwise every blur would raise a
+  // validation error the user is still in the middle of fixing.
+  const saveEstablishment = () => {
+    if (!showEstablishment || !establishmentDirty || savingEstablishment || missingRequired.length) return;
+
+    const snapshot = JSON.stringify(establishment);
+    setSavingEstablishment(true);
+    router.post("/setup/establishment", establishment, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => setSavedEstablishment(snapshot),
+      onFinish: () => setSavingEstablishment(false),
+    });
+  };
 
   const planName = setup?.plan_name ?? '';
   const price = Number(planPrice) || 0;
@@ -65,12 +108,15 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
   };
 
   const submitBankTransfer = () => {
-    if (!receipt) return;
+    if (!receipt || establishmentBlocking) return;
 
     setProcessing(true);
     const formData = new FormData();
     formData.append("receipt", receipt);
     if (notes) formData.append("payment_notes", notes);
+    if (showEstablishment) {
+      Object.entries(establishment).forEach(([key, value]) => formData.append(key, value));
+    }
 
     router.post("/setup/payment-method", formData, {
       forceFormData: true,
@@ -81,8 +127,12 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
   // The inline Moyasar form handles its own submission. Redirect gateways need
   // a server round-trip that creates the charge and sends us to the hosted page.
   const startHostedPayment = () => {
+    if (establishmentBlocking) return;
+
     setRedirecting(true);
-    router.post("/setup/payment", {}, { onFinish: () => setRedirecting(false) });
+    router.post("/setup/payment", showEstablishment ? establishment : {}, {
+      onFinish: () => setRedirecting(false),
+    });
   };
 
   const goPrev = () => router.visit("/setup/review");
@@ -119,6 +169,25 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
               </h1>
             </AnimatedHeading>
 
+            {/* Official establishment data — filled in before paying */}
+            {showEstablishment && (
+              <div className="mx-auto mb-8 max-w-3xl">
+                <EstablishmentFields
+                  fields={establishmentConfig}
+                  values={establishment}
+                  onChange={setEstablishmentField}
+                  onBlur={saveEstablishment}
+                  errors={serverErrors}
+                />
+                {savingEstablishment && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                    <Loader2 className="size-3 animate-spin" />
+                    جارٍ حفظ بيانات المنشأة…
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Payment mode toggle */}
             <div className="mx-auto mb-8 flex max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <button
@@ -151,6 +220,13 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
             {(serverErrors?.payment || serverErrors?.receipt) && (
               <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 text-center">
                 {serverErrors.payment || serverErrors.receipt}
+              </div>
+            )}
+
+            {/* Required establishment data gates every payment path */}
+            {establishmentBlocking && (
+              <div className="mx-auto mb-6 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-sm font-medium text-amber-800">
+                أكمل بيانات المنشأة الرسمية أعلاه للمتابعة إلى الدفع.
               </div>
             )}
 
@@ -199,7 +275,7 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
                     </div>
                   )}
 
-                  {paymentGateway.configured && useInlineForm && (
+                  {paymentGateway.configured && useInlineForm && !establishmentBlocking && (
                     <div className="text-start">
                       <MoyasarForm
                         amount={price}
@@ -222,7 +298,7 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
                     <button
                       type="button"
                       onClick={startHostedPayment}
-                      disabled={redirecting}
+                      disabled={redirecting || establishmentBlocking}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-public-primary px-6 py-3.5 text-sm font-bold text-white transition-colors hover:opacity-90 disabled:opacity-60"
                     >
                       {redirecting ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}
@@ -334,7 +410,7 @@ export default function PaymentMethod({ setup, bankDetails, planPrice, paymentGa
                 <button
                   type="button"
                   onClick={submitBankTransfer}
-                  disabled={!receipt || processing}
+                  disabled={!receipt || processing || establishmentBlocking}
                   className="rounded-xl bg-public-primary px-8 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-all"
                 >
                   {processing ? "جاري الإرسال..." : "إرسال الإيصال وإنشاء الحساب"}

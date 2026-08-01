@@ -144,6 +144,10 @@ Route::prefix('setup')->name('setup.')->group(function () {
 
     Route::get('review', [SetupController::class, 'review'])->name('review');
 
+    // Saves the establishment section on the payment page before the customer
+    // is handed to the gateway — the inline card form never round-trips here.
+    Route::post('establishment', [SetupController::class, 'storeEstablishment'])->name('establishment.store');
+
     Route::get('payment-method', [SetupController::class, 'paymentMethod'])->name('paymentMethod');
     Route::post('payment-method', [SetupController::class, 'storePayment'])->name('payment.store');
     Route::post('payment', [SetupController::class, 'initiatePayment'])->name('payment.initiate');
